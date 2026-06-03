@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+
+# 本地数据与密钥
+backend/data/
+backend/.env
+
+# 构建与缓存
+*.tsbuildinfo
+.DS_Store

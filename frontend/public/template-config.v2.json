@@ -1,0 +1,1902 @@
+{
+  "version": "2.0.0-major-sub",
+  "source": {
+    "project": "E:/hello story",
+    "notes": "v2：大类→子类→字段。仅 basic 有 primarySubCategoryId；gating 读 basic_profile；子类内由 AI planner 选题。"
+  },
+  "fieldOptions": {
+    "gender": [
+      "男",
+      "女"
+    ],
+    "children": [
+      "无",
+      "有"
+    ],
+    "married": [
+      "否",
+      "是"
+    ],
+    "education": [
+      "小学",
+      "初中",
+      "高中",
+      "中专",
+      "大专",
+      "本科",
+      "硕士",
+      "博士",
+      "其他"
+    ],
+    "firstJobNature": [
+      "职场",
+      "非职场"
+    ],
+    "partnerMeetRelation": [
+      "同学",
+      "同事",
+      "朋友",
+      "相亲对象",
+      "青梅竹马"
+    ],
+    "meetChannel": [
+      "相亲介绍",
+      "亲友介绍",
+      "工作相识",
+      "网络相识"
+    ],
+    "firstDateBreakReason": [
+      "性格不合",
+      "异地",
+      "家庭或现实原因",
+      "升学或工作变动",
+      "感情变淡",
+      "发现不合适",
+      "各有新选择",
+      "其它"
+    ],
+    "friendAgeGap": [
+      "朋友大我50岁",
+      "朋友大我40岁",
+      "朋友大我30岁",
+      "朋友大我20岁",
+      "朋友大我10岁",
+      "朋友小我10岁",
+      "朋友小我20岁",
+      "朋友小我30岁",
+      "朋友小我40岁",
+      "朋友小我50岁"
+    ],
+    "familyOverallFeeling": [
+      "温馨",
+      "严肃",
+      "吵闹",
+      "和谐",
+      "压抑",
+      "民主",
+      "传统",
+      "热闹",
+      "安静",
+      "轻松",
+      "紧张",
+      "冷漠",
+      "放养",
+      "其他"
+    ],
+    "personality": [
+      "开朗",
+      "内向",
+      "活泼",
+      "稳重",
+      "温和",
+      "乐观",
+      "敏感",
+      "独立",
+      "其他"
+    ],
+    "directRelationTitleSiblings": [
+      "哥哥",
+      "姐姐",
+      "弟弟",
+      "妹妹"
+    ],
+    "directRelationTitleGrandparents": [
+      "爷爷",
+      "奶奶",
+      "外公",
+      "外婆",
+      "其他"
+    ],
+    "familyIncomeChangeDirection": [
+      "增加",
+      "减少"
+    ],
+    "homePurchaseHouseType": [
+      "商品房（新房）",
+      "商品房（二手房）",
+      "公寓/商住",
+      "别墅/联排",
+      "自建房",
+      "农村宅基地/院落",
+      "保障房/经适房",
+      "其它"
+    ]
+  },
+  "categories": [
+    {
+      "id": "basic",
+      "name": "基本信息",
+      "primarySubCategoryId": "basic_profile",
+      "subCategories": [
+        {
+          "id": "basic_profile",
+          "name": "基本档案",
+          "isPrimary": true,
+          "v1TemplateId": "p_0_0",
+          "singleton": true,
+          "required": [
+            {
+              "key": "姓名（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "性别",
+              "control": "gender",
+              "required": true
+            },
+            {
+              "key": "出生年月",
+              "control": "partnerBirthMonth",
+              "required": true,
+              "factId": "author_birth_ym"
+            },
+            {
+              "key": "是否已婚",
+              "control": "married",
+              "required": true,
+              "factId": "marital_status"
+            },
+            {
+              "key": "子女",
+              "control": "children",
+              "required": true,
+              "factId": "has_children"
+            },
+            {
+              "key": "学历",
+              "control": "education",
+              "required": true,
+              "factId": "education"
+            },
+            {
+              "key": "出生地",
+              "control": "address",
+              "required": true,
+              "factId": "birth_place"
+            },
+            {
+              "key": "当前居住地",
+              "control": "address",
+              "required": true,
+              "factId": "current_residence"
+            }
+          ],
+          "optional": []
+        }
+      ]
+    },
+    {
+      "id": "edu",
+      "name": "学业",
+      "subCategories": [
+        {
+          "id": "p_1_8",
+          "name": "学前班",
+          "v1TemplateId": "p_1_8",
+          "required": [
+            {
+              "key": "入学时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "学校名称（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "学校地点（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "毕业时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "朋友（选填）",
+              "control": "text"
+            },
+            {
+              "key": "为何送学前班（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_2",
+          "name": "小学",
+          "v1TemplateId": "p_1_2",
+          "required": [
+            {
+              "key": "入学时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "学校名称（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "学校地点（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "毕业时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "学习成绩（选填，差/中/优）",
+              "control": "text"
+            },
+            {
+              "key": "玩伴或好友（选填）",
+              "control": "text"
+            },
+            {
+              "key": "班主任或印象最深的老师（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_0",
+          "name": "初中",
+          "v1TemplateId": "p_1_0",
+          "required": [
+            {
+              "key": "入学时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "学校名称（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "学校地点（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "毕业时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "学习成绩（选填，差/中/优）",
+              "control": "text"
+            },
+            {
+              "key": "同学或好友（选填）",
+              "control": "text"
+            },
+            {
+              "key": "寄宿或走读（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_3",
+          "name": "高中",
+          "v1TemplateId": "p_1_3",
+          "required": [
+            {
+              "key": "入学时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "学校名称（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "学校地点（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "毕业时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "学习成绩（选填，差/中/优）",
+              "control": "text"
+            },
+            {
+              "key": "同学或好友（选填）",
+              "control": "text"
+            },
+            {
+              "key": "文理科或分科（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_1",
+          "name": "大学",
+          "v1TemplateId": "p_1_1",
+          "required": [
+            {
+              "key": "入学时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "学校名称（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "学校地点（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "毕业时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "专业",
+              "control": "text"
+            },
+            {
+              "key": "室友或社团（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_7",
+          "name": "研究生",
+          "v1TemplateId": "p_1_7",
+          "required": [
+            {
+              "key": "入学时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "学校名称（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "学校地点（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "毕业时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "专业或研究方向（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_9",
+          "name": "博士",
+          "v1TemplateId": "p_1_9",
+          "required": [
+            {
+              "key": "入学时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "学校名称（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "学校地点（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "毕业时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "专业或研究方向（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_4",
+          "name": "其它学业",
+          "v1TemplateId": "p_1_4",
+          "required": [
+            {
+              "key": "开始时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "学校或机构名称（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "机构地点（选填）",
+              "control": "address"
+            }
+          ]
+        },
+        {
+          "id": "p_1_5",
+          "name": "培训/进修",
+          "v1TemplateId": "p_1_5",
+          "required": [
+            {
+              "key": "开始时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "培训或课程名称（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "结束时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "机构名称（选填）",
+              "control": "text"
+            },
+            {
+              "key": "机构地点（选填）",
+              "control": "address"
+            },
+            {
+              "key": "收获或证书（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_6",
+          "name": "学业荣誉",
+          "v1TemplateId": "p_1_6",
+          "required": [
+            {
+              "key": "荣誉名称（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "获得时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "颁发单位（选填）",
+              "control": "text"
+            },
+            {
+              "key": "简要说明（选填）",
+              "control": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "family",
+      "name": "家庭",
+      "subCategories": [
+        {
+          "id": "p_2_0",
+          "name": "另一半",
+          "v1TemplateId": "p_2_0",
+          "singleton": true,
+          "required": [
+            {
+              "key": "姓名（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "出生地（必填）",
+              "control": "address",
+              "required": true
+            },
+            {
+              "key": "另一半出生年月（必填）",
+              "control": "partnerBirthMonth",
+              "required": true
+            },
+            {
+              "key": "相遇开始时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "结婚时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "相识关系（必填）",
+              "control": "partnerMeetRelation",
+              "required": true
+            },
+            {
+              "key": "认识途径（必填）",
+              "control": "meetChannelSelect",
+              "required": true
+            }
+          ],
+          "optional": []
+        },
+        {
+          "id": "p_2_1_f",
+          "name": "父亲",
+          "v1TemplateId": "p_2_1_f",
+          "required": [
+            {
+              "key": "姓名（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "出生年月（必填）",
+              "control": "partnerBirthMonth",
+              "required": true
+            },
+            {
+              "key": "职业（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "当前周岁（选填）",
+              "control": "text"
+            },
+            {
+              "key": "简要印象或故事（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_1_m",
+          "name": "母亲",
+          "v1TemplateId": "p_2_1_m",
+          "required": [],
+          "optional": [
+            {
+              "key": "姓名（选填）",
+              "control": "text"
+            },
+            {
+              "key": "出生年月（选填）",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "当前周岁（选填）",
+              "control": "text"
+            },
+            {
+              "key": "职业（选填）",
+              "control": "text"
+            },
+            {
+              "key": "简要印象或故事（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_7",
+          "name": "兄弟姐妹",
+          "v1TemplateId": "p_2_7",
+          "required": [
+            {
+              "key": "称谓（必填）",
+              "control": "directRelationTitleSelect",
+              "optionsKey": "directRelationTitleSiblings",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "姓名（选填）",
+              "control": "text"
+            },
+            {
+              "key": "出生年月（选填）",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "当前周岁（选填）",
+              "control": "text"
+            },
+            {
+              "key": "职业（选填）",
+              "control": "text"
+            },
+            {
+              "key": "简要印象或故事（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_8",
+          "name": "爷奶",
+          "v1TemplateId": "p_2_8",
+          "required": [
+            {
+              "key": "称谓（必填）",
+              "control": "directRelationTitleSelect",
+              "optionsKey": "directRelationTitleGrandparents",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "姓名或称呼（选填）",
+              "control": "text"
+            },
+            {
+              "key": "出生年月（选填）",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "职业（选填）",
+              "control": "text"
+            },
+            {
+              "key": "简要印象或故事（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_5",
+          "name": "子女",
+          "v1TemplateId": "p_2_5",
+          "required": [
+            {
+              "key": "姓名（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "性别（必填）",
+              "control": "gender",
+              "required": true
+            },
+            {
+              "key": "性格（必填）",
+              "control": "personalitySelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "小名（选填）",
+              "control": "text"
+            },
+            {
+              "key": "出生年月（选填）",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "当前周岁（选填）",
+              "control": "text"
+            },
+            {
+              "key": "子事件（选填）",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_2_6",
+          "name": "孙辈",
+          "v1TemplateId": "p_2_6",
+          "required": [
+            {
+              "key": "姓名（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "性别（必填）",
+              "control": "gender",
+              "required": true
+            },
+            {
+              "key": "性格（必填）",
+              "control": "personalitySelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "小名（选填）",
+              "control": "text"
+            },
+            {
+              "key": "出生年月（选填）",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "当前周岁（选填）",
+              "control": "text"
+            },
+            {
+              "key": "子事件（选填）",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_2_2",
+          "name": "其它亲属",
+          "v1TemplateId": "p_2_2",
+          "required": [
+            {
+              "key": "称谓（必填，如伯父、表姐等）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "简要印象或故事（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_3",
+          "name": "家庭氛围",
+          "v1TemplateId": "p_2_3",
+          "required": [
+            {
+              "key": "整体感受（必填，如温馨、严肃、吵闹等）",
+              "control": "familyFeelingSelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "典型日常或习惯（选填）",
+              "control": "text"
+            },
+            {
+              "key": "对你影响最大的一点（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_4",
+          "name": "家庭其它事件",
+          "v1TemplateId": "p_2_4",
+          "required": [
+            {
+              "key": "发生时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "地点（必填）",
+              "control": "address",
+              "required": true
+            },
+            {
+              "key": "事件简述（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "对你的影响（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_11",
+          "name": "家庭收入变化",
+          "v1TemplateId": "p_2_11",
+          "required": [
+            {
+              "key": "收入增加或减少（必填）",
+              "control": "familyIncomeChangeDirectionSelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "发生时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "原因或背景（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_9",
+          "name": "子女婚姻",
+          "v1TemplateId": "p_2_9",
+          "required": [
+            {
+              "key": "子女姓名或小名（必填）",
+              "control": "linkedChildNameSelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "配偶称呼或姓名（选填）",
+              "control": "text"
+            },
+            {
+              "key": "结婚时间（选填）",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "我当时年龄（选填）",
+              "control": "text"
+            },
+            {
+              "key": "子女当时年龄（选填）",
+              "control": "text"
+            },
+            {
+              "key": "结婚地点（选填）",
+              "control": "address"
+            },
+            {
+              "key": "经过与感受（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_10",
+          "name": "子女学业",
+          "v1TemplateId": "p_2_10",
+          "required": [
+            {
+              "key": "子女姓名或小名（必填）",
+              "control": "linkedChildNameSelect",
+              "required": true
+            },
+            {
+              "key": "当时的年月（必填）",
+              "control": "partnerBirthMonth",
+              "required": true
+            },
+            {
+              "key": "我当时年龄（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "子女当时年龄（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "学校或阶段（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": []
+        },
+        {
+          "id": "p_6_12",
+          "name": "买房",
+          "v1TemplateId": "p_6_12",
+          "required": [
+            {
+              "key": "购房时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "地点或小区（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "房屋类型（选填）",
+              "control": "homePurchaseHouseTypeSelect"
+            },
+            {
+              "key": "户型或面积（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_13",
+          "name": "买车",
+          "v1TemplateId": "p_6_13",
+          "required": [
+            {
+              "key": "购车时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "品牌或车型（选填）",
+              "control": "text"
+            },
+            {
+              "key": "提车或上牌地点（选填）",
+              "control": "address"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "career",
+      "name": "工作",
+      "subCategories": [
+        {
+          "id": "p_3_1",
+          "name": "第一个工作",
+          "v1TemplateId": "p_3_1",
+          "singleton": true,
+          "required": [
+            {
+              "key": "开始时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "结束时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "职业性质（必填）",
+              "control": "firstJobNature",
+              "required": true
+            },
+            {
+              "key": "地点（必填）",
+              "control": "address",
+              "required": true
+            },
+            {
+              "key": "做什么活/工作内容（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "公司名称（选填）",
+              "control": "text"
+            },
+            {
+              "key": "岗位（选填）",
+              "control": "text"
+            },
+            {
+              "key": "来这里工作的原因（选填）",
+              "control": "text"
+            },
+            {
+              "key": "收入或报酬（选填，可写工分、粮食、工资等）",
+              "control": "text"
+            },
+            {
+              "key": "这段经历印象（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_2",
+          "name": "后续工作经历",
+          "v1TemplateId": "p_3_2",
+          "required": [
+            {
+              "key": "开始时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "结束时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "职业性质（必填）",
+              "control": "firstJobNature",
+              "required": true
+            },
+            {
+              "key": "地点（必填）",
+              "control": "address",
+              "required": true
+            },
+            {
+              "key": "公司名称（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "岗位（必填）",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "做什么活/工作内容（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "来这里工作的原因（选填）",
+              "control": "text"
+            },
+            {
+              "key": "收入或报酬（选填，可写工分、粮食、工资等）",
+              "control": "text"
+            },
+            {
+              "key": "这段经历印象（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_3",
+          "name": "创业经历",
+          "v1TemplateId": "p_3_3",
+          "required": [
+            {
+              "key": "开始时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "项目或公司名（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "结束时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "地点或城市（选填）",
+              "control": "address"
+            },
+            {
+              "key": "动机与过程简述（选填）",
+              "control": "text"
+            },
+            {
+              "key": "结果或收获（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_4",
+          "name": "待业/失业经历",
+          "v1TemplateId": "p_3_4",
+          "required": [],
+          "optional": [
+            {
+              "key": "开始时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "结束时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "主要原因（选填）",
+              "control": "text"
+            },
+            {
+              "key": "期间状态或心情（选填）",
+              "control": "text"
+            },
+            {
+              "key": "如何度过或转折（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_0",
+          "name": "实习经历",
+          "v1TemplateId": "p_3_0",
+          "required": [
+            {
+              "key": "开始时间（必填）",
+              "control": "timeAgePair",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "结束时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "公司名称（选填）",
+              "control": "text"
+            },
+            {
+              "key": "岗位（选填）",
+              "control": "text"
+            },
+            {
+              "key": "来这里实习的原因（选填）",
+              "control": "text"
+            },
+            {
+              "key": "收入或报酬（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_5",
+          "name": "工作荣誉",
+          "v1TemplateId": "p_3_5",
+          "required": [
+            {
+              "key": "荣誉名称（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "获得时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "颁发方（选填）",
+              "control": "text"
+            },
+            {
+              "key": "简要说明（选填）",
+              "control": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "love",
+      "name": "情感",
+      "subCategories": [
+        {
+          "id": "p_4_0",
+          "name": "第一次谈对象",
+          "v1TemplateId": "p_4_0",
+          "singleton": true,
+          "required": [],
+          "optional": [
+            {
+              "key": "对方称呼或关系（选填）",
+              "control": "text"
+            },
+            {
+              "key": "开始时间",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "结束时间",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "认识地点",
+              "control": "address"
+            },
+            {
+              "key": "认识途径",
+              "control": "meetChannelSelect"
+            },
+            {
+              "key": "分开的原因（选填）",
+              "control": "firstDateBreakReasonSelect"
+            },
+            {
+              "key": "分开的原因其它说明（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_4_1",
+          "name": "其它恋爱经历",
+          "v1TemplateId": "p_4_1",
+          "required": [],
+          "optional": [
+            {
+              "key": "对方称呼或关系（选填）",
+              "control": "text"
+            },
+            {
+              "key": "开始时间",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "结束时间",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "认识地点",
+              "control": "address"
+            },
+            {
+              "key": "认识途径",
+              "control": "meetChannelSelect"
+            },
+            {
+              "key": "分开的原因（选填）",
+              "control": "firstDateBreakReasonSelect"
+            },
+            {
+              "key": "分开的原因其它说明（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_4_2",
+          "name": "朋友",
+          "v1TemplateId": "p_4_2",
+          "required": [],
+          "optional": [
+            {
+              "key": "称呼（选填）",
+              "control": "text"
+            },
+            {
+              "key": "和我的年纪差距（选填）",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "子事件（选填）",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_4_7",
+          "name": "发小",
+          "v1TemplateId": "p_4_7",
+          "required": [],
+          "optional": [
+            {
+              "key": "称呼（选填）",
+              "control": "text"
+            },
+            {
+              "key": "和我的年纪差距（选填）",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "子事件（选填）",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_4_5",
+          "name": "同事",
+          "v1TemplateId": "p_4_5",
+          "required": [],
+          "optional": [
+            {
+              "key": "称呼（选填）",
+              "control": "text"
+            },
+            {
+              "key": "和我的年纪差距（选填）",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "子事件（选填）",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_4_6",
+          "name": "老师",
+          "v1TemplateId": "p_4_6",
+          "required": [],
+          "optional": [
+            {
+              "key": "称呼（选填）",
+              "control": "text"
+            },
+            {
+              "key": "和我的年纪差距（选填）",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "子事件（选填）",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_4_4",
+          "name": "战友",
+          "v1TemplateId": "p_4_4",
+          "required": [],
+          "optional": [
+            {
+              "key": "称呼（选填）",
+              "control": "text"
+            },
+            {
+              "key": "和我的年纪差距（选填）",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "子事件（选填）",
+              "control": "childSubEvents"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "geo",
+      "name": "地域",
+      "subCategories": [
+        {
+          "id": "p_5_0",
+          "name": "我出生的地方",
+          "v1TemplateId": "p_5_0",
+          "singleton": true,
+          "required": [],
+          "optional": [
+            {
+              "key": "离开出生地的时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "童年记忆或感受（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_1",
+          "name": "我工作的地方",
+          "v1TemplateId": "p_5_1",
+          "required": [],
+          "optional": [
+            {
+              "key": "地点名称",
+              "control": "address"
+            },
+            {
+              "key": "开始时间",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "离开的时间",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "对这座城市或这段工作的印象（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_2",
+          "name": "我求学的地方",
+          "v1TemplateId": "p_5_2",
+          "required": [
+            {
+              "key": "地点名称（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "开始时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "离开的时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "与求学相关的记忆（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_3",
+          "name": "我生活过的地方",
+          "v1TemplateId": "p_5_3",
+          "required": [
+            {
+              "key": "地点名称（必填，除当前居住地外）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "开始时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "离开的时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "生活片段或感受（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_4",
+          "name": "我旅行过的地方",
+          "v1TemplateId": "p_5_4",
+          "required": [
+            {
+              "key": "地点名称（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "旅行时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "同行者（选填）",
+              "control": "text"
+            },
+            {
+              "key": "印象最深的一幕（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_5",
+          "name": "搬家或迁徙",
+          "v1TemplateId": "p_5_5",
+          "required": [
+            {
+              "key": "搬往何地（必填）",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "搬家时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "缘由或感受（选填）",
+              "control": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "life",
+      "name": "人生其它",
+      "subCategories": [
+        {
+          "id": "p_6_10",
+          "name": "人生感悟",
+          "v1TemplateId": "p_6_10",
+          "required": [
+            {
+              "key": "感悟内容（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "主题（选填）",
+              "control": "text"
+            },
+            {
+              "key": "由何经历总结而来（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_0",
+          "name": "我得过的奖",
+          "v1TemplateId": "p_6_0",
+          "required": [
+            {
+              "key": "奖项名称（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "获得时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "颁发方（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_1",
+          "name": "我的意外之财",
+          "v1TemplateId": "p_6_1",
+          "required": [
+            {
+              "key": "什么意外之财（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "地点（选填）",
+              "control": "address"
+            }
+          ]
+        },
+        {
+          "id": "p_6_2",
+          "name": "生病了",
+          "v1TemplateId": "p_6_2",
+          "required": [
+            {
+              "key": "啥病（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "地点（选填）",
+              "control": "address"
+            }
+          ]
+        },
+        {
+          "id": "p_6_5",
+          "name": "难忘的意外",
+          "v1TemplateId": "p_6_5",
+          "required": [
+            {
+              "key": "经过（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "地点（选填）",
+              "control": "address"
+            },
+            {
+              "key": "事后感受或改变（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_8",
+          "name": "难忘的礼物",
+          "v1TemplateId": "p_6_8",
+          "required": [
+            {
+              "key": "礼物是什么（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "地点（选填）",
+              "control": "address"
+            },
+            {
+              "key": "谁送的（选填）",
+              "control": "text"
+            },
+            {
+              "key": "为何难忘（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_14",
+          "name": "见义勇为",
+          "v1TemplateId": "p_6_14",
+          "required": [
+            {
+              "key": "事件（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "地点（选填）",
+              "control": "address"
+            },
+            {
+              "key": "事后感受（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_3",
+          "name": "兴趣爱好",
+          "v1TemplateId": "p_6_3",
+          "required": [
+            {
+              "key": "爱好名称（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "开始或坚持的时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "为何喜欢（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_4",
+          "name": "特长技能",
+          "v1TemplateId": "p_6_4",
+          "required": [
+            {
+              "key": "技能或特长名称（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "熟练程度（选填）",
+              "control": "text"
+            },
+            {
+              "key": "如何习得（选填）",
+              "control": "text"
+            },
+            {
+              "key": "是否曾带来机会或荣誉（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_11",
+          "name": "收藏爱好",
+          "v1TemplateId": "p_6_11",
+          "required": [
+            {
+              "key": "收藏类别（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "起始或坚持时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "印象最深的一件（选填）",
+              "control": "text"
+            },
+            {
+              "key": "收藏对你的意义（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_6",
+          "name": "健康状况",
+          "v1TemplateId": "p_6_6",
+          "required": [],
+          "optional": [
+            {
+              "key": "当前或曾关注的方面（选填，如睡眠、慢性病、运动习惯等）",
+              "control": "text"
+            },
+            {
+              "key": "简要说明（选填）",
+              "control": "text"
+            },
+            {
+              "key": "对你生活的影响（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_7",
+          "name": "宗教信仰",
+          "v1TemplateId": "p_6_7",
+          "required": [],
+          "optional": [
+            {
+              "key": "是否有信仰及名称（选填）",
+              "control": "text"
+            },
+            {
+              "key": "接触或坚持的时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "对你观念或习惯的影响（选填）",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_9",
+          "name": "小众经历",
+          "v1TemplateId": "p_6_9",
+          "required": [
+            {
+              "key": "事件（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "地点（选填）",
+              "control": "address"
+            }
+          ]
+        },
+        {
+          "id": "narrative_template",
+          "name": "自述",
+          "v1TemplateId": "narrative_template",
+          "required": [
+            {
+              "key": "事件（必填）",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "时间（选填）",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "地点（选填）",
+              "control": "address"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
