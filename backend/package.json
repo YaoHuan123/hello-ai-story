@@ -18,7 +18,16 @@
     "test:topic:tier5": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier5.integration.ts",
     "test:topic:tier6": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier6.integration.ts",
     "test:topic:tier7": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier7.integration.ts",
-    "test:topic:tier8": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier8.integration.ts"
+    "test:topic:tier8": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier8.integration.ts",
+    "test:question:dedupe": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/question-dedupe.integration.ts",
+    "test:question:colloquialize": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/question-colloquialize.integration.ts",
+    "test:question:suggest-batch": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/question-suggest-batch.integration.ts",
+    "test:question:prep": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/question-prep.integration.ts",
+    "test:question:refine": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/question-refine.integration.ts",
+    "test:question:suggest-current": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/question-suggest-current.integration.ts",
+    "test:question:refine-suggest": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/question-refine-suggest.integration.ts",
+    "test:question:extend": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/question-extend.integration.ts",
+    "test:question:flow": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/question-flow.integration.ts"
   },
   "keywords": [],
   "author": "",

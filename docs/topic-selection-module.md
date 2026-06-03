@@ -1,5 +1,7 @@
 # 选题器模块接口文档
 
+出题（模板去重、口语化、备选、refine、扩展追问）见 **[出题模块规划](question-generation-module.md)**（逐步实现中）。
+
 本文档描述**完整选题器**对外约定：服务层四接口、持久化、数据类型，以及与底层 `topic/` 选题模块的关系。
 
 - **服务层（编排 + 持久化）**：[`backend/src/services/topicSelection.service.ts`](../backend/src/services/topicSelection.service.ts)

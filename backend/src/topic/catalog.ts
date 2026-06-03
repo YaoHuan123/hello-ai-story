@@ -4,7 +4,6 @@ import path from "node:path";
 /**
  * 话题配置模板（大类 → 子类）。与前端表单共用同一份：
  * `frontend/public/template-config.v2.json`。
- * 本文件位于 backend/src/topic 或编译后 backend/dist/topic，向上三级即仓库根。
  */
 const CATALOG_PATH = path.join(
   __dirname,
@@ -24,7 +23,6 @@ export type Topic = {
 
 type RawField = { key: string };
 
-/** `template-config.v2.json` 中本模块关心的最小结构（其余字段忽略）。 */
 type RawCatalog = {
   categories: Array<{
     id: string;
@@ -37,10 +35,7 @@ type RawCatalog = {
   }>;
 };
 
-/** 进程级缓存：配置模板只读一次。 */
 let cache: Topic[] | null = null;
-
-/** 子类名 → 合并后的字段 key 列表（required + optional，不区分）。 */
 let fieldKeysCache: Map<string, string[]> | null = null;
 
 function buildFieldKeysCache(): Map<string, string[]> {
@@ -61,14 +56,6 @@ function buildFieldKeysCache(): Map<string, string[]> {
   return map;
 }
 
-/**
- * 加载全部可选话题（排除 basic 基本信息大类，那是档案不是话题）。
- *
- * 结果进程级缓存；配置缺失 categories 或无任何话题时抛错，不静默返回空。
- *
- * @returns 扁平化的话题列表（大类 × 子类）
- * @throws CATALOG_INVALID 配置缺少 categories；CATALOG_EMPTY 无可选话题
- */
 export function loadTopics(): Topic[] {
   if (cache) return cache;
   const raw = fs.readFileSync(CATALOG_PATH, "utf-8");
@@ -91,11 +78,9 @@ export function loadTopics(): Topic[] {
 }
 
 /**
- * 按子类名取配置模板中的字段 key（required + optional 合并，不区分）。
+ * 选题接口 2（catalog）组装 `QuestionSet.questions` 时使用。
  *
- * @param name 子类显示名（全局唯一，与 {@link Topic.name} 一致）
- * @returns 字段 key 列表（可能为空数组）
- * @throws CATALOG_TOPIC_NOT_FOUND 配置中无该子类
+ * @throws CATALOG_TOPIC_NOT_FOUND
  */
 export function getTopicFieldKeys(name: string): string[] {
   if (!fieldKeysCache) {
