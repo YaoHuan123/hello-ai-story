@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "backend",
   "version": "1.0.0",
   "description": "",
@@ -7,7 +7,18 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test:topic": "ts-node --project scripts/tsconfig.json --transpile-only scripts/topic-tier1.integration.ts"
+    "test:topic": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier1.integration.ts",
+    "test:topic:tier2": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier2.integration.ts",
+    "test:topic:tier3": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier3.integration.ts",
+    "test:topic:select": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-select.integration.ts",
+    "test:topic:tier4": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier4.integration.ts",
+    "test:topic:flow": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-flow.integration.ts",
+    "test:topic:luxun": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-luxun.integration.ts",
+    "test:topic:luxun:trace": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-luxun-full-trace.integration.ts",
+    "test:topic:tier5": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier5.integration.ts",
+    "test:topic:tier6": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier6.integration.ts",
+    "test:topic:tier7": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier7.integration.ts",
+    "test:topic:tier8": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier8.integration.ts"
   },
   "keywords": [],
   "author": "",

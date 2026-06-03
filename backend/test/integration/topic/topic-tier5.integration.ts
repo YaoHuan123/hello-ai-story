@@ -1,0 +1,96 @@
+﻿/**
+ * Tier5 矛盾选题集成测试（真实 LLM）。
+ *
+ * 使用 `luxunSections()`，验证 sections → tier5.json → getPendingTopics → getTopicQuestions。
+ *
+ * 运行：`npm run test:topic:tier5`
+ */
+import { config as loadEnv } from "dotenv";
+
+loadEnv();
+
+let passed = 0;
+let failed = 0;
+
+function check(label: string, cond: boolean, detail?: unknown): void {
+  if (cond) {
+    passed += 1;
+    console.log(`  [ok] ${label}`);
+  } else {
+    failed += 1;
+    const extra = detail !== undefined ? ` | ${JSON.stringify(detail)}` : "";
+    console.error(`  [FAIL] ${label}${extra}`);
+  }
+}
+
+const TEST_USER = `topic-tier5-${Date.now()}`;
+
+async function main(): Promise<void> {
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    console.warn("[SKIP] 未配置 OPENAI_API_KEY，tier5 集成测试需真实 LLM。");
+    process.exit(0);
+  }
+
+  const fs = await import("node:fs");
+  const { createUserWorkspace } = await import("../../../src/services/workspace.service");
+  const { luxunSections } = await import("../../fixtures/sections.luxun");
+  const { tierPendingPath } = await import("../../../src/topic/tierPending");
+  const {
+    writeCurrentStage,
+    getPendingTopics,
+    getTopicQuestions,
+    advanceStage,
+  } = await import("../../../src/services/topicSelection.service");
+  const { readTierPending } = await import("../../../src/topic/tierPending");
+
+  const sections = luxunSections();
+  createUserWorkspace(TEST_USER);
+  writeCurrentStage(TEST_USER, 5);
+
+  console.log("\n=== Tier5：sections → tier5.json + getPendingTopics ===");
+  const picks = await getPendingTopics(TEST_USER, sections);
+  console.log("  picks:", JSON.stringify(picks, null, 2));
+
+  check("tier5.json 已生成", fs.existsSync(tierPendingPath(TEST_USER, 5)));
+  check("返回数组", Array.isArray(picks), picks);
+
+  const pending = readTierPending(TEST_USER, 5);
+  check("tier pending.tier === 5", pending?.tier === 5, pending);
+
+  if (picks.length > 0) {
+    const first = picks[0];
+    const row = pending?.picks.find((r) => r.pick.title === first.title);
+    check("kind 为 material_contradiction", first.kind === "material_contradiction", first);
+    check("无 contradictionId", !("contradictionId" in first), first);
+    check("无 involvedIds", !("involvedIds" in first), first);
+    check("接口1 不返回 questions", !("questions" in first), first);
+    check("pending row questions 非空", (row?.questions?.length ?? 0) >= 1, row);
+
+    const qText = row!.questions![0];
+    check("题目含请说明引导", qText.includes("请简要说明") || qText.includes("请说明"), qText);
+    check("题目含 summary 或材料不一致", qText.includes(first.title) || qText.includes("不一致"), qText);
+    const hasSectionBlock = sections.some(
+      (s) => s.name && qText.includes(`【${s.name}】`),
+    );
+    check("题目含至少一个【节名】摘录", hasSectionBlock, qText);
+
+    const qs = getTopicQuestions(TEST_USER, first.title);
+    console.log("  questions length:", qs.questions[0]?.length);
+    check("接口2 复用 row.questions", qs.questions[0] === row!.questions![0], qs);
+    check("tier 为 5", qs.tier === 5, qs);
+  } else {
+    console.warn("  [warn] 模型未检出矛盾，跳过取题断言");
+  }
+
+  console.log("\n=== advance 5→6 ===");
+  const next = advanceStage(TEST_USER);
+  check("进入 tier6", next.tier === 6, next);
+
+  console.log(`\n=== 结果：${passed} passed, ${failed} failed ===`);
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
