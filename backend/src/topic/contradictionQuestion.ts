@@ -1,6 +1,6 @@
 import type { FactContradictionRaw } from "./parseContradiction";
 
-/** 单节摘录最大长度，避免 tier5.json 过大。 */
+/** 单节摘录最大长度，避免 pending.json 过大。 */
 const MAX_EXCERPT_CHARS = 800;
 
 function truncateExcerpt(text: string): string {

@@ -47,7 +47,7 @@ async function main(): Promise<void> {
   } = await import("../../../src/services/interviewOrchestrator.service");
   const { stubSections } = await import("../../fixtures/sections.stub");
   const { writeCurrentStage } = await import("../../../src/services/topicSelection.service");
-  const { writeTierPending } = await import("../../../src/topic/tierPending");
+  const { writePending } = await import("../../../src/topic/tierPending");
   const { readPrep, readAnswers, writePrep } = await import("../../../src/question/topicPersist");
 
   const scope = setupUserWithInterview(TEST_USER);
@@ -145,7 +145,7 @@ async function main(): Promise<void> {
 
   console.log("\n=== getPendingTopics + enterTopic（generated）===");
   writeCurrentStage(scope, 3);
-  writeTierPending(
+  writePending(
     scope,
     {
       tier: 3,
@@ -173,7 +173,7 @@ async function main(): Promise<void> {
   const scope2 = setupUserWithInterview(`${TEST_USER}-2api`);
   seedCommittedSections(scope2, stubSections());
   writeCurrentStage(scope2, 3);
-  writeTierPending(
+  writePending(
     scope2,
     {
       tier: 3,
@@ -219,7 +219,7 @@ async function main(): Promise<void> {
   const scopeEmpty = setupUserWithInterview(`${TEST_USER}-empty`);
   seedCommittedSections(scopeEmpty, stubSections());
   writeCurrentStage(scopeEmpty, 3);
-  writeTierPending(
+  writePending(
     scopeEmpty,
     {
       tier: 3,
@@ -275,7 +275,7 @@ async function main(): Promise<void> {
     const scopeLlm = setupUserWithInterview(`${TEST_USER}-llm`);
     seedCommittedSections(scopeLlm, stubSections());
     writeCurrentStage(scopeLlm, 1);
-    writeTierPending(
+    writePending(
       scopeLlm,
       {
         tier: 1,

@@ -66,7 +66,7 @@ async function main(): Promise<void> {
   const persistenceDir = path.join(traceDir, "persistence");
 
   const { luxunSections } = await import("../../fixtures/sections.luxun");
-  const { tierPendingPath } = await import("../../../src/topic/tierPending");
+  const { pendingPath } = await import("../../../src/topic/tierPending");
   const { OPENAI_MODEL } = await import("../../../src/config");
   const {
     getCurrentStage,
@@ -127,16 +127,16 @@ async function main(): Promise<void> {
       console.warn(`  api2: skipped (no picks)`);
     }
 
-    const tierFile = tierPendingPath(scope, tier);
+    const pendingFile = pendingPath(scope);
     const destTier = path.join(persistenceDir, `tier${tier}.json`);
-    if (copyIfExists(tierFile, destTier)) {
-      check(`persistence/tier${tier}.json 已复制`, true);
+    if (copyIfExists(pendingFile, destTier)) {
+      check(`persistence/tier${tier}.json 已复制（来自 pending.json）`, true);
     } else {
       writeJson(persistenceDir, `tier${tier}.missing.json`, {
-        expectedPath: tierFile,
-        reason: "file not found after getPendingTopics",
+        expectedPath: pendingFile,
+        reason: "pending.json not found after getPendingTopics",
       });
-      check(`persistence/tier${tier}.json 存在`, false, tierFile);
+      check(`persistence/tier${tier}.json 存在`, false, pendingFile);
     }
 
     if (tier < 8) {

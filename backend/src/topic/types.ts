@@ -132,19 +132,19 @@ export type TopicPick = {
 // ─── 落盘：待选列表与阶段 ─────────────────────────────────────
 
 /**
- * 单条待选行：`tier{N}.json` 中的一项。
+ * 单条待选行：`pending.json` 中的一项。
  * 选题 LLM 产出后可预填 `questions` / `suggestedAnswers`，供接口 2 或前端展示。
  */
 export type PendingPickRow = {
   /** 接口 1 瘦身条目（点选时只需 `pick`） */
   pick: TopicPick;
-  /** 接口 2 题面（catalog 时为模板 field key 列表；Tier3 等为生成问句） */
+  /** 接口 2 题面（catalog 时为模板 field key 列表，口语化在出题 prep；Tier3 等为生成问句） */
   questions?: string[];
   /** 预置点选备选（如 Tier4 热点快捷回复） */
   suggestedAnswers?: string[];
 };
 
-/** 某 tier 完整待选批次（用户工作区 `选题/tier{N}.json`）。 */
+/** 当前档待选批次（用户工作区 `选题/pending.json`）。 */
 export type PendingSelection = {
   /** 本文件对应的选题档位 */
   tier: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
@@ -172,7 +172,7 @@ export type CurrentStage = {
  *
  * 出题模块 [`question/`](../question/) **只消费本类型**（不读 template-config）：
  * - `title`：本轮主题（catalog 时通常 = 子类名）
- * - `questions`：待处理题列表（catalog 时为模板 key 文案；其它 kind 为开放问句）
+ * - `questions`：待处理题列表（catalog 时为 template-config **field key** 表头，非口语问句；见 [`runTemplatePrep`](../question/runTemplatePrep.ts)）
  * - `suggestedAnswers`：可选，Tier4 等可预置快捷回复
  *
  * `tier` / `kind` 供出题侧守卫（如 `kind !== "catalog"` 不适用批量 prep）。
@@ -186,7 +186,8 @@ export type QuestionSet = {
   kind: TopicPickKind;
   /**
    * 本轮待答题列表。
-   * catalog：模板 field key 原文；generated / hot_topic / material_*：开放问句或衍生问句
+   * catalog：template-config field key（如 `学校名称（必填）`），与 dedupe/colloquialize 输入对齐；
+   * generated / hot_topic / material_*：开放问句或衍生问句（已是展示级文案）
    */
   questions: string[];
   /** 可选预置点选备选（整集级；单题备选由出题 `runTemplatePrep` 等产生） */

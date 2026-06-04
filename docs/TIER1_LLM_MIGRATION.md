@@ -1,15 +1,13 @@
-> **实现说明（已重写）**：本功能已收敛为单个模块 [`backend/src/topic/`](../backend/src/topic)，
-> 只做「从配置模板加载话题 → 复用老提示词 → 调 LLM 推荐话题」。
-> **不复用**老项目代码（老项目有问题），仅复用需求与提示词。下方旧的分阶段移植清单已作废，仅留存参考。
+> **实现说明（2026-06）**：Tier1–8 选题已实现在 [`backend/src/topic/`](../backend/src/topic)，经 [`topicSelection.service.ts`](../backend/src/services/topicSelection.service.ts) 与访谈编排 [`interviewOrchestrator.service.ts`](../backend/src/services/interviewOrchestrator.service.ts) 接入；**无独立 HTTP**，客户端走 `/api/interviews/:id/current|submit`。
+>
+> 下方「分步移植清单」为**历史记录**（面向老项目 `materialDir` / `v2-访谈进度.json`），与当前磁盘布局（`{用户}/采访/{id}/`）不一致，**勿按此清单新开发**。若需扩展选题，以 [`docs/topic-selection-module.md`](topic-selection-module.md) 为准。
 
 ---
 
-# Tier1 AI 选题（LLM 部分）— 分步任务清单
+# Tier1 AI 选题（LLM 部分）— 历史分步清单（已归档）
 
-> **当前工程状态**：`backend/src` 仅保留认证；Tier1 相关代码已全部移除。  
-> **本阶段目标**：后端能对一个已有 `materialDir` 执行 Tier1 LLM 选题并写入 `v2-访谈进度.json` 的 `activePick`；**不实现** HTTP、测试脚本、前端。  
-> **参考实现**：`E:\hello story\backend` 中 `runLlmGatingTieredPick` → `tier1.handler` → `persistActivePickFromGating` 链路。  
-> **环境变量**：`OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL` 三项**严格必填**（缺则 `MISSING_ENV:*`，不用 hello story 的默认 fallback）。
+> ~~**当前工程状态**：`backend/src` 仅保留认证~~ **已过时**。  
+> **现况**：选题 Tier1–8 + 集成测试（`npm run test:topic:*`）均已就绪；阶段 F 已通过 `topicSelection.service` + 访谈 HTTP 完成，而非老项目 `persistActivePickFromGating` 路径。
 
 ---
 
@@ -20,7 +18,7 @@
 - [x] **阶段 C**：OpenAI 兼容客户端（LLM 底座）
 - [x] **阶段 D**：Catalog 与 gating 输入构建
 - [x] **阶段 E**：LLM 选题核心
-- [ ] **阶段 F**：Tier1 落盘与编排入口
+- [x] **阶段 F**：Tier1 落盘与编排入口（现：`topicSelection.service` + 访谈编排，见 [`topic-selection-module.md`](topic-selection-module.md)）
 
 **建议顺序**：A → B → C → D → E → F。每阶段完成后用**手写** `materialDir` 本地验证一次（不加仓库内集成测试）。
 

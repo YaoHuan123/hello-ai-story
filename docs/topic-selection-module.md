@@ -27,11 +27,34 @@
 
 阶段流转为**循环**：`1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 1 → …`（由接口4 推进）。
 
-Tier5～8 使用调用方传入的 **`sections`**。须至少 **5 个有内容的节**；首次会调 LLM 并写入 `选题/tier{N}.json`。Tier5 的涉及节正文在选题时写入 pending 行的 `questions`，不再输出 `contradictionId` / `involvedIds`（见 §11）。
+Tier5～8 使用调用方传入的 **`sections`**。须至少 **5 个有内容的节**；首次会调 LLM 并写入 `选题/pending.json`。Tier5 的涉及节正文在选题时写入 pending 行的 `questions`，不再输出 `contradictionId` / `involvedIds`（见 §11）。
 
 ---
 
 ## 2. 推荐业务流程
+
+### 2.1 产品路径（审查约定）
+
+**用户按 tier 逐档完成**：在同一 `current-stage` 档位内完成「看待选 → 确认主题 → 取题 → 答完落库 → 升档」，再进入下一档；**不会**在同一档长时间停留并反复改 `sections` 后再要求整批待选重算。
+
+典型顺序：
+
+```
+tier N：getPendingTopics（无缓存则 LLM，写入 pending.json）
+      → 用户确认 pick → getTopicQuestions → 答题 → commit 进 sections
+      → advanceStage（删除 pending.json，stage = N+1）
+tier N+1：getPendingTopics（无 tier{N+1}.json，用**最新** sections 重新 LLM）
+```
+
+因此：
+
+- **不需要**「同档 `sections` 变更 → 输入 hash 失效 → 重调 LLM」；同档内复用 `pending.json` 是预期行为。
+- 同档内若 pending 含多条候选、用户只答完其中一条，编排层在内存中过滤已在 `sections` 里的 `title`（见 [`interviewOrchestrator.service.ts`](../backend/src/services/interviewOrchestrator.service.ts) `pendingWithAutoPromote`），**不**改写磁盘 pending。
+- 下一档选题始终基于升档后的最新 `sections`（上一档 pending 已在 `advanceStage` 时删除）。
+
+若未来产品改为「同档停留期间持续答题并刷新整批候选」，再单独设计 hash 失效或强制刷新；**当前产品路径下不必实现**。
+
+### 2.2 接口调用顺序
 
 每一档建议按同一顺序处理，**在进入下一档之前**完成本档「确认 + 取题 + 答题落库」：
 
@@ -47,7 +70,7 @@ advanceStage(scope)               // 进入下一档；下一档 getPendingTopic
 约定：
 
 - **不会在 advance 之后**再为上一档调用 `getTopicQuestions`；题目由访谈模块持久化，选题器**不**缓存已确认题目。
-- **同档重复**打开待选列表时，接口1 复用磁盘上的待选文件，**不重复调 LLM**（见 §4.1）。
+- **同档重复**打开待选列表时，接口1 复用磁盘上的待选文件，**不重复调 LLM**（见 §4.1）；这与 §2.1「逐档完成」一致，**不是**遗漏的 sections 同步 bug。
 - `sections` 不能为空（底层 `TOPIC_MISSING_INPUT`）；测试可用 [`stubSections()`](../backend/test/fixtures/sections.stub.ts)。
 
 ---
@@ -62,7 +85,7 @@ advanceStage(scope)               // 进入下一档；下一档 getPendingTopic
 | 文件 | 类型 | 说明 |
 |------|------|------|
 | `current-stage.json` | `CurrentStage` | 当前 tier；首次访问默认为 tier 1 |
-| `tier1.json` … `tier8.json` | `PendingSelection` | 各档**独立**待选；`picks` 为 `PendingPickRow[]`（`pick` + 可选题面） |
+| `pending.json` | `PendingSelection` | 当前档待选；`picks` 为 `PendingPickRow[]`（`pick` + 可选题面）；`tier` 须与 `current-stage.json` 一致 |
 
 **Tier5～8** 以 `getPendingTopics(scope, sections)` 的 `sections` 入参为准（通常来自 `已答/sections.json`），无单独素材磁盘文件。
 
@@ -70,9 +93,9 @@ advanceStage(scope)               // 进入下一档；下一档 getPendingTopic
 
 **不存在** `confirmed-questions.json`：接口2 只读当前 pending，响应 `QuestionSet` 不落盘。
 
-各档 `tier{N}.json` 只在本档 `getPendingTopics` 时写入或复用。`advanceStage` 在 tier 内递进时**保留**其它档文件；**tier8→tier1** 时清空 `tier1.json`…`tier8.json`，新一轮各档会重新选题。若该档尚无文件，下次 `getPendingTopics` 会调用 LLM。
+`pending.json` 只在本档 `getPendingTopics` 时写入或复用：**同一时刻仅一份**，且 `pending.tier` 须与 `current-stage.json` 一致；`advanceStage` 升档时删除该文件。若当前档尚无 pending，下次 `getPendingTopics` 会调用 LLM。
 
-**空列表 `picks: []`（同轮、同档）**：视为该档本轮已定稿——「本档无待选主题」。一旦写入磁盘（含 LLM 无候选、tier5/6 无结果、或门槛类错误被接口1 转成 `[]`），**同档再次调用接口1 不会重试 LLM**，`sections` 参数也会被忽略。调用方通常应 `advanceStage` 进入下一档；仅 **tier8→tier1** 清档后，该档才会在新一轮重新选题。
+**空列表 `picks: []`（同轮、同档）**：视为该档本轮已定稿——「本档无待选主题」。一旦写入磁盘（含 LLM 无候选、tier5/6 无结果、或门槛类错误被接口1 转成 `[]`），**同档再次调用接口1 不会重试 LLM**，`sections` 参数也会被忽略。调用方应 `advanceStage` 进入下一档（见 §2.1）；仅 **tier8→tier1** 清档后，该档才会在新一轮重新选题。
 
 ---
 
@@ -91,7 +114,7 @@ getPendingTopics(scope: InterviewScope, sections: AnsweredSection[]): Promise<To
 **逻辑**：
 
 1. 读取 `current-stage.json` 得到 `tier`。
-2. 读取当前档 `tier{N}.json`（N = 当前 stage）：
+2. 读取 `pending.json`（须 `pending.tier ===` 当前 stage）：
    - 若存在且 `pending.tier === tier` → **直接返回** `pending.picks[].pick`（不调 LLM；`sections` 被忽略）。**含 `picks: []`**：同档不会再次选题。
    - 否则调用 `selectTopics`，写入 `PendingPickRow[]` 后返回各行的 `pick`。
 3. 若底层抛出 `TOPIC_NO_CANDIDATE` / `MATERIAL_MIN_ENTRIES` / `TOPIC_MISSING_INPUT`（tier5～8 相关）→ 写入 `picks: []` 并返回 `[]`（不向上抛）。该空结果与「有候选但用户未选」一样会固化，**同档不重试**。
@@ -112,11 +135,11 @@ getTopicQuestions(scope: InterviewScope, title: string): QuestionSet
 
 **作用**：用户确认某个 `title` 后，获取该主题对应的题目。
 
-**逻辑**：从**当前档** `tier{N}.json` 按 `title` 匹配 `PendingPickRow`，按 `kind` 组装 `QuestionSet`（题面来自 row 或按 kind 现算）。
+**逻辑**：从 `pending.json` 按 `title` 匹配 `PendingPickRow`，按 `kind` 组装 `QuestionSet`（题面来自 row 或按 kind 现算）。
 
 | `kind` | `questions` | `suggestedAnswers` |
 |--------|-------------|-------------------|
-| `catalog` | 配置模板 `required` + `optional` 的字段 **key**（[`getTopicFieldKeys`](../backend/src/topic/catalog.ts)） | 无 |
+| `catalog` | 配置模板 `required` + `optional` 的字段 **key**（[`getTopicFieldKeys`](../backend/src/topic/catalog.ts)；与 `template-config.v2.json` 表头一致，如 `学校名称（必填）`） | 无 |
 | `generated` | 选题时写入 row 的 `questions` | 无 |
 | `hot_topic` | `[title]`（问句本身） | row 的 `suggestedAnswers`（若有） |
 | `material_contradiction` | row 的 `questions`（摘要 + 各节【节名】摘录 + 请说明） | row 的 `suggestedAnswers`（消解假设，若有） |
@@ -128,7 +151,14 @@ getTopicQuestions(scope: InterviewScope, title: string): QuestionSet
 
 - `TOPIC_PICK_NOT_FOUND`：无 pending，或 pending 中无该 `title`。
 
-**须在 `advanceStage` 之前调用**当前档题目；其它档的 `tier{N}.json` 仍保留，但接口2 默认只读**当前 stage** 对应文件。
+**须在 `advanceStage` 之前调用**当前档题目；升档后 `pending.json` 已删除，接口2 只读当前 stage 对应文件。
+
+**catalog 与口语化问句（审查约定）**：
+
+- 接口2 的 `QuestionSet.questions` **刻意**返回模板 field key 列表，供出题管道去重/口语化时与配置对齐；**不是**最终展示给用户的问句。
+- 用户可见的口语问句由 [`runTemplatePrep`](../backend/src/question/runTemplatePrep.ts) → [`colloquializeQuestions`](../backend/src/question/colloquialize.ts) 在**首次** `getNextQuestion` 时生成，写入 `出题/prep.json` 的 `questionTexts`（见 [`question-generation-module.md`](question-generation-module.md) §3）。
+- 走 [`interviewOrchestrator.service.ts`](../backend/src/services/interviewOrchestrator.service.ts) `getCurrentQuestion` 的主路径已覆盖；**勿**要求在选题器接口2 内再做 LLM 自然化。
+- **例外**：「基本档案」等 [`isCatalogPrepSkipped`](../backend/src/question/types.ts) 主题跳过批量 prep，冷启动时可能直接展示表头文案；若需改进见出题模块，非选题器范围。
 
 ---
 
@@ -154,8 +184,8 @@ advanceStage(scope: InterviewScope): CurrentStage
 
 **逻辑**：`next = tier === 8 ? 1 : tier + 1`，写入 `current-stage.json`，返回新 `CurrentStage`。
 
-- tier2～8 递进：保留已有 `tier{N}.json`（便于回到上一档查接口2 题面，须在 advance 前取题）。
-- **tier8→tier1**：删除 `tier1.json`…`tier8.json`，开始新一轮；各档下次 `getPendingTopics` 会重新选题。
+- **升档时**：删除 `pending.json`（须在 advance 前已通过接口2 取题）。
+- **tier8→tier1**：与任意升档相同；下一档 `getPendingTopics` 会重新选题。
 
 ---
 
@@ -163,7 +193,7 @@ advanceStage(scope: InterviewScope): CurrentStage
 
 | 函数 | 说明 |
 |------|------|
-| `readPendingSelection(scope, tier?)` | 读 `tier{N}.json`；省略 `tier` 时用当前 stage |
+| `readPendingSelection(scope, tier?)` | 读 `pending.json`；省略 `tier` 时用当前 stage；tier 不一致则 null |
 | `readCurrentStage(scope)` | 读/初始化 stage |
 | `writeCurrentStage(scope, tier)` | 写 stage（测试或管理用） |
 | `selectAndPersist(scope, { tier, sections })` | 强制按指定 tier 选题并覆盖 pending（一般通过接口1 间接调用） |
@@ -194,7 +224,7 @@ advanceStage(scope: InterviewScope): CurrentStage
 }
 ```
 
-### `PendingPickRow`（`tier{N}.json` 中单条）
+### `PendingPickRow`（`pending.json` 中单条）
 
 ```ts
 {
@@ -272,7 +302,7 @@ advanceStage(scope: InterviewScope): CurrentStage
 cd backend
 npm run test:topic:flow    # 服务层四接口 + 持久化 + 三种 kind 出题
 npm run test:topic:luxun   # 鲁迅生平 sections，tier1→4 一轮真实 LLM（需 OPENAI_API_KEY）
-npm run test:topic:luxun:trace  # 鲁迅 tier1→8 全档；接口1/2 与 tier1.json…tier8.json 落盘到 backend/data/trace/luxun-{时间戳}/（需 OPENAI_API_KEY）
+npm run test:topic:luxun:trace  # 鲁迅 tier1→8 全档；接口1/2 落盘；每档复制 pending.json 快照到 persistence/tier{N}.json
 npm run test:topic:tier5   # 鲁迅 sections，tier5 矛盾检测（需 OPENAI_API_KEY）
 npm run test:topic:tier6   # 鲁迅 sections，tier6 缺口审核（需 OPENAI_API_KEY）
 npm run test:topic:tier7   # 鲁迅 sections，tier7 转折（需 OPENAI_API_KEY）
@@ -286,7 +316,7 @@ npm run test:topic:select  # 仅底层 selectTopics（需 LLM）
 
 - `input-sections.json`、`meta.json`
 - `tier01/` … `tier08/`：各含 `api1-getPendingTopics.json`、`api2-getTopicQuestions.json`（无候选时 api2 为 `{ skipped: true }`）
-- `persistence/tier1.json` … `tier8.json`、`current-stage.json`（从测试用户 `选题/` 目录复制）
+- `persistence/tier1.json` … `tier8.json`（每档 trace 时从 `pending.json` 复制的快照）、`current-stage.json`
 
 `test:topic:flow` 在无 `OPENAI_API_KEY` 时跳过接口1 的 LLM 段，其余用本地 pending 桩数据验证。
 
@@ -295,10 +325,13 @@ npm run test:topic:select  # 仅底层 selectTopics（需 LLM）
 ## 10. 当前未实现 / 后续扩展
 
 - HTTP API 路由
-- catalog 字段 key 的 LLM 自然化问句（现为模板 key 直出）
-- 接口1 **强制刷新** pending（同 tier 重新选题）
+- 接口1 **强制刷新** pending（同 tier 重新选题；**非**当前逐档产品路径必需，仅调试/运营）
 - 真实 `sections` 数据源（由访谈模块注入，替代 `stubSections`）
-- `sections` 持久化；`tier1.json` … `tier8.json` 随 sections 变更的失效策略（输入 hash）
+
+**刻意不做**（代码审查勿报缺失）：
+
+- 同档 `sections` 变更时的 pending 输入 hash 失效 / 自动重算 LLM（§2.1 逐档完成）
+- 在选题器接口2 内把 catalog field key **LLM 自然化为问句**（口语化已在出题 `runTemplatePrep` / `colloquializeQuestions`；接口2 保留 key 是分层设计，见 §4.2）
 
 ---
 
@@ -313,7 +346,7 @@ npm run test:topic:select  # 仅底层 selectTopics（需 LLM）
 | `reason`（`pick`） | 简短说明，如「涉及 N 个已填节，待您说明」 |
 | `suggestedAnswers`（pending 行） | 可选，LLM `reconciliationHypotheses`（消解假设快捷回复） |
 
-LLM 解析层仍使用 `involvedIds`（节名），仅用于 [`buildContradictionQuestion`](../backend/src/topic/contradictionQuestion.ts)，不写入 `tier5.json` 的 pick。
+LLM 解析层仍使用 `involvedIds`（节名），仅用于 [`buildContradictionQuestion`](../backend/src/topic/contradictionQuestion.ts)，不写入 pending 的 pick。
 
 **代码位置**：[`recommendTier5.ts`](../backend/src/topic/recommendTier5.ts)、[`contradictionQuestion.ts`](../backend/src/topic/contradictionQuestion.ts)。
 
@@ -349,7 +382,7 @@ LLM 解析层仍使用 `involvedIds`（节名），仅用于 [`buildContradictio
 | 7 | LLM 转折短问句 `question` | 原因摘要 `reason` | `questions: [title]`，`suggestedAnswers: [reason]` |
 | 8 | 完整是/否问句 `question` | 固定说明文案 | `questions: [title]`，`suggestedAnswers: ["是","否"]` |
 
-列表与取题均按 **`pick.title`** 定位。`presentScore` 等仅在 [`parseTurn.ts`](../backend/src/topic/parseTurn.ts) / [`parseInner.ts`](../backend/src/topic/parseInner.ts) 解析 LLM 时使用，不写入 `tier7.json` / `tier8.json`。
+列表与取题均按 **`pick.title`** 定位。`presentScore` 等仅在 [`parseTurn.ts`](../backend/src/topic/parseTurn.ts) / [`parseInner.ts`](../backend/src/topic/parseInner.ts) 解析 LLM 时使用，不写入 pending。
 
 ### 后续可选（未做）
 

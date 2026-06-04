@@ -7,7 +7,7 @@ import {
 } from "./sectionsInput";
 import type { AnsweredSection, TopicPick } from "./types";
 
-/** Tier6 选题入参：与 tier5 相同，使用 `sections`（结果由 service 写入 tier6.json）。 */
+/** Tier6 选题入参：与 tier5 相同，使用 `sections`（结果由 service 写入 pending.json）。 */
 export type RecommendTier6Params = {
   sections: AnsweredSection[];
 };

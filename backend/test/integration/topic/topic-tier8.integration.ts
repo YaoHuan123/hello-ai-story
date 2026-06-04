@@ -32,7 +32,7 @@ async function main(): Promise<void> {
 
   const fs = await import("node:fs");
   const { luxunSections } = await import("../../fixtures/sections.luxun");
-  const { tierPendingPath, readTierPending } = await import("../../../src/topic/tierPending");
+  const { pendingPath, readPending } = await import("../../../src/topic/tierPending");
   const {
     writeCurrentStage,
     getPendingTopics,
@@ -44,13 +44,13 @@ async function main(): Promise<void> {
   const scope = setupUserWithInterview(TEST_USER);
   writeCurrentStage(scope, 8);
 
-  console.log("\n=== Tier8：sections → tier8.json + getPendingTopics ===");
+  console.log("\n=== Tier8：sections → pending.json + getPendingTopics ===");
   const picks = await getPendingTopics(scope, sections);
   console.log("  picks:", JSON.stringify(picks, null, 2));
 
-  check("tier8.json 已生成", fs.existsSync(tierPendingPath(scope, 8)));
+  check("pending.json 已生成", fs.existsSync(pendingPath(scope)));
   check("返回数组", Array.isArray(picks), picks);
-  check("tier pending.tier === 8", readTierPending(scope, 8)?.tier === 8);
+  check("pending.tier === 8", readPending(scope, 8)?.tier === 8);
 
   if (picks.length > 0) {
     const first = picks[0];

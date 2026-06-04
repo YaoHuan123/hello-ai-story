@@ -162,8 +162,7 @@ export function submit(scope: InterviewScope, input: SubmitInput): void {
 
 /**
  * 待选为空时按 tier 轮转最多一圈，自动升档直至取到非空待选。
- * 过滤掉已在「已答」中的主题：tier{N}.json 是缓存的待选，自身不会剔除刚答完的主题，
- * 否则会把已完成的主题反复重选。
+ * 过滤掉已在「已答」中的主题：tier 文件升档后会删，同档内仍靠内存过滤避免重选刚答完的主题。
  */
 async function pendingWithAutoPromote(scope: InterviewScope): Promise<TopicPick[]> {
   for (let i = 0; i < 8; i++) {

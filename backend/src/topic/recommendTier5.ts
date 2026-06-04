@@ -9,7 +9,7 @@ import {
 } from "./sectionsInput";
 import type { AnsweredSection, PendingPickRow } from "./types";
 
-/** Tier5 选题入参：使用调用方传入的 `sections`（结果由 service 写入 tier5.json）。 */
+/** Tier5 选题入参：使用调用方传入的 `sections`（结果由 service 写入 pending.json）。 */
 export type RecommendTier5Params = {
   sections: AnsweredSection[];
 };

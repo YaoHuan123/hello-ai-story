@@ -127,7 +127,7 @@ flowchart TB
 | 文件 | 类型 | 何时写入 | 何时删除/失效 |
 |------|------|----------|----------------|
 | `current-stage.json` | `CurrentStage` | 首次 `readCurrentStage` / `writeCurrentStage` / `advanceStage` | 持久保留；tier 在 1～8 间递进 |
-| `tier1.json` … `tier8.json` | `PendingSelection` | 该档**首次** `getPendingTopics` 且磁盘无有效缓存时，LLM 选题后 `writeTierPending` | **tier8 → tier1** 时 `advanceStage` **unlink 全部** `tier1～8.json`；其它档 advance 时保留 |
+| `pending.json` | `PendingSelection` | 该档**首次** `getPendingTopics` 且磁盘无有效缓存时，LLM 选题后 `writePending` | **升档**时 `advanceStage` 删除；`pending.tier` 须与 `current-stage.json` 一致 |
 
 ```ts
 // CurrentStage
@@ -150,11 +150,12 @@ flowchart TB
 
 **接口1 缓存语义**（重要）：
 
-- 每个 `tier{N}.json` 只在本档当前轮次有效；**同档再次 `getPendingTopics` 若文件已存在（含 `picks: []`）则不会重调 LLM**。
+- 产品路径：**用户逐档完成** tier（见 [`topic-selection-module.md` §2.1](topic-selection-module.md#21-产品路径审查约定)）；升档后上一档 pending 已删，下一档用最新 `sections` 重新选题。
+- 当前档 `pending.json` 只在本轮该档有效；**同档再次 `getPendingTopics` 若文件已存在（含 `picks: []`）则不会重调 LLM**，传入的 `sections` 会被忽略——在逐档路径下这是预期，**不是**与 `sections` 不同步的缺陷。
 - `picks: []` 表示「本档本轮无候选」；调用方应 `advanceStage`，勿指望换 `sections` 重试。
 - `getTopicQuestions(scope, title)` **只读**当前档 pending，**不**另存 `QuestionSet` 到磁盘。
 
-阶段循环：`1 → 2 → … → 8 → 1`；tier8 回到 tier1 时清空所有 `tier*.json`，开始新一轮各档选题。
+阶段循环：`1 → 2 → … → 8 → 1`；升档删上一档 pending，tier8 回到 tier1 时兜底清空，开始新一轮各档选题。
 
 ---
 
@@ -175,7 +176,7 @@ flowchart TB
 ```ts
 // TopicAnswerRecord（answers.json 元素）
 { key: string; questionText: string; answer: string }
-// catalog 模板题：key = 模板 field key
+// catalog 模板题：key = 模板 field key（与 questionSet.questions 项一致）；questionText = 用户当时看到的口语问句
 // 扩展题：key 以 __extend_ 开头
 
 // TemplatePrepResult（prep.json）— 摘要字段
@@ -213,7 +214,7 @@ flowchart TB
 | `interviewWorkspace.service` | `userId` / `scope` | `采访/{id}/meta.json` |
 | `answeredSections.service` | `scope` | `已答/sections.json` |
 | `topicSelection.service` | `scope` | `选题/current-stage.json` |
-| `tierPending` | `scope` | `选题/tier{N}.json` |
+| `tierPending` | `scope` | `选题/pending.json` |
 | `topicPersist` | `scope` | `出题/*.json` |
 | `questionGeneration.*` | — | 无（纯函数 + LLM） |
 | `interviewOrchestrator` | `scope` | 编排上述读写，不自有新文件 |
@@ -233,7 +234,7 @@ flowchart TB
    → 基本档案答完 → commitSection → 已答/sections.json；clearTopicDir
 
 4. 选主题阶段
-   → 读/写 选题/current-stage.json、tier{N}.json
+   → 读/写 选题/current-stage.json、pending.json
    → enterTopic → 出题/ 再次建立
 
 5. catalog 主题答题

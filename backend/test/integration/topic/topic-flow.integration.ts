@@ -10,7 +10,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import type { InterviewScope } from "../../../src/services/interviewWorkspace.service";
 import { getInterviewRootDir } from "../../../src/services/interviewWorkspace.service";
+import { pendingPath, writePending } from "../../../src/topic/tierPending";
+import type { PendingPickRow, PendingSelection } from "../../../src/topic/types";
 
 loadEnv();
 
@@ -30,17 +33,17 @@ function check(label: string, cond: boolean, detail?: unknown): void {
 
 const TEST_USER = `topic-flow-test-${Date.now()}`;
 
-function writeTierFile(
-  selectionDir: string,
-  tier: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
-  picks: unknown[],
+function writeJsonSimple(filePath: string, data: unknown): void {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+}
+
+function writePendingFile(
+  scope: InterviewScope,
+  tier: PendingSelection["tier"],
+  picks: PendingPickRow[],
 ): void {
-  fs.mkdirSync(selectionDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(selectionDir, `tier${tier}.json`),
-    JSON.stringify({ tier, createdAt: new Date().toISOString(), picks }, null, 2),
-    "utf-8",
-  );
+  writePending(scope, { tier, createdAt: new Date().toISOString(), picks }, writeJsonSimple);
 }
 
 async function main(): Promise<void> {
@@ -52,10 +55,8 @@ async function main(): Promise<void> {
     getTopicQuestions,
     readPendingSelection,
     writeCurrentStage,
-    readCurrentStage,
   } = await import("../../../src/services/topicSelection.service");
   const { getTopicFieldKeys } = await import("../../../src/topic/catalog");
-  const { tierPendingPath } = await import("../../../src/topic/tierPending");
 
   const scope = setupUserWithInterview(TEST_USER);
   const selectionDir = path.join(getInterviewRootDir(scope), "选题");
@@ -64,8 +65,9 @@ async function main(): Promise<void> {
   const s0 = getCurrentStage(scope);
   check("默认 tier1", s0.tier === 1, s0);
 
-  console.log("\n=== 接口4：阶段循环 1→2→3→4→5→6→7→8→1 ===");
+  console.log("\n=== 接口4：阶段循环 1→2→…→8→1（升档删 pending.json）===");
   check("advance → tier2", advanceStage(scope).tier === 2);
+  check("advance 后无 pending.json", !fs.existsSync(pendingPath(scope)));
   check("advance → tier3", advanceStage(scope).tier === 3);
   check("advance → tier4", advanceStage(scope).tier === 4);
   check("advance → tier5", advanceStage(scope).tier === 5);
@@ -74,23 +76,19 @@ async function main(): Promise<void> {
   check("advance → tier8", advanceStage(scope).tier === 8);
   check("advance → tier1（循环）", advanceStage(scope).tier === 1);
 
-  console.log("\n=== tier8→tier1 清空各档 pending ===");
-  writeTierFile(selectionDir, 1, [
-    { pick: { tier: 1, kind: "catalog", title: "循环前占位", reason: "测试" } },
-  ]);
-  writeTierFile(selectionDir, 8, [
+  console.log("\n=== tier8→tier1 清空 pending ===");
+  writePendingFile(scope, 8, [
     { pick: { tier: 8, kind: "material_inner", title: "占位问句？", reason: "测试" } },
   ]);
   writeCurrentStage(scope, 8);
   check("advance 8→1", advanceStage(scope).tier === 1);
-  check("tier1.json 已清空", !fs.existsSync(tierPendingPath(scope, 1)));
-  check("tier8.json 已清空", !fs.existsSync(tierPendingPath(scope, 8)));
+  check("pending.json 已清空", !fs.existsSync(pendingPath(scope)));
 
-  console.log("\n=== 接口2：三种 kind 出题（手动 tier{N}.json，不调 LLM）===");
+  console.log("\n=== 接口2：三种 kind 出题（手动 pending.json，不调 LLM）===");
 
   const catalogTitle = "小学";
   const catalogKeys = getTopicFieldKeys(catalogTitle);
-  writeTierFile(selectionDir, 1, [
+  writePendingFile(scope, 1, [
     { pick: { tier: 1, kind: "catalog", title: catalogTitle, reason: "测试" } },
   ]);
   writeCurrentStage(scope, 1);
@@ -101,7 +99,7 @@ async function main(): Promise<void> {
   });
   check("catalog kind", qCatalog.kind === "catalog", qCatalog);
 
-  writeTierFile(selectionDir, 3, [
+  writePendingFile(scope, 3, [
     {
       pick: { tier: 3, kind: "generated", title: "童年趣事", reason: "测试" },
       questions: ["你小时候最开心的一件事是什么？", "当时和谁在一起？"],
@@ -113,7 +111,7 @@ async function main(): Promise<void> {
   check("generated kind", qGen.kind === "generated", qGen);
 
   const hotTitle = "你最近一次感到特别温暖的事是什么？";
-  writeTierFile(selectionDir, 4, [
+  writePendingFile(scope, 4, [
     {
       pick: { tier: 4, kind: "hot_topic", title: hotTitle, reason: "生活记忆：温暖" },
       suggestedAnswers: ["家人陪伴", "老友重逢"],
@@ -125,15 +123,28 @@ async function main(): Promise<void> {
   check("hot_topic suggestedAnswers", qHot.suggestedAnswers?.length === 2, qHot);
 
   console.log("\n=== 读盘兼容旧扁平 TopicPick JSON（tier3）===");
-  writeTierFile(selectionDir, 3, [
-    {
-      tier: 3,
-      kind: "generated",
-      title: "旧格式主题",
-      reason: "legacy",
-      questions: ["旧格式问句？"],
-    },
-  ]);
+  fs.mkdirSync(selectionDir, { recursive: true });
+  fs.writeFileSync(
+    pendingPath(scope),
+    JSON.stringify(
+      {
+        tier: 3,
+        createdAt: new Date().toISOString(),
+        picks: [
+          {
+            tier: 3,
+            kind: "generated",
+            title: "旧格式主题",
+            reason: "legacy",
+            questions: ["旧格式问句？"],
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+    "utf-8",
+  );
   writeCurrentStage(scope, 3);
   const qLegacy = getTopicQuestions(scope, "旧格式主题");
   check("legacy flat 仍可出题", qLegacy.questions[0] === "旧格式问句？", qLegacy);
@@ -145,7 +156,7 @@ async function main(): Promise<void> {
   );
   check("无 pending-selection.json", !fs.existsSync(path.join(selectionDir, "pending-selection.json")));
   check("current-stage.json 存在", fs.existsSync(path.join(selectionDir, "current-stage.json")));
-  check("tier1.json 存在", fs.existsSync(tierPendingPath(scope, 1)));
+  check("pending.json 存在且 tier=3", readPendingSelection(scope, 3)?.tier === 3);
 
   if (process.env.OPENAI_API_KEY?.trim()) {
     console.log("\n=== 接口1：getPendingTopics（真实 LLM，tier1）===");
@@ -154,7 +165,7 @@ async function main(): Promise<void> {
     console.log("  picks:", JSON.stringify(picks));
     check("tier1 有候选或空数组", Array.isArray(picks), picks);
     const pending = readPendingSelection(scope, 1);
-    check("tier1.json 已持久化", pending !== null && pending.tier === 1, pending);
+    check("pending.json 已持久化", pending !== null && pending.tier === 1, pending);
     const createdAt = pending?.createdAt;
     const picksAgain = await getPendingTopics(scope, stubSections());
     check("同阶段二次调用复用 pending", JSON.stringify(picksAgain) === JSON.stringify(picks), picksAgain);

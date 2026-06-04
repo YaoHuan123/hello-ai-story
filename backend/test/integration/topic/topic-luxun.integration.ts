@@ -109,7 +109,7 @@ async function main(): Promise<void> {
   const fs = await import("node:fs");
   check("选题目录存在", fs.existsSync(selectionDir));
   check("current-stage.json 存在", fs.existsSync(path.join(selectionDir, "current-stage.json")));
-  check("tier1.json 存在", fs.existsSync(path.join(selectionDir, "tier1.json")));
+  check("pending.json 存在", fs.existsSync(path.join(selectionDir, "pending.json")));
   check("无 pending-selection.json", !fs.existsSync(path.join(selectionDir, "pending-selection.json")));
   check("末档应为 tier4", getCurrentStage(scope).tier === 4);
 

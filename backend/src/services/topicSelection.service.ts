@@ -5,8 +5,7 @@ import { getInterviewRootDir } from "./interviewWorkspace.service";
 import { getTopicFieldKeys } from "../topic/catalog";
 import { pendingRowsToPicks } from "../topic/pendingPickRow";
 import { selectTopics } from "../topic/selectTopics";
-import { readTierPending, tierPendingPath, writeTierPending } from "../topic/tierPending";
-import type { TierFileTier } from "../topic/tierPending";
+import { deletePending, readPending, writePending } from "../topic/tierPending";
 import type {
   AnsweredSection,
   CurrentStage,
@@ -51,11 +50,11 @@ function isMissingInputError(err: unknown): boolean {
 }
 
 function readPendingForTier(scope: InterviewScope, tier: StageTier): PendingSelection | null {
-  return readTierPending(scope, tier);
+  return readPending(scope, tier);
 }
 
 function writePendingForTier(scope: InterviewScope, pending: PendingSelection): void {
-  writeTierPending(scope, pending, writeJsonAtomic);
+  writePending(scope, pending, writeJsonAtomic);
 }
 
 /** 内部：读取当前阶段；无文件则初始化为 tier1 并落盘。 */
@@ -154,7 +153,7 @@ function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
 }
 
 /**
- * 阶段A：选题并持久化为**该档**待选（写入 `tier{N}.json`，覆盖该档上一轮）。
+ * 阶段A：选题并持久化为当前档待选（写入 `pending.json`）。
  */
 export async function selectAndPersist(
   scope: InterviewScope,
@@ -170,20 +169,23 @@ export async function selectAndPersist(
   return pendingRowsToPicks(rows);
 }
 
-/** 读取指定档（或当前 stage）的 `tier{N}.json`；无则返回 null。 */
+/** 读取指定档（或当前 stage）的 `pending.json`；无或与 tier 不一致则返回 null。 */
 export function readPendingSelection(
   scope: InterviewScope,
   tier?: StageTier,
 ): PendingSelection | null {
   const t = tier ?? readCurrentStage(scope).tier;
-  return readTierPending(scope, t);
+  return readPending(scope, t);
 }
 
 /**
  * 接口1：输出当前阶段待确认主题（瘦身 TopicPick，不含题面）。
  *
- * 若已有与当前 tier 一致的 `tier{N}.json`，直接返回（不重复选题）；
+ * 若已有与当前 tier 一致的 `pending.json`，直接返回（不重复选题）；
  * 否则调用 {@link selectAndPersist}。
+ *
+ * 产品路径：用户逐档完成 tier 后再 advance（见 docs/topic-selection-module.md §2.1）。
+ * 同档内忽略 sections 复用 pending 是预期；下一档在 advance 删档后用最新 sections 重算。
  */
 export async function getPendingTopics(
   scope: InterviewScope,
@@ -191,7 +193,7 @@ export async function getPendingTopics(
 ): Promise<TopicPick[]> {
   const { tier } = readCurrentStage(scope);
   const existing = readPendingForTier(scope, tier);
-  if (existing?.tier === tier) {
+  if (existing) {
     return pendingRowsToPicks(existing.picks);
   }
 
@@ -214,6 +216,8 @@ export async function getPendingTopics(
 /**
  * 接口2：从当前档待选轮取某一主题对应的题目（须在 advance 前调用）。
  *
+ * catalog 时 `questions` 为 field key 列表；口语问句由出题模块 `runTemplatePrep` 生成（见 docs/topic-selection-module.md §4.2）。
+ *
  * @throws TOPIC_PICK_NOT_FOUND 无待选轮或其中无该 title
  */
 export function getTopicQuestions(scope: InterviewScope, title: string): QuestionSet {
@@ -234,22 +238,10 @@ export function getCurrentStage(scope: InterviewScope): CurrentStage {
   return readCurrentStage(scope);
 }
 
-/** tier8→tier1 新一轮：清除各档待选，避免第二轮复用上一轮 tier{N}.json。 */
-function clearAllTierPending(scope: InterviewScope): void {
-  for (let t = 1; t <= 8; t++) {
-    const p = tierPendingPath(scope, t as TierFileTier);
-    if (fs.existsSync(p)) {
-      fs.unlinkSync(p);
-    }
-  }
-}
-
-/** 接口4：进入下一阶段（1→2→3→4→5→6→7→8→1 循环）。tier8→1 时清空各档 `tier{N}.json`。 */
+/** 接口4：进入下一阶段（1→2→3→4→5→6→7→8→1 循环）。升档时删除 `pending.json`。 */
 export function advanceStage(scope: InterviewScope): CurrentStage {
   const { tier } = readCurrentStage(scope);
+  deletePending(scope);
   const next: StageTier = tier === 8 ? 1 : ((tier + 1) as StageTier);
-  if (tier === 8) {
-    clearAllTierPending(scope);
-  }
   return writeCurrentStage(scope, next);
 }

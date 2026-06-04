@@ -43,7 +43,7 @@
 |------|------|
 | **引导问（bridge）** | 开答前 0～2 题；老仓库无 `sub-category-bridge-questions.md`、无 service。**本期不做**，类型可预留。 |
 
-### 2.3 不属于本期「出题管道」（选题或其它模块已覆盖）
+### 2.3 不属于「出题管道内步骤」（选题或其它层已负责）
 
 | 能力 | 老项目 | hello story2 |
 |------|--------|----------------|
@@ -51,7 +51,7 @@
 | Tier3 确认后生成 1～3 问 | `tier3-question-generate.md` | Tier3 选题写入 `pending.questions` |
 | Tier4 热点问句 | `hot-topic-questions.md` | Tier4 选题 + `getTopicQuestions` |
 | Tier5～8 预处理题 | preprocess JSON | 选题 LLM + 接口2 题面 |
-| catalog 接口2 仅 field key | — | `getTopicQuestions`（`kind: catalog`）→ 待出题管道替换为口语化问句 |
+| catalog 接口2 返回 field key | — | **已实现、刻意分层**：[`getTopicQuestions`](../backend/src/services/topicSelection.service.ts) 给 key；口语问句在 **`runTemplatePrep` → Q2 口语化**（见 §3） |
 | 创建视频前预处理对话 | `interviewPreprocessMessageHandler` | **未规划在本模块** |
 | HTTP `next-message` / `message-reply` | MessageAgent | **二期/三期** |
 
@@ -62,12 +62,12 @@
 用户通过选题器确认 **catalog 子类**（如「小学」）后，访谈填表侧调用出题管道：
 
 ```
-[选题] getTopicQuestions → 已知子类名 + 模板 fieldKeys（过渡）
-[出题] runTemplatePrep(subCategoryName, sections)     // 开答前一次
-  → 按 fieldKey 顺序逐题展示
-  → 第 1 题：批量口语化 questionText + 批量备选
-  → 第 2 题起：refineAndSuggestCurrent(...)           // 每题 LLM
-  → 模板必填答完：extendSubCategory(...)              // 0～3 条开放追问（老项目引擎侧硬 cap 2 条 aiExtended，二期落盘）
+[选题] getTopicQuestions → 子类名 + 模板 field key 列表（标识符，与 template-config 表头一致）
+[出题] runTemplatePrep(sections, questionSet)              // catalog 首次 getNextQuestion 懒执行
+  → Q1 去重 → Q2 口语化 questionTexts → Q3 批量备选
+  → 按 fieldKey 顺序逐题展示（getNextQuestion 读 prep.questionTexts[key]）
+  → 第 2 题起：refineAndSuggestCurrent(...)               // 每题 LLM
+  → 模板必填答完：extendSubCategory(...)                  // 0～3 条开放追问
 ```
 
 ```mermaid
@@ -168,7 +168,7 @@ backend/test/integration/question/                    # 每步一个 integration
 出题阶段**只认** [`QuestionSet`](../backend/src/topic/types.ts)（接口 2 输出）：
 
 - `title`：本轮主题
-- `questions: string[]`：待处理题列表（不区分来源；catalog 时与选题文档中的配置 key 一致，但出题代码不单独命名）
+- `questions: string[]`：待处理题列表。catalog 时为 **template-config field key**（中文表头，如 `学校名称（必填）`），供 dedupe/colloquialize 对齐；**用户可见问句**见 `prep.json` 的 `questionTexts` / `getNextQuestion` 的 `text`。
 - `suggestedAnswers?`：可选
 
 编排层用 `kind` 决定是否调用某步 LLM（如去重仅 `kind === "catalog"`）。

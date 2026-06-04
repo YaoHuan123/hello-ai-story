@@ -2,7 +2,7 @@
  * 话题选题模块对外入口。
  *
  * 推荐用统一入口 {@link selectTopics}，各档输出 {@link PendingPickRow}（服务层落盘并对外返回瘦身 {@link TopicPick}）：
- * - tier 1～8：由服务层写入各自 `选题/tier{N}.json`
+ * - tier 1～8：由服务层写入 `选题/pending.json`
  *
  * 也可直接调用底层 recommendTier1～8。
  */
@@ -45,5 +45,5 @@ export {
   sectionsToPolishedEventSummaries,
   sectionsWithAnswers,
 } from "./sectionsInput";
-export { readTierPending, tierPendingPath } from "./tierPending";
+export { readPending, pendingPath, writePending, deletePending } from "./tierPending";
 export type { TierFileTier } from "./tierPending";
