@@ -30,6 +30,7 @@ import {
   refineAndSuggestCurrent,
   runTemplatePrep,
 } from "./questionGeneration.service";
+import type { InterviewScope } from "./interviewWorkspace.service";
 import type { AnsweredSection, QuestionSet } from "../topic/types";
 
 function isCatalog(questionSet: QuestionSet): boolean {
@@ -53,47 +54,47 @@ function toAnsweredInTopic(records: TopicAnswerRecord[]): AnsweredInTopicItem[] 
 }
 
 async function ensureCatalogPrep(
-  userId: string,
+  scope: InterviewScope,
   questionSet: QuestionSet,
 ): Promise<PrepPersisted> {
-  const existing = readPrep(userId);
+  const existing = readPrep(scope);
   if (existing) return existing;
 
-  const sections = sectionsForPrompt(userId);
+  const sections = sectionsForPrompt(scope);
   const prep = await runTemplatePrep({ sections, questionSet });
-  writePrep(userId, prep);
+  writePrep(scope, prep);
   return prep;
 }
 
 async function ensureExtend(
-  userId: string,
+  scope: InterviewScope,
   questionSet: QuestionSet,
   answers: TopicAnswerRecord[],
 ): Promise<void> {
-  if (hasExtendFile(userId)) return;
+  if (hasExtendFile(scope)) return;
 
   if (isExtendNotApplicable(questionSet) || isExtendSkipped(questionSet)) {
-    writeExtend(userId, { questions: [] });
+    writeExtend(scope, { questions: [] });
     return;
   }
 
   const templateAnswered = templateAnsweredMap(answers);
   if (Object.keys(templateAnswered).length === 0) {
-    writeExtend(userId, { questions: [] });
+    writeExtend(scope, { questions: [] });
     return;
   }
 
-  const sections = sectionsForPrompt(userId);
+  const sections = sectionsForPrompt(scope);
   const extended = await extendSubCategoryQuestions({
     sections,
     questionSet,
     templateAnswered,
   });
-  writeExtend(userId, { questions: extended.questions });
+  writeExtend(scope, { questions: extended.questions });
 }
 
 async function buildCatalogTemplateDisplay(
-  userId: string,
+  scope: InterviewScope,
   questionSet: QuestionSet,
   prep: PrepPersisted,
   answers: TopicAnswerRecord[],
@@ -107,7 +108,7 @@ async function buildCatalogTemplateDisplay(
   let suggestions = batchSuggested;
 
   if (!isRefineSkipped(questionSet) && template.length > 0) {
-    const sections = sectionsForPrompt(userId);
+    const sections = sectionsForPrompt(scope);
     const display = await refineAndSuggestCurrent({
       sections,
       questionSet,
@@ -147,23 +148,23 @@ function getNextQuestionNonCatalog(
 }
 
 async function getNextQuestionCatalog(
-  userId: string,
+  scope: InterviewScope,
   questionSet: QuestionSet,
   answers: TopicAnswerRecord[],
 ): Promise<NextQuestionDisplay | null> {
-  const prep = await ensureCatalogPrep(userId, questionSet);
+  const prep = await ensureCatalogPrep(scope, questionSet);
   if (prep.askQuestions.length === 0) {
     return null;
   }
 
   const template = templateAnswers(answers);
   if (template.length < prep.askQuestions.length) {
-    return buildCatalogTemplateDisplay(userId, questionSet, prep, answers);
+    return buildCatalogTemplateDisplay(scope, questionSet, prep, answers);
   }
 
-  await ensureExtend(userId, questionSet, answers);
+  await ensureExtend(scope, questionSet, answers);
 
-  const extend = readExtend(userId);
+  const extend = readExtend(scope);
   if (!extend || extend.questions.length === 0) {
     return null;
   }
@@ -192,7 +193,7 @@ function buildExtendedDisplay(
 /**
  * 进入主题：重置 `出题/`，写入 questionSet 与空 answers。
  */
-export function initQuestion(userId: string, questionSet: QuestionSet): void {
+export function initQuestion(scope: InterviewScope, questionSet: QuestionSet): void {
   const title = questionSet.title.trim();
   if (!title) {
     throw new Error("QUESTION_ENGINE_MISSING_INPUT: questionSet.title 为空");
@@ -200,47 +201,47 @@ export function initQuestion(userId: string, questionSet: QuestionSet): void {
   if (isTemplatePrepNotApplicable(questionSet) && questionSet.questions.length === 0) {
     throw new Error("QUESTION_ENGINE_MISSING_INPUT: questionSet.questions 为空");
   }
-  resetTopicDir(userId, questionSet);
+  resetTopicDir(scope, questionSet);
 }
 
 /**
  * 取当前主题的下一道展示题；无题可问（或无进行中主题）返回 null。
  */
-export async function getNextQuestion(userId: string): Promise<NextQuestionDisplay | null> {
-  const questionSet = readQuestionSet(userId);
+export async function getNextQuestion(scope: InterviewScope): Promise<NextQuestionDisplay | null> {
+  const questionSet = readQuestionSet(scope);
   if (!questionSet) {
     throw new Error("QUESTION_ENGINE_NO_SESSION: 无进行中主题，请先 initQuestion");
   }
 
-  const answers = readAnswers(userId);
+  const answers = readAnswers(scope);
 
   if (!isCatalog(questionSet)) {
     return getNextQuestionNonCatalog(questionSet, answers);
   }
 
-  return getNextQuestionCatalog(userId, questionSet, answers);
+  return getNextQuestionCatalog(scope, questionSet, answers);
 }
 
 /**
  * 出题器中的题目是否已全部回答完毕（仅读持久化 prep/extend/answers，不触发 LLM）。
  * 无进行中主题视为「已完毕」；catalog 尚未取过题（无 prep.json）视为「未完毕」。
  */
-export function isTopicAnswered(userId: string): boolean {
-  const questionSet = readQuestionSet(userId);
+export function isTopicAnswered(scope: InterviewScope): boolean {
+  const questionSet = readQuestionSet(scope);
   if (!questionSet) return true;
 
-  const answers = readAnswers(userId);
+  const answers = readAnswers(scope);
 
   if (!isCatalog(questionSet)) {
     const questions = questionSet.questions.map((q) => q.trim()).filter(Boolean);
     return answers.length >= questions.length;
   }
 
-  const prep = readPrep(userId);
+  const prep = readPrep(scope);
   if (!prep) return false;
   if (templateAnswers(answers).length < prep.askQuestions.length) return false;
 
-  const extend = readExtend(userId);
+  const extend = readExtend(scope);
   if (!extend) return false;
   return extendedAnswers(answers).length >= extend.questions.length;
 }
@@ -249,7 +250,7 @@ export function isTopicAnswered(userId: string): boolean {
  * 提交答案并追加到 answers.json。
  * 防御：已答完则拒绝（COMPLETE）；同一 key 不可二次落盘（DUPLICATE）。
  */
-export function submitAnswer(userId: string, params: SubmitAnswerParams): SubmittedAnswerMeta {
+export function submitAnswer(scope: InterviewScope, params: SubmitAnswerParams): SubmittedAnswerMeta {
   const key = params.key.trim();
   const questionText = params.questionText.trim();
   const answer = params.answer.trim();
@@ -257,27 +258,27 @@ export function submitAnswer(userId: string, params: SubmitAnswerParams): Submit
   if (!key) throw new Error("QUESTION_ENGINE_MISSING_INPUT: key 为空");
   if (!answer) throw new Error("QUESTION_ENGINE_MISSING_INPUT: answer 为空");
 
-  if (!readQuestionSet(userId)) {
+  if (!readQuestionSet(scope)) {
     throw new Error("QUESTION_ENGINE_NO_SESSION: 无进行中主题");
   }
-  if (isTopicAnswered(userId)) {
+  if (isTopicAnswered(scope)) {
     throw new Error("QUESTION_ENGINE_COMPLETE: 当前主题已答完，无待答题");
   }
-  if (readAnswers(userId).some((r) => r.key === key)) {
+  if (readAnswers(scope).some((r) => r.key === key)) {
     throw new Error(`QUESTION_ENGINE_DUPLICATE: key「${key}」已作答，不能重复提交`);
   }
 
-  appendAnswer(userId, { key, questionText, answer });
+  appendAnswer(scope, { key, questionText, answer });
   return { key, text: questionText };
 }
 
 /** 本节结束时合并进 sections.json。 */
-export function answeredSectionFromTopic(userId: string): AnsweredSection {
-  const name = readQuestionSet(userId)?.title.trim();
+export function answeredSectionFromTopic(scope: InterviewScope): AnsweredSection {
+  const name = readQuestionSet(scope)?.title.trim();
   if (!name) {
     throw new Error("QUESTION_ENGINE_NO_SESSION: 无进行中主题");
   }
-  const records = readAnswers(userId);
+  const records = readAnswers(scope);
   if (records.length === 0) {
     throw new Error(`QUESTION_ENGINE_NO_ANSWERS: 主题「${name}」无已答记录`);
   }

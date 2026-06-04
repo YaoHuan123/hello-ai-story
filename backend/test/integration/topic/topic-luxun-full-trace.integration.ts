@@ -9,6 +9,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
+import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { getInterviewRootDir } from "../../../src/services/interviewWorkspace.service";
 
 loadEnv();
 
@@ -63,7 +65,6 @@ async function main(): Promise<void> {
   const traceDir = path.resolve(process.cwd(), "data", "trace", runId);
   const persistenceDir = path.join(traceDir, "persistence");
 
-  const { createUserWorkspace, getUserRootDir } = await import("../../../src/services/workspace.service");
   const { luxunSections } = await import("../../fixtures/sections.luxun");
   const { tierPendingPath } = await import("../../../src/topic/tierPending");
   const { OPENAI_MODEL } = await import("../../../src/config");
@@ -80,20 +81,22 @@ async function main(): Promise<void> {
 
   fs.mkdirSync(traceDir, { recursive: true });
   writeJson(traceDir, "input-sections.json", sections);
+  const scope = setupUserWithInterview(TEST_USER);
   writeJson(traceDir, "meta.json", {
     userId: TEST_USER,
+    interviewId: scope.interviewId,
     startedAt: startedAt.toISOString(),
     openaiModel: OPENAI_MODEL,
     traceDir,
   });
 
-  createUserWorkspace(TEST_USER);
-  writeCurrentStage(TEST_USER, 1);
+  writeCurrentStage(scope, 1);
 
-  const selectionDir = path.join(getUserRootDir(TEST_USER), "选题");
+  const selectionDir = path.join(getInterviewRootDir(scope), "选题");
   console.log("\n=== 鲁迅全档 trace ===");
   console.log("  traceDir:", traceDir);
   console.log("  userId:", TEST_USER);
+  console.log("  interviewId:", scope.interviewId);
 
   const tiers = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
@@ -101,16 +104,16 @@ async function main(): Promise<void> {
     const tierDir = path.join(traceDir, `tier${padTier(tier)}`);
     console.log(`\n=== Tier${tier} ===`);
 
-    const stage = getCurrentStage(TEST_USER);
+    const stage = getCurrentStage(scope);
     check(`当前阶段为 tier${tier}`, stage.tier === tier, stage);
 
-    const picks = await getPendingTopics(TEST_USER, sections);
+    const picks = await getPendingTopics(scope, sections);
     writeJson(tierDir, "api1-getPendingTopics.json", picks);
     console.log(`  api1: ${picks.length} pick(s)`);
 
     if (picks.length > 0) {
       const first = picks[0];
-      const questionSet = getTopicQuestions(TEST_USER, first.title);
+      const questionSet = getTopicQuestions(scope, first.title);
       writeJson(tierDir, "api2-getTopicQuestions.json", {
         title: first.title,
         questionSet,
@@ -124,7 +127,7 @@ async function main(): Promise<void> {
       console.warn(`  api2: skipped (no picks)`);
     }
 
-    const tierFile = tierPendingPath(TEST_USER, tier);
+    const tierFile = tierPendingPath(scope, tier);
     const destTier = path.join(persistenceDir, `tier${tier}.json`);
     if (copyIfExists(tierFile, destTier)) {
       check(`persistence/tier${tier}.json 已复制`, true);
@@ -137,14 +140,14 @@ async function main(): Promise<void> {
     }
 
     if (tier < 8) {
-      const next = advanceStage(TEST_USER);
+      const next = advanceStage(scope);
       check(`advance → tier${tier + 1}`, next.tier === tier + 1, next);
     }
   }
 
   const stagePath = path.join(selectionDir, "current-stage.json");
   copyIfExists(stagePath, path.join(persistenceDir, "current-stage.json"));
-  check("末档 current-stage 为 tier8", getCurrentStage(TEST_USER).tier === 8);
+  check("末档 current-stage 为 tier8", getCurrentStage(scope).tier === 8);
 
   console.log(`\n=== 结果：${passed} passed, ${failed} failed ===`);
   console.log("  trace 目录:", traceDir);

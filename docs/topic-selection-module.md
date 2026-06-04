@@ -36,12 +36,12 @@ Tier5～8 使用调用方传入的 **`sections`**。须至少 **5 个有内容�
 每一档建议按同一顺序处理，**在进入下一档之前**完成本档「确认 + 取题 + 答题落库」：
 
 ```
-getCurrentStage(userId)           // 可选：展示当前档位
-getPendingTopics(userId, sections) // 待确认主题列表
+getCurrentStage(scope)           // 可选：展示当前档位
+getPendingTopics(scope, sections) // 待确认主题列表
   → 用户确认某一 pick.title
-getTopicQuestions(userId, title)   // 本档题目（须在 advance 前）
+getTopicQuestions(scope, title)   // 本档题目（须在 advance 前）
   → 访谈/表单模块落库答题
-advanceStage(userId)               // 进入下一档；下一档 getPendingTopics 会重新选题
+advanceStage(scope)               // 进入下一档；下一档 getPendingTopics 会重新选题
 ```
 
 约定：
@@ -54,14 +54,17 @@ advanceStage(userId)               // 进入下一档；下一档 getPendingTopi
 
 ## 3. 持久化
 
-目录：`{DATA_USERS_ROOT}/{userId}/选题/`
+选题数据落在**单场采访**下，不再使用用户根 `{userId}/选题/`。
+
+目录：`{DATA_USERS_ROOT}/{userId}/采访/{interviewId}/选题/`  
+完整层级（用户级 / 采访级 / 出题 / 已答）见 **[`interview-persistence.md`](interview-persistence.md)**。
 
 | 文件 | 类型 | 说明 |
 |------|------|------|
 | `current-stage.json` | `CurrentStage` | 当前 tier；首次访问默认为 tier 1 |
 | `tier1.json` … `tier8.json` | `PendingSelection` | 各档**独立**待选；`picks` 为 `PendingPickRow[]`（`pick` + 可选题面） |
 
-`素材/story-entries.json` 仍保留读写工具，**Tier5～8 已不再使用**（仅供测试或后续访谈同步实验）。
+**Tier5～8** 以 `getPendingTopics(scope, sections)` 的 `sections` 入参为准（通常来自 `已答/sections.json`），无单独素材磁盘文件。
 
 写入均为**原子写**（临时文件 + `rename`）。
 
@@ -75,12 +78,12 @@ advanceStage(userId)               // 进入下一档；下一档 getPendingTopi
 
 ## 4. 服务层对外接口
 
-所有接口第一个参数为 `userId: string`（与 `workspace.service` 用户目录一致）。
+所有接口第一个参数为 `InterviewScope`（`{ userId, interviewId }`），路径根为 `getInterviewRootDir(scope)`。
 
 ### 4.1 接口1 — `getPendingTopics`
 
 ```ts
-getPendingTopics(userId: string, sections: AnsweredSection[]): Promise<TopicPick[]>
+getPendingTopics(scope: InterviewScope, sections: AnsweredSection[]): Promise<TopicPick[]>
 ```
 
 **作用**：返回当前阶段待用户确认的**瘦身**主题列表（`TopicPick[]`，不含题面）。
@@ -104,7 +107,7 @@ getPendingTopics(userId: string, sections: AnsweredSection[]): Promise<TopicPick
 ### 4.2 接口2 — `getTopicQuestions`
 
 ```ts
-getTopicQuestions(userId: string, title: string): QuestionSet
+getTopicQuestions(scope: InterviewScope, title: string): QuestionSet
 ```
 
 **作用**：用户确认某个 `title` 后，获取该主题对应的题目。
@@ -132,7 +135,7 @@ getTopicQuestions(userId: string, title: string): QuestionSet
 ### 4.3 接口3 — `getCurrentStage`
 
 ```ts
-getCurrentStage(userId: string): CurrentStage
+getCurrentStage(scope: InterviewScope): CurrentStage
 ```
 
 **作用**：查询当前处于 tier 1～8。
@@ -144,7 +147,7 @@ getCurrentStage(userId: string): CurrentStage
 ### 4.4 接口4 — `advanceStage`
 
 ```ts
-advanceStage(userId: string): CurrentStage
+advanceStage(scope: InterviewScope): CurrentStage
 ```
 
 **作用**：进入下一阶段（`1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 1` 循环）。
@@ -160,10 +163,10 @@ advanceStage(userId: string): CurrentStage
 
 | 函数 | 说明 |
 |------|------|
-| `readPendingSelection(userId, tier?)` | 读 `tier{N}.json`；省略 `tier` 时用当前 stage |
-| `readCurrentStage(userId)` | 读/初始化 stage |
-| `writeCurrentStage(userId, tier)` | 写 stage（测试或管理用） |
-| `selectAndPersist(userId, { tier, sections })` | 强制按指定 tier 选题并覆盖 pending（一般通过接口1 间接调用） |
+| `readPendingSelection(scope, tier?)` | 读 `tier{N}.json`；省略 `tier` 时用当前 stage |
+| `readCurrentStage(scope)` | 读/初始化 stage |
+| `writeCurrentStage(scope, tier)` | 写 stage（测试或管理用） |
+| `selectAndPersist(scope, { tier, sections })` | 强制按指定 tier 选题并覆盖 pending（一般通过接口1 间接调用） |
 
 ---
 

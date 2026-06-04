@@ -6,6 +6,7 @@
  * 运行：`npm run test:topic:tier5`
  */
 import { config as loadEnv } from "dotenv";
+import { setupUserWithInterview } from "../../fixtures/interviewScope";
 
 loadEnv();
 
@@ -32,7 +33,6 @@ async function main(): Promise<void> {
   }
 
   const fs = await import("node:fs");
-  const { createUserWorkspace } = await import("../../../src/services/workspace.service");
   const { luxunSections } = await import("../../fixtures/sections.luxun");
   const { tierPendingPath } = await import("../../../src/topic/tierPending");
   const {
@@ -44,17 +44,17 @@ async function main(): Promise<void> {
   const { readTierPending } = await import("../../../src/topic/tierPending");
 
   const sections = luxunSections();
-  createUserWorkspace(TEST_USER);
-  writeCurrentStage(TEST_USER, 5);
+  const scope = setupUserWithInterview(TEST_USER);
+  writeCurrentStage(scope, 5);
 
   console.log("\n=== Tier5：sections → tier5.json + getPendingTopics ===");
-  const picks = await getPendingTopics(TEST_USER, sections);
+  const picks = await getPendingTopics(scope, sections);
   console.log("  picks:", JSON.stringify(picks, null, 2));
 
-  check("tier5.json 已生成", fs.existsSync(tierPendingPath(TEST_USER, 5)));
+  check("tier5.json 已生成", fs.existsSync(tierPendingPath(scope, 5)));
   check("返回数组", Array.isArray(picks), picks);
 
-  const pending = readTierPending(TEST_USER, 5);
+  const pending = readTierPending(scope, 5);
   check("tier pending.tier === 5", pending?.tier === 5, pending);
 
   if (picks.length > 0) {
@@ -74,7 +74,7 @@ async function main(): Promise<void> {
     );
     check("题目含至少一个【节名】摘录", hasSectionBlock, qText);
 
-    const qs = getTopicQuestions(TEST_USER, first.title);
+    const qs = getTopicQuestions(scope, first.title);
     console.log("  questions length:", qs.questions[0]?.length);
     check("接口2 复用 row.questions", qs.questions[0] === row!.questions![0], qs);
     check("tier 为 5", qs.tier === 5, qs);
@@ -83,7 +83,7 @@ async function main(): Promise<void> {
   }
 
   console.log("\n=== advance 5→6 ===");
-  const next = advanceStage(TEST_USER);
+  const next = advanceStage(scope);
   check("进入 tier6", next.tier === 6, next);
 
   console.log(`\n=== 结果：${passed} passed, ${failed} failed ===`);

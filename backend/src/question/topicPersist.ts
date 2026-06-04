@@ -7,7 +7,8 @@ import type {
 } from "./engineTypes";
 import type { AnsweredSection, QuestionSet } from "../topic/types";
 import { getSections } from "../services/answeredSections.service";
-import { getUserRootDir } from "../services/workspace.service";
+import type { InterviewScope } from "../services/interviewWorkspace.service";
+import { getInterviewRootDir } from "../services/interviewWorkspace.service";
 
 const QUESTION_DIR = "出题";
 
@@ -19,15 +20,15 @@ const FILES = {
 } as const;
 
 /**
- * 出题器工作目录：`<user>/出题/`，同一时刻只承载一个进行中主题。
+ * 出题器工作目录：`<采访根>/出题/`，同一时刻只承载一个进行中主题。
  * 主题标题存于 `questionSet.json.title`；本节 commit 后整目录清空。
  */
-function topicDir(userId: string): string {
-  return path.join(getUserRootDir(userId), QUESTION_DIR);
+function topicDir(scope: InterviewScope): string {
+  return path.join(getInterviewRootDir(scope), QUESTION_DIR);
 }
 
-function filePath(userId: string, file: keyof typeof FILES): string {
-  return path.join(topicDir(userId), FILES[file]);
+function filePath(scope: InterviewScope, file: keyof typeof FILES): string {
+  return path.join(topicDir(scope), FILES[file]);
 }
 
 export function writeJsonAtomic(filePath: string, data: unknown): void {
@@ -37,22 +38,22 @@ export function writeJsonAtomic(filePath: string, data: unknown): void {
   fs.renameSync(tmp, filePath);
 }
 
-export function resetTopicDir(userId: string, questionSet: QuestionSet): void {
-  clearTopicDir(userId);
-  writeJsonAtomic(filePath(userId, "questionSet"), questionSet);
-  writeJsonAtomic(filePath(userId, "answers"), []);
+export function resetTopicDir(scope: InterviewScope, questionSet: QuestionSet): void {
+  clearTopicDir(scope);
+  writeJsonAtomic(filePath(scope, "questionSet"), questionSet);
+  writeJsonAtomic(filePath(scope, "answers"), []);
 }
 
 /** 清空出题器目录 `出题/`（本节 commit 进 sections 后调用）。 */
-export function clearTopicDir(userId: string): void {
-  const dir = topicDir(userId);
+export function clearTopicDir(scope: InterviewScope): void {
+  const dir = topicDir(scope);
   if (fs.existsSync(dir)) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
-export function readQuestionSet(userId: string): QuestionSet | null {
-  const p = filePath(userId, "questionSet");
+export function readQuestionSet(scope: InterviewScope): QuestionSet | null {
+  const p = filePath(scope, "questionSet");
   if (!fs.existsSync(p)) return null;
   try {
     return JSON.parse(fs.readFileSync(p, "utf-8")) as QuestionSet;
@@ -61,8 +62,8 @@ export function readQuestionSet(userId: string): QuestionSet | null {
   }
 }
 
-export function readPrep(userId: string): PrepPersisted | null {
-  const p = filePath(userId, "prep");
+export function readPrep(scope: InterviewScope): PrepPersisted | null {
+  const p = filePath(scope, "prep");
   if (!fs.existsSync(p)) return null;
   try {
     return JSON.parse(fs.readFileSync(p, "utf-8")) as PrepPersisted;
@@ -71,16 +72,16 @@ export function readPrep(userId: string): PrepPersisted | null {
   }
 }
 
-export function writePrep(userId: string, prep: PrepPersisted): void {
-  writeJsonAtomic(filePath(userId, "prep"), prep);
+export function writePrep(scope: InterviewScope, prep: PrepPersisted): void {
+  writeJsonAtomic(filePath(scope, "prep"), prep);
 }
 
-export function hasExtendFile(userId: string): boolean {
-  return fs.existsSync(filePath(userId, "extend"));
+export function hasExtendFile(scope: InterviewScope): boolean {
+  return fs.existsSync(filePath(scope, "extend"));
 }
 
-export function readExtend(userId: string): ExtendPersisted | null {
-  const p = filePath(userId, "extend");
+export function readExtend(scope: InterviewScope): ExtendPersisted | null {
+  const p = filePath(scope, "extend");
   if (!fs.existsSync(p)) return null;
   try {
     return JSON.parse(fs.readFileSync(p, "utf-8")) as ExtendPersisted;
@@ -89,12 +90,12 @@ export function readExtend(userId: string): ExtendPersisted | null {
   }
 }
 
-export function writeExtend(userId: string, data: ExtendPersisted): void {
-  writeJsonAtomic(filePath(userId, "extend"), data);
+export function writeExtend(scope: InterviewScope, data: ExtendPersisted): void {
+  writeJsonAtomic(filePath(scope, "extend"), data);
 }
 
-export function readAnswers(userId: string): TopicAnswerRecord[] {
-  const p = filePath(userId, "answers");
+export function readAnswers(scope: InterviewScope): TopicAnswerRecord[] {
+  const p = filePath(scope, "answers");
   if (!fs.existsSync(p)) return [];
   try {
     const parsed = JSON.parse(fs.readFileSync(p, "utf-8")) as TopicAnswerRecord[];
@@ -104,10 +105,10 @@ export function readAnswers(userId: string): TopicAnswerRecord[] {
   }
 }
 
-export function appendAnswer(userId: string, record: TopicAnswerRecord): void {
-  const answers = readAnswers(userId);
+export function appendAnswer(scope: InterviewScope, record: TopicAnswerRecord): void {
+  const answers = readAnswers(scope);
   answers.push(record);
-  writeJsonAtomic(filePath(userId, "answers"), answers);
+  writeJsonAtomic(filePath(scope, "answers"), answers);
 }
 
 /** 扩展题 key 前缀（与 catalog 模板 field key 区分）。 */
@@ -124,12 +125,12 @@ export function extendedAnswers(records: TopicAnswerRecord[]): TopicAnswerRecord
 }
 
 /** committed sections + 本主题进行中 answers 合成一节，供 LLM 使用。 */
-export function sectionsForPrompt(userId: string): AnsweredSection[] {
-  const name = readQuestionSet(userId)?.title.trim();
-  const committed = getSections(userId);
+export function sectionsForPrompt(scope: InterviewScope): AnsweredSection[] {
+  const name = readQuestionSet(scope)?.title.trim();
+  const committed = getSections(scope);
   if (!name) return committed;
 
-  const answers = readAnswers(userId);
+  const answers = readAnswers(scope);
   const without = committed.filter((s) => s.name.trim() !== name);
   if (answers.length === 0) {
     return without;

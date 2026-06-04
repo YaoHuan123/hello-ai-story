@@ -281,21 +281,50 @@ extendSubCategoryQuestions(params: {
 
 端到端验收：`npm run test:question:flow`。
 
-### 调度层 + 推进器 + 全局已答（已实现）
+### 采访作用域 + 调度层（已实现）
+
+> **持久化层级与每个 JSON 文件的说明**（用户 / 采访两级目录、生命周期、模块对照）见 **[`interview-persistence.md`](interview-persistence.md)**。
+
+同一用户可**多场采访并行**；出题、已答、选题均按场隔离，不再落在用户根下的 `出题/`、`已答/`、`选题/`。
 
 | 模块 | 文件 | 职责 |
 |------|------|------|
+| 采访作用域 | `interviewWorkspace.service.ts` | `InterviewScope = { userId, interviewId }`；`createInterview` / `listInterviews` / `getInterviewRootDir` / `assertInterviewExists` |
 | LLM 管道 | `questionGeneration.service.ts` | 步骤 1～8，无状态 |
-| 出题推进器 | `questionEngine.service.ts` + `question/topicPersist.ts` | `initQuestion`、`getNextQuestion(userId)`、`submitAnswer(userId, { key, questionText, answer })`；落盘 `出题/` 分文件（同时只承载一个进行中主题，标题存于 `questionSet.json.title`） |
-| 全局已答 | `answeredSections.service.ts` | `getSections`、`commitSection(section)`；仅 `已答/sections.json` |
-| 调度层 | `interviewOrchestrator.service.ts` | 对外两接口 `getCurrentQuestion` / `submit`；统一「题目」，后端自判选题/答题 |
+| 出题推进器 | `questionEngine.service.ts` + `question/topicPersist.ts` | `initQuestion(scope)`、`getNextQuestion(scope)`、`submitAnswer(scope, …)`；落盘 `{采访根}/出题/`（单主题，`questionSet.json.title`） |
+| 全局已答 | `answeredSections.service.ts` | `getSections(scope)`、`commitSection(scope, section)`；`{采访根}/已答/sections.json` |
+| 选题 | `topicSelection.service.ts` + `topic/tierPending.ts` | `{采访根}/选题/` |
+| 调度层 | `interviewOrchestrator.service.ts` | 对外 `getCurrentQuestion(scope)` / `submit(scope, input)` |
 
-**对外两接口**（客户端只需「读」和「交」，不必知道内部状态机）：
+**落盘目录**（摘要；完整文件清单见 [`interview-persistence.md`](interview-persistence.md)）：
+
+```text
+{DATA_USERS_ROOT}/{userId}/
+  所有文本信息文件夹/          # 用户级占位，访谈模块当前不写文件
+  采访/{interviewId}/
+    meta.json
+    出题/                     # questionSet、prep、extend、answers（单主题，commit 后整目录删除）
+    已答/sections.json
+    选题/                     # current-stage.json、tier1～8.json
+```
+
+**HTTP**（[`interview.routes.ts`](../backend/src/routes/interview.routes.ts)，挂载 `/api/interviews`，需登录）：
+
+| 方法 | 路径 | 行为 |
+|------|------|------|
+| `POST` | `/api/interviews` | 创建采访 → `{ id, createdAt, … }` |
+| `GET` | `/api/interviews` | 列出当前用户的采访 |
+| `GET` | `/api/interviews/:interviewId/current` | `getCurrentQuestion` |
+| `POST` | `/api/interviews/:interviewId/submit` | `submit` → `{ ok: true }` |
+
+`INTERVIEW_NOT_FOUND` → 404。旧路径 `/api/interview/current`、`/submit` 已移除。
+
+**对外两接口**（服务层；客户端经 HTTP 携带 `interviewId`）：
 
 | 接口 | 职责 |
 |------|------|
-| `getCurrentQuestion(userId)` | 读：返回统一 `InterviewQuestion`，由 `type` 区分 `"topic"`（选主题）/`"normal"`（普通问答） |
-| `submit(userId, { key, text, value })` | 交：`value` = 选主题阶段的主题标题，或普通问答阶段的答案；只落盘，无返回（下一题用 `getCurrentQuestion` 读） |
+| `getCurrentQuestion(scope)` | 读：返回统一 `InterviewQuestion`，由 `type` 区分 `"topic"` / `"normal"` |
+| `submit(scope, { key, text, value })` | 交：只落盘，无返回（下一题再 `getCurrentQuestion`） |
 
 `InterviewQuestion`：
 
@@ -310,14 +339,17 @@ extendSubCategoryQuestions(params: {
 判定规则：
 
 - **当前主题**：出题器目录 `出题/` 同时只承载一个主题；本节 commit 后整目录清空。`getCurrentQuestion` 读 `出题/questionSet.json.title`——非空即「进行中」(`type="normal"`)，空则进入选主题 (`type="topic"`)。`submit` 则按 `input.key === SELECT_TOPIC_KEY` 区分选主题/答题，不再回扫状态。
+- **每场冷启动**：**该场** `已答/sections.json` 为空且无进行中 `出题/` 时，自动 `initQuestion` 进入「基本档案」（catalog，跳过 prep LLM），答完 commit 后再走选题；多场采访各自独立冷启动。
 - **自动升 tier**：选主题阶段若当前 tier 待选为空，自动 `advanceStage` 轮转（最多一圈）再选。
-- **答完合并并清空**：`submit` 追加答案后即调 `isTopicAnswered(userId)` 判定本主题是否答完，是则 `commitTopic`——写入 `已答/sections.json` 并清空 `出题/`。仅 catalog「最后一道模板题答完、扩展题此刻才懒生成且结果为空」的边界，`submit` 因 `extend.json` 尚未生成而判为未完，由下一次 `getCurrentQuestion` 兜底 commit。
+- **答完合并并清空**：`submit` 追加答案后即调 `isTopicAnswered(scope)` 判定本主题是否答完，是则 `commitTopic(scope)`——写入该场 `已答/sections.json` 并清空 `出题/`。仅 catalog「最后一道模板题答完、扩展题此刻才懒生成且结果为空」的边界，`submit` 因 `extend.json` 尚未生成而判为未完，由下一次 `getCurrentQuestion` 兜底 commit。
 
 ```text
-let q = await getCurrentQuestion(userId)
-// 用户按 q.type 作答/选主题后：
-submit(userId, { key: q.key, text: q.text, value: 用户输入 })
-q = await getCurrentQuestion(userId)   // 读下一题，循环
+POST /api/interviews → interviewId
+scope = { userId, interviewId }
+
+let q = await getCurrentQuestion(scope)
+submit(scope, { key: q.key, text: q.text, value: 用户输入 })
+q = await getCurrentQuestion(scope)   // 循环
 ```
 
 **内部细粒度函数**（测试/进阶使用，非对外）：`getPendingTopics`、`enterTopic`、`getNextQuestion`、`submitAnswer`、`commitTopic`、`promoteStage`。

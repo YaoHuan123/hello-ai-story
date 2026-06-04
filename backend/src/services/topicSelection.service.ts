@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { getUserRootDir } from "./workspace.service";
+import type { InterviewScope } from "./interviewWorkspace.service";
+import { getInterviewRootDir } from "./interviewWorkspace.service";
 import { getTopicFieldKeys } from "../topic/catalog";
 import { pendingRowsToPicks } from "../topic/pendingPickRow";
 import { selectTopics } from "../topic/selectTopics";
@@ -20,12 +21,12 @@ const STAGE_FILE = "current-stage.json";
 
 type StageTier = CurrentStage["tier"];
 
-function selectionDir(userId: string): string {
-  return path.join(getUserRootDir(userId), SELECTION_DIR);
+function selectionDir(scope: InterviewScope): string {
+  return path.join(getInterviewRootDir(scope), SELECTION_DIR);
 }
 
-function stagePath(userId: string): string {
-  return path.join(selectionDir(userId), STAGE_FILE);
+function stagePath(scope: InterviewScope): string {
+  return path.join(selectionDir(scope), STAGE_FILE);
 }
 
 /** 原子写：先写临时文件再 rename，避免并发部分写。 */
@@ -49,17 +50,17 @@ function isMissingInputError(err: unknown): boolean {
   return err instanceof Error && err.message.includes("TOPIC_MISSING_INPUT");
 }
 
-function readPendingForTier(userId: string, tier: StageTier): PendingSelection | null {
-  return readTierPending(userId, tier);
+function readPendingForTier(scope: InterviewScope, tier: StageTier): PendingSelection | null {
+  return readTierPending(scope, tier);
 }
 
-function writePendingForTier(userId: string, pending: PendingSelection): void {
-  writeTierPending(userId, pending, writeJsonAtomic);
+function writePendingForTier(scope: InterviewScope, pending: PendingSelection): void {
+  writeTierPending(scope, pending, writeJsonAtomic);
 }
 
 /** 内部：读取当前阶段；无文件则初始化为 tier1 并落盘。 */
-export function readCurrentStage(userId: string): CurrentStage {
-  const p = stagePath(userId);
+export function readCurrentStage(scope: InterviewScope): CurrentStage {
+  const p = stagePath(scope);
   if (fs.existsSync(p)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(p, "utf-8")) as CurrentStage;
@@ -71,14 +72,14 @@ export function readCurrentStage(userId: string): CurrentStage {
     }
   }
   const initial: CurrentStage = { tier: 1, updatedAt: new Date().toISOString() };
-  writeCurrentStage(userId, initial.tier);
+  writeCurrentStage(scope, initial.tier);
   return initial;
 }
 
 /** 内部：记录当前 tier 阶段。 */
-export function writeCurrentStage(userId: string, tier: StageTier): CurrentStage {
+export function writeCurrentStage(scope: InterviewScope, tier: StageTier): CurrentStage {
   const stage: CurrentStage = { tier, updatedAt: new Date().toISOString() };
-  writeJsonAtomic(stagePath(userId), stage);
+  writeJsonAtomic(stagePath(scope), stage);
   return stage;
 }
 
@@ -154,12 +155,9 @@ function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
 
 /**
  * 阶段A：选题并持久化为**该档**待选（写入 `tier{N}.json`，覆盖该档上一轮）。
- *
- * 各档均依赖调用方传入的 `sections`（选题器不持久化 sections）。
- * 返回瘦身 {@link TopicPick}[]；题面在磁盘 `PendingPickRow` 中。
  */
 export async function selectAndPersist(
-  userId: string,
+  scope: InterviewScope,
   params: { tier: StageTier; sections: AnsweredSection[] },
 ): Promise<TopicPick[]> {
   const rows = await selectTopics({ tier: params.tier, sections: params.sections });
@@ -168,17 +166,17 @@ export async function selectAndPersist(
     createdAt: new Date().toISOString(),
     picks: rows,
   };
-  writePendingForTier(userId, pending);
+  writePendingForTier(scope, pending);
   return pendingRowsToPicks(rows);
 }
 
 /** 读取指定档（或当前 stage）的 `tier{N}.json`；无则返回 null。 */
 export function readPendingSelection(
-  userId: string,
+  scope: InterviewScope,
   tier?: StageTier,
 ): PendingSelection | null {
-  const t = tier ?? readCurrentStage(userId).tier;
-  return readTierPending(userId, t);
+  const t = tier ?? readCurrentStage(scope).tier;
+  return readTierPending(scope, t);
 }
 
 /**
@@ -188,17 +186,17 @@ export function readPendingSelection(
  * 否则调用 {@link selectAndPersist}。
  */
 export async function getPendingTopics(
-  userId: string,
+  scope: InterviewScope,
   sections: AnsweredSection[],
 ): Promise<TopicPick[]> {
-  const { tier } = readCurrentStage(userId);
-  const existing = readPendingForTier(userId, tier);
+  const { tier } = readCurrentStage(scope);
+  const existing = readPendingForTier(scope, tier);
   if (existing?.tier === tier) {
     return pendingRowsToPicks(existing.picks);
   }
 
   try {
-    return await selectAndPersist(userId, { tier, sections });
+    return await selectAndPersist(scope, { tier, sections });
   } catch (err) {
     if (isNoCandidateError(err) || isMaterialMinEntriesError(err) || isMissingInputError(err)) {
       const pending: PendingSelection = {
@@ -206,7 +204,7 @@ export async function getPendingTopics(
         createdAt: new Date().toISOString(),
         picks: [],
       };
-      writePendingForTier(userId, pending);
+      writePendingForTier(scope, pending);
       return [];
     }
     throw err;
@@ -218,9 +216,9 @@ export async function getPendingTopics(
  *
  * @throws TOPIC_PICK_NOT_FOUND 无待选轮或其中无该 title
  */
-export function getTopicQuestions(userId: string, title: string): QuestionSet {
-  const { tier } = readCurrentStage(userId);
-  const pending = readPendingForTier(userId, tier);
+export function getTopicQuestions(scope: InterviewScope, title: string): QuestionSet {
+  const { tier } = readCurrentStage(scope);
+  const pending = readPendingForTier(scope, tier);
   if (!pending) {
     throw new Error("TOPIC_PICK_NOT_FOUND: 无待选轮，请先调用 getPendingTopics");
   }
@@ -232,14 +230,14 @@ export function getTopicQuestions(userId: string, title: string): QuestionSet {
 }
 
 /** 接口3：查询当前处于 tier1～8 哪个阶段。 */
-export function getCurrentStage(userId: string): CurrentStage {
-  return readCurrentStage(userId);
+export function getCurrentStage(scope: InterviewScope): CurrentStage {
+  return readCurrentStage(scope);
 }
 
 /** tier8→tier1 新一轮：清除各档待选，避免第二轮复用上一轮 tier{N}.json。 */
-function clearAllTierPending(userId: string): void {
+function clearAllTierPending(scope: InterviewScope): void {
   for (let t = 1; t <= 8; t++) {
-    const p = tierPendingPath(userId, t as TierFileTier);
+    const p = tierPendingPath(scope, t as TierFileTier);
     if (fs.existsSync(p)) {
       fs.unlinkSync(p);
     }
@@ -247,11 +245,11 @@ function clearAllTierPending(userId: string): void {
 }
 
 /** 接口4：进入下一阶段（1→2→3→4→5→6→7→8→1 循环）。tier8→1 时清空各档 `tier{N}.json`。 */
-export function advanceStage(userId: string): CurrentStage {
-  const { tier } = readCurrentStage(userId);
+export function advanceStage(scope: InterviewScope): CurrentStage {
+  const { tier } = readCurrentStage(scope);
   const next: StageTier = tier === 8 ? 1 : ((tier + 1) as StageTier);
   if (tier === 8) {
-    clearAllTierPending(userId);
+    clearAllTierPending(scope);
   }
-  return writeCurrentStage(userId, next);
+  return writeCurrentStage(scope, next);
 }

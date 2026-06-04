@@ -12,5 +12,6 @@ export const createUserWorkspace = (userId: string): string => {
   const userRoot = getUserRootDir(userId);
   ensureFolder(userRoot);
   ensureFolder(path.join(userRoot, "所有文本信息文件夹"));
+  ensureFolder(path.join(userRoot, "采访"));
   return userRoot;
 };

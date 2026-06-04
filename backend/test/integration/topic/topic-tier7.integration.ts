@@ -4,6 +4,7 @@
  * 运行：`npm run test:topic:tier7`
  */
 import { config as loadEnv } from "dotenv";
+import { setupUserWithInterview } from "../../fixtures/interviewScope";
 
 loadEnv();
 
@@ -30,7 +31,6 @@ async function main(): Promise<void> {
   }
 
   const fs = await import("node:fs");
-  const { createUserWorkspace } = await import("../../../src/services/workspace.service");
   const { luxunSections } = await import("../../fixtures/sections.luxun");
   const { tierPendingPath, readTierPending } = await import("../../../src/topic/tierPending");
   const {
@@ -41,16 +41,16 @@ async function main(): Promise<void> {
   } = await import("../../../src/services/topicSelection.service");
 
   const sections = luxunSections();
-  createUserWorkspace(TEST_USER);
-  writeCurrentStage(TEST_USER, 7);
+  const scope = setupUserWithInterview(TEST_USER);
+  writeCurrentStage(scope, 7);
 
   console.log("\n=== Tier7：sections → tier7.json + getPendingTopics ===");
-  const picks = await getPendingTopics(TEST_USER, sections);
+  const picks = await getPendingTopics(scope, sections);
   console.log("  picks:", JSON.stringify(picks, null, 2));
 
-  check("tier7.json 已生成", fs.existsSync(tierPendingPath(TEST_USER, 7)));
+  check("tier7.json 已生成", fs.existsSync(tierPendingPath(scope, 7)));
   check("返回数组", Array.isArray(picks), picks);
-  check("tier pending.tier === 7", readTierPending(TEST_USER, 7)?.tier === 7);
+  check("tier pending.tier === 7", readTierPending(scope, 7)?.tier === 7);
 
   if (picks.length > 0) {
     const first = picks[0];
@@ -60,7 +60,7 @@ async function main(): Promise<void> {
     check("无 segmentIndex", !("segmentIndex" in first), first);
     check("reason 非空", typeof first.reason === "string" && first.reason.length > 0, first);
 
-    const qs = getTopicQuestions(TEST_USER, first.title);
+    const qs = getTopicQuestions(scope, first.title);
     console.log("  questions:", JSON.stringify(qs, null, 2));
     check("questions 为 [title]", qs.questions[0] === first.title, qs);
     check("含 suggestedAnswers（reason）", (qs.suggestedAnswers?.length ?? 0) >= 1, qs);
@@ -70,7 +70,7 @@ async function main(): Promise<void> {
   }
 
   console.log("\n=== advance 7→8 ===");
-  check("进入 tier8", advanceStage(TEST_USER).tier === 8);
+  check("进入 tier8", advanceStage(scope).tier === 8);
 
   console.log(`\n=== 结果：${passed} passed, ${failed} failed ===`);
   process.exit(failed > 0 ? 1 : 0);

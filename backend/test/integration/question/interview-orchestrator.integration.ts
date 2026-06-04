@@ -6,6 +6,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
+import type { InterviewScope } from "../../../src/services/interviewWorkspace.service";
+import { getInterviewRootDir } from "../../../src/services/interviewWorkspace.service";
+import { setupUserWithInterview } from "../../fixtures/interviewScope";
 
 loadEnv();
 
@@ -25,14 +28,11 @@ function check(label: string, cond: boolean, detail?: unknown): void {
 
 const TEST_USER = `interview-orch-${Date.now()}`;
 
-function topicDir(root: string): string {
-  return path.join(root, "出题");
+function topicDir(scope: InterviewScope): string {
+  return path.join(getInterviewRootDir(scope), "出题");
 }
 
 async function main(): Promise<void> {
-  const { createUserWorkspace, getUserRootDir } = await import(
-    "../../../src/services/workspace.service"
-  );
   const { seedCommittedSections, getSections } = await import(
     "../../../src/services/answeredSections.service"
   );
@@ -50,9 +50,33 @@ async function main(): Promise<void> {
   const { writeTierPending } = await import("../../../src/topic/tierPending");
   const { readPrep, readAnswers, writePrep } = await import("../../../src/question/topicPersist");
 
-  createUserWorkspace(TEST_USER);
-  seedCommittedSections(TEST_USER, stubSections());
-  const userRoot = getUserRootDir(TEST_USER);
+  const scope = setupUserWithInterview(TEST_USER);
+  seedCommittedSections(scope, stubSections());
+
+  console.log("\n=== 新用户冷启动：无 sections → 基本档案 ===");
+  const coldScope = setupUserWithInterview(`${TEST_USER}-cold`);
+  const qCold0 = await getCurrentQuestion(coldScope);
+  check(
+    "冷启动首读=基本档案普通问答",
+    qCold0.type === "normal" && qCold0.title === "基本档案" && (qCold0.text?.length ?? 0) > 0,
+    qCold0,
+  );
+  let coldSteps = 0;
+  const coldMax = 12;
+  let qCold = qCold0;
+  while (qCold.type === "normal" && coldSteps < coldMax) {
+    submit(coldScope, { key: qCold.key, text: qCold.text, value: `冷启动答${coldSteps + 1}` });
+    qCold = await getCurrentQuestion(coldScope);
+    coldSteps += 1;
+  }
+  check("冷启动答完后回到选主题", qCold.type === "topic", qCold);
+  const coldSections = getSections(coldScope);
+  const coldBasic = coldSections.find((s) => s.name === "基本档案");
+  check("冷启动 commit 后 sections 含基本档案 8 问", coldBasic?.qa.length === 8, coldBasic);
+  check(
+    "冷启动答完后清空出题器",
+    !fs.existsSync(path.join(topicDir(coldScope), "questionSet.json")),
+  );
 
   const title = "基本档案";
   const questionSet = {
@@ -65,64 +89,64 @@ async function main(): Promise<void> {
   const questionEngine = await import("../../../src/services/questionEngine.service");
 
   console.log("\n=== 答题循环（submit → getNext → commit）===");
-  questionEngine.initQuestion(TEST_USER, questionSet);
+  questionEngine.initQuestion(scope, questionSet);
 
   check(
     "落盘 questionSet + answers",
-    fs.existsSync(path.join(topicDir(userRoot), "questionSet.json")) &&
-      fs.existsSync(path.join(topicDir(userRoot), "answers.json")),
+    fs.existsSync(path.join(topicDir(scope), "questionSet.json")) &&
+      fs.existsSync(path.join(topicDir(scope), "answers.json")),
   );
 
-  let current = await getNextQuestion(TEST_USER);
+  let current = await getNextQuestion(scope);
   check("第 1 题", current?.text === "怎么称呼你？", current);
 
-  submitAnswer(TEST_USER, {
+  submitAnswer(scope, {
     key: current!.key,
     questionText: current!.text,
     answer: "张建国",
   });
-  check("answers 1 条", readAnswers(TEST_USER).length === 1);
+  check("answers 1 条", readAnswers(scope).length === 1);
 
-  current = await getNextQuestion(TEST_USER);
+  current = await getNextQuestion(scope);
   check("提交后仍有第 2 题", current?.key === "你是几几年几月出生的？", current);
 
   let rejectedDuplicate = false;
   try {
-    submitAnswer(TEST_USER, { key: "怎么称呼你？", questionText: "x", answer: "y" });
+    submitAnswer(scope, { key: "怎么称呼你？", questionText: "x", answer: "y" });
   } catch (err) {
     rejectedDuplicate = err instanceof Error && err.message.includes("DUPLICATE");
   }
   check("重复提交被拒（DUPLICATE）", rejectedDuplicate);
-  check("被拒后 answers 仍 1 条", readAnswers(TEST_USER).length === 1);
+  check("被拒后 answers 仍 1 条", readAnswers(scope).length === 1);
 
-  submitAnswer(TEST_USER, {
+  submitAnswer(scope, {
     key: current!.key,
     questionText: current!.text,
     answer: "1958-07",
   });
 
-  current = await getNextQuestion(TEST_USER);
+  current = await getNextQuestion(scope);
   check("本节无下一题", current === null, current);
 
   let rejectedComplete = false;
   try {
-    submitAnswer(TEST_USER, { key: "任意", questionText: "x", answer: "y" });
+    submitAnswer(scope, { key: "任意", questionText: "x", answer: "y" });
   } catch (err) {
     rejectedComplete = err instanceof Error && err.message.includes("COMPLETE");
   }
   check("答完后再提交被拒（COMPLETE）", rejectedComplete);
 
-  commitTopic(TEST_USER);
+  commitTopic(scope);
 
-  const sections = getSections(TEST_USER);
+  const sections = getSections(scope);
   const basic = sections.find((s) => s.name === title);
   check("commit 后 sections 含基本档案", basic?.qa.length === 2, basic);
-  check("commit 后清空出题器目录", !fs.existsSync(path.join(topicDir(userRoot), "questionSet.json")));
+  check("commit 后清空出题器目录", !fs.existsSync(path.join(topicDir(scope), "questionSet.json")));
 
   console.log("\n=== getPendingTopics + enterTopic（generated）===");
-  writeCurrentStage(TEST_USER, 3);
+  writeCurrentStage(scope, 3);
   writeTierPending(
-    TEST_USER,
+    scope,
     {
       tier: 3,
       createdAt: new Date().toISOString(),
@@ -138,20 +162,19 @@ async function main(): Promise<void> {
       fs.writeFileSync(p, JSON.stringify(d, null, 2), "utf-8");
     },
   );
-  const picks = await getPendingTopics(TEST_USER);
+  const picks = await getPendingTopics(scope);
   check("待选非空", picks.length > 0, picks);
-  await enterTopic(TEST_USER, "童年趣事");
-  const genViaOrch = await getNextQuestion(TEST_USER);
-  check("enterTopic 后取题", genViaOrch?.text.includes("开心"), genViaOrch);
-  check("generated 无 prep.json", readPrep(TEST_USER) === null);
+  await enterTopic(scope, "童年趣事");
+  const genViaOrch = await getNextQuestion(scope);
+  check("enterTopic 后取题", genViaOrch?.text.includes("开心") ?? false, genViaOrch);
+  check("generated 无 prep.json", readPrep(scope) === null);
 
   console.log("\n=== 两接口 getCurrentStep + submit（scan 驱动）===");
-  const u2 = `${TEST_USER}-2api`;
-  createUserWorkspace(u2);
-  seedCommittedSections(u2, stubSections());
-  writeCurrentStage(u2, 3);
+  const scope2 = setupUserWithInterview(`${TEST_USER}-2api`);
+  seedCommittedSections(scope2, stubSections());
+  writeCurrentStage(scope2, 3);
   writeTierPending(
-    u2,
+    scope2,
     {
       tier: 3,
       createdAt: new Date().toISOString(),
@@ -168,37 +191,36 @@ async function main(): Promise<void> {
     },
   );
 
-  const q1 = await getCurrentQuestion(u2);
+  const q1 = await getCurrentQuestion(scope2);
   check(
     "读=选主题题目",
     q1.type === "topic" && q1.options.includes("童年趣事"),
     q1,
   );
 
-  submit(u2, { key: q1.key, text: q1.text, value: "童年趣事" });
-  const q2 = await getCurrentQuestion(u2);
+  submit(scope2, { key: q1.key, text: q1.text, value: "童年趣事" });
+  const q2 = await getCurrentQuestion(scope2);
   check(
     "交(选主题)后读=普通问答",
-    q2.type === "normal" && q2.title === "童年趣事" && q2.text.includes("开心"),
+    q2.type === "normal" && q2.title === "童年趣事" && (q2.text.includes("开心") ?? false),
     q2,
   );
 
-  submit(u2, { key: q2.key, text: q2.text, value: "考了第一名" });
-  const q3 = await getCurrentQuestion(u2);
+  submit(scope2, { key: q2.key, text: q2.text, value: "考了第一名" });
+  const q3 = await getCurrentQuestion(scope2);
   check("交(答完唯一题)后读=回到选主题", q3.type === "topic", q3);
   check(
     "答完自动 commit 进 sections",
-    getSections(u2).some((s) => s.name === "童年趣事" && s.qa.length === 1),
-    getSections(u2),
+    getSections(scope2).some((s) => s.name === "童年趣事" && s.qa.length === 1),
+    getSections(scope2),
   );
 
   console.log("\n=== 空主题（prep 去重为空）跳过而非卡死 ===");
-  const uEmpty = `${TEST_USER}-empty`;
-  createUserWorkspace(uEmpty);
-  seedCommittedSections(uEmpty, stubSections());
-  writeCurrentStage(uEmpty, 3);
+  const scopeEmpty = setupUserWithInterview(`${TEST_USER}-empty`);
+  seedCommittedSections(scopeEmpty, stubSections());
+  writeCurrentStage(scopeEmpty, 3);
   writeTierPending(
-    uEmpty,
+    scopeEmpty,
     {
       tier: 3,
       createdAt: new Date().toISOString(),
@@ -214,50 +236,47 @@ async function main(): Promise<void> {
       fs.writeFileSync(p, JSON.stringify(d, null, 2), "utf-8");
     },
   );
-  questionEngine.initQuestion(uEmpty, {
+  questionEngine.initQuestion(scopeEmpty, {
     title: "小学",
     tier: 1 as const,
     kind: "catalog" as const,
     questions: ["问题A", "问题B"],
   });
-  // 模拟 prep 把模板题全部去重：askQuestions 为空
-  writePrep(uEmpty, {
+  writePrep(scopeEmpty, {
     skipped: false,
     askQuestions: [],
     skippedQuestions: ["问题A", "问题B"],
     questionTexts: {},
     answerSuggestions: {},
   });
-  const qEmpty = await getCurrentQuestion(uEmpty);
+  const qEmpty = await getCurrentQuestion(scopeEmpty);
   check("空主题不抛错、回到选主题", qEmpty.type === "topic", qEmpty);
   check(
     "空主题目录已清空",
-    !fs.existsSync(path.join(topicDir(getUserRootDir(uEmpty)), "questionSet.json")),
+    !fs.existsSync(path.join(topicDir(scopeEmpty), "questionSet.json")),
   );
 
   console.log("\n=== 非 catalog：跳过 prep ====");
-  const user2 = `${TEST_USER}-gen`;
-  createUserWorkspace(user2);
-  seedCommittedSections(user2, stubSections());
+  const scopeGen = setupUserWithInterview(`${TEST_USER}-gen`);
+  seedCommittedSections(scopeGen, stubSections());
   const genTitle = "童年趣事";
-  questionEngine.initQuestion(user2, {
+  questionEngine.initQuestion(scopeGen, {
     title: genTitle,
     tier: 3 as const,
     kind: "generated" as const,
     questions: ["你小时候最开心的一件事是什么？"],
   });
-  const genQ = await questionEngine.getNextQuestion(user2);
-  check("generated 直接出题", genQ?.text.includes("开心"), genQ);
-  check("generated 仍无 prep", readPrep(user2) === null);
+  const genQ = await questionEngine.getNextQuestion(scopeGen);
+  check("generated 直接出题", genQ?.text.includes("开心") ?? false, genQ);
+  check("generated 仍无 prep", readPrep(scopeGen) === null);
 
   if (process.env.OPENAI_API_KEY?.trim()) {
     console.log("\n=== enterTopic 小学（LLM 仅取第 1 题）===");
-    const user3 = `${TEST_USER}-llm`;
-    createUserWorkspace(user3);
-    seedCommittedSections(user3, stubSections());
-    writeCurrentStage(user3, 1);
+    const scopeLlm = setupUserWithInterview(`${TEST_USER}-llm`);
+    seedCommittedSections(scopeLlm, stubSections());
+    writeCurrentStage(scopeLlm, 1);
     writeTierPending(
-      user3,
+      scopeLlm,
       {
         tier: 1,
         createdAt: new Date().toISOString(),
@@ -268,10 +287,10 @@ async function main(): Promise<void> {
         fs.writeFileSync(p, JSON.stringify(d, null, 2), "utf-8");
       },
     );
-    await enterTopic(user3, "小学");
-    const first = await getNextQuestion(user3);
+    await enterTopic(scopeLlm, "小学");
+    const first = await getNextQuestion(scopeLlm);
     check("小学第 1 题非空", (first?.text.length ?? 0) > 0, first);
-    check("小学有 prep.json", fs.existsSync(path.join(getUserRootDir(user3), "出题", "prep.json")));
+    check("小学有 prep.json", fs.existsSync(path.join(topicDir(scopeLlm), "prep.json")));
   } else {
     console.warn("\n[SKIP] 未配置 OPENAI_API_KEY，跳过小学 LLM 段。");
   }

@@ -16,7 +16,30 @@ import {
   getPendingTopics as selectPendingTopics,
   getTopicQuestions,
 } from "./topicSelection.service";
-import type { CurrentStage, TopicPick } from "../topic/types";
+import { getTopicFieldKeys } from "../topic/catalog";
+import type { InterviewScope } from "./interviewWorkspace.service";
+import type { CurrentStage, QuestionSet, TopicPick } from "../topic/types";
+
+/** 新用户冷启动固定主题（与 template-config.v2.json 子类名一致）。 */
+export const BASIC_PROFILE_TITLE = "基本档案";
+
+function basicProfileQuestionSet(): QuestionSet {
+  return {
+    title: BASIC_PROFILE_TITLE,
+    tier: 1,
+    kind: "catalog",
+    questions: getTopicFieldKeys(BASIC_PROFILE_TITLE),
+  };
+}
+
+/**
+ * 无已答、无进行中主题时初始化基本档案并取第一题。
+ * @returns 第一道题展示；无题可问时 null（由调用方按空主题处理）
+ */
+async function startBasicProfileColdStart(scope: InterviewScope): Promise<NextQuestionDisplay | null> {
+  initQuestion(scope, basicProfileQuestionSet());
+  return engineGetNextQuestion(scope);
+}
 
 export type {
   NextQuestionDisplay,
@@ -58,10 +81,10 @@ export type SubmitInput = {
  * - `出题/` 有进行中主题（未答完）→ 该主题的下一题（type="normal"）
  * - 否则 → 选主题题目（type="topic"，options 为候选主题）；待选为空则自动升 tier
  */
-export async function getCurrentQuestion(userId: string): Promise<InterviewQuestion> {
-  const title = readQuestionSet(userId)?.title.trim() || null;
+export async function getCurrentQuestion(scope: InterviewScope): Promise<InterviewQuestion> {
+  const title = readQuestionSet(scope)?.title.trim() || null;
   if (title) {
-    const question = await engineGetNextQuestion(userId);
+    const question = await engineGetNextQuestion(scope);
     if (question) {
       return {
         type: "normal",
@@ -76,14 +99,29 @@ export async function getCurrentQuestion(userId: string): Promise<InterviewQuest
     // ——此时 submit 调 isTopicAnswered 因 extend.json 尚未生成而判为未完。
     // - 有答案 → 合并进 sections 并清空；
     // - 零答案（题目被 prep 全部去重）→ 无可问内容，直接丢弃。
-    if (readAnswers(userId).length > 0) {
-      commitTopic(userId);
+    if (readAnswers(scope).length > 0) {
+      commitTopic(scope);
     } else {
-      clearTopicDir(userId);
+      clearTopicDir(scope);
     }
   }
 
-  const topics = await pendingWithAutoPromote(userId);
+  // 新用户冷启动：无已答且无进行中主题 → 直接进入基本档案，不走选题器。
+  if (getSections(scope).length === 0 && !readQuestionSet(scope)) {
+    const question = await startBasicProfileColdStart(scope);
+    if (question) {
+      return {
+        type: "normal",
+        title: BASIC_PROFILE_TITLE,
+        key: question.key,
+        text: question.text,
+        options: question.suggestions,
+      };
+    }
+    clearTopicDir(scope);
+  }
+
+  const topics = await pendingWithAutoPromote(scope);
   return {
     type: "topic",
     title: null,
@@ -98,26 +136,26 @@ export async function getCurrentQuestion(userId: string): Promise<InterviewQuest
  * - 选主题阶段：`value` 作为主题标题进入该主题
  * - 普通问答阶段：`value` 作为答案落盘；答完由 `getCurrentQuestion` 自动 commit
  */
-export function submit(userId: string, input: SubmitInput): void {
+export function submit(scope: InterviewScope, input: SubmitInput): void {
   if (input.key === SELECT_TOPIC_KEY) {
     // 选主题阶段：value 为所选主题标题。
     // 守卫：已有进行中主题时拒绝，避免 initQuestion 清空其答案（客户端状态过期/重复提交）。
-    if (readQuestionSet(userId)) {
+    if (readQuestionSet(scope)) {
       throw new Error(
         "INTERVIEW_TOPIC_IN_PROGRESS: 已有进行中主题，请先用 getCurrentQuestion 继续作答",
       );
     }
-    const questionSet = getTopicQuestions(userId, input.value.trim());
-    initQuestion(userId, questionSet);
+    const questionSet = getTopicQuestions(scope, input.value.trim());
+    initQuestion(scope, questionSet);
   } else {
     // 答题阶段：追加答案；若本主题题目已全部答完，立即合并进 sections 并清空 `出题/`。
-    engineSubmitAnswer(userId, {
+    engineSubmitAnswer(scope, {
       key: input.key,
       questionText: input.text,
       answer: input.value,
     });
-    if (isTopicAnswered(userId)) {
-      commitTopic(userId);
+    if (isTopicAnswered(scope)) {
+      commitTopic(scope);
     }
   }
 }
@@ -127,15 +165,15 @@ export function submit(userId: string, input: SubmitInput): void {
  * 过滤掉已在「已答」中的主题：tier{N}.json 是缓存的待选，自身不会剔除刚答完的主题，
  * 否则会把已完成的主题反复重选。
  */
-async function pendingWithAutoPromote(userId: string): Promise<TopicPick[]> {
+async function pendingWithAutoPromote(scope: InterviewScope): Promise<TopicPick[]> {
   for (let i = 0; i < 8; i++) {
-    const sections = getSections(userId);
+    const sections = getSections(scope);
     const answered = new Set(sections.map((s) => s.name.trim()));
-    const topics = (await selectPendingTopics(userId, sections)).filter(
+    const topics = (await selectPendingTopics(scope, sections)).filter(
       (t) => !answered.has(t.title.trim()),
     );
     if (topics.length > 0) return topics;
-    advanceStage(userId);
+    advanceStage(scope);
   }
   return [];
 }
@@ -144,29 +182,29 @@ export { getCurrentStage };
 
 // ─────────────────── 内部细粒度函数（测试/进阶调用）───────────────────
 
-export async function getPendingTopics(userId: string): Promise<TopicPick[]> {
-  return selectPendingTopics(userId, getSections(userId));
+export async function getPendingTopics(scope: InterviewScope): Promise<TopicPick[]> {
+  return selectPendingTopics(scope, getSections(scope));
 }
 
-export async function enterTopic(userId: string, title: string): Promise<void> {
-  const questionSet = getTopicQuestions(userId, title.trim());
-  initQuestion(userId, questionSet);
+export async function enterTopic(scope: InterviewScope, title: string): Promise<void> {
+  const questionSet = getTopicQuestions(scope, title.trim());
+  initQuestion(scope, questionSet);
 }
 
-export async function getNextQuestion(userId: string): Promise<NextQuestionDisplay | null> {
-  return engineGetNextQuestion(userId);
+export async function getNextQuestion(scope: InterviewScope): Promise<NextQuestionDisplay | null> {
+  return engineGetNextQuestion(scope);
 }
 
-export function submitAnswer(userId: string, params: SubmitAnswerParams): SubmittedAnswerMeta {
-  return engineSubmitAnswer(userId, params);
+export function submitAnswer(scope: InterviewScope, params: SubmitAnswerParams): SubmittedAnswerMeta {
+  return engineSubmitAnswer(scope, params);
 }
 
 /** 本节答完：合并进 `已答/sections.json` 后清空出题器目录 `出题/`。 */
-export function commitTopic(userId: string): void {
-  commitSection(userId, answeredSectionFromTopic(userId));
-  clearTopicDir(userId);
+export function commitTopic(scope: InterviewScope): void {
+  commitSection(scope, answeredSectionFromTopic(scope));
+  clearTopicDir(scope);
 }
 
-export function promoteStage(userId: string): CurrentStage {
-  return advanceStage(userId);
+export function promoteStage(scope: InterviewScope): CurrentStage {
+  return advanceStage(scope);
 }

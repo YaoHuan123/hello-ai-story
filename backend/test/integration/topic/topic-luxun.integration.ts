@@ -8,6 +8,8 @@
  */
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
+import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { getInterviewRootDir } from "../../../src/services/interviewWorkspace.service";
 
 loadEnv();
 
@@ -33,7 +35,6 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const { createUserWorkspace, getUserRootDir } = await import("../../../src/services/workspace.service");
   const { luxunSections } = await import("../../fixtures/sections.luxun");
   const {
     getCurrentStage,
@@ -45,10 +46,10 @@ async function main(): Promise<void> {
   } = await import("../../../src/services/topicSelection.service");
 
   const sections = luxunSections();
-  createUserWorkspace(TEST_USER);
-  writeCurrentStage(TEST_USER, 1);
+  const scope = setupUserWithInterview(TEST_USER);
+  writeCurrentStage(scope, 1);
 
-  const selectionDir = path.join(getUserRootDir(TEST_USER), "选题");
+  const selectionDir = path.join(getInterviewRootDir(scope), "选题");
   console.log("\n=== 被试资料：鲁迅（节选 sections）===");
   console.log(JSON.stringify(sections, null, 2));
 
@@ -56,14 +57,14 @@ async function main(): Promise<void> {
 
   for (const expectTier of tiers) {
     console.log(`\n=== Tier${expectTier}：getPendingTopics ===`);
-    const stage = getCurrentStage(TEST_USER);
+    const stage = getCurrentStage(scope);
     check(`当前阶段为 tier${expectTier}`, stage.tier === expectTier, stage);
 
-    const picks = await getPendingTopics(TEST_USER, sections);
+    const picks = await getPendingTopics(scope, sections);
     console.log("  picks:", JSON.stringify(picks, null, 2));
 
     check(`tier${expectTier} 返回数组`, Array.isArray(picks), picks);
-    const pending = readPendingSelection(TEST_USER, expectTier);
+    const pending = readPendingSelection(scope, expectTier);
     check(`tier${expectTier}.json tier 一致`, pending?.tier === expectTier, pending);
 
     if (expectTier === 1) {
@@ -81,7 +82,7 @@ async function main(): Promise<void> {
       check("首条含 title/reason/kind", Boolean(first.title && first.reason && first.kind), first);
       check("首条 tier 与档位一致", first.tier === expectTier, first);
 
-      const qs = getTopicQuestions(TEST_USER, first.title);
+      const qs = getTopicQuestions(scope, first.title);
       console.log("  questions:", JSON.stringify(qs, null, 2));
       check("QuestionSet.title 一致", qs.title === first.title, qs);
       check("QuestionSet.kind 一致", qs.kind === first.kind, qs);
@@ -99,7 +100,7 @@ async function main(): Promise<void> {
     }
 
     if (expectTier < 4) {
-      const next = advanceStage(TEST_USER);
+      const next = advanceStage(scope);
       check(`advance → tier${expectTier + 1}`, next.tier === expectTier + 1, next);
     }
   }
@@ -110,7 +111,7 @@ async function main(): Promise<void> {
   check("current-stage.json 存在", fs.existsSync(path.join(selectionDir, "current-stage.json")));
   check("tier1.json 存在", fs.existsSync(path.join(selectionDir, "tier1.json")));
   check("无 pending-selection.json", !fs.existsSync(path.join(selectionDir, "pending-selection.json")));
-  check("末档应为 tier4", getCurrentStage(TEST_USER).tier === 4);
+  check("末档应为 tier4", getCurrentStage(scope).tier === 4);
 
   console.log(`\n=== 结果：${passed} passed, ${failed} failed ===`);
   process.exit(failed > 0 ? 1 : 0);

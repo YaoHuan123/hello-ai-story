@@ -2,8 +2,8 @@
  * 鲁迅生平 · 两接口真实访谈（真实 LLM）。
  *
  * 仅通过最外层两个接口驱动整段访谈：
- *   - `getCurrentQuestion(userId)`：读当前题（选主题 or 普通问答）
- *   - `submit(userId, { key, text, value })`：交（选主题标题 / 答案）
+ *   - `getCurrentQuestion(scope)`：读当前题（选主题 or 普通问答）
+ *   - `submit(scope, { key, text, value })`：交（选主题标题 / 答案）
  *
  * 「用户」由 LLM 扮演鲁迅本人，依据公开生平资料以第一人称作答；
  * 出题侧（prep / refine / extend）与选题侧均为真实 LLM。
@@ -38,18 +38,17 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const { createUserWorkspace, getUserRootDir } = await import(
-    "../../../src/services/workspace.service"
-  );
   const { seedCommittedSections, getSections } = await import(
     "../../../src/services/answeredSections.service"
   );
+  const { getInterviewRootDir } = await import("../../../src/services/interviewWorkspace.service");
   const { luxunSections } = await import("../../fixtures/sections.luxun");
   const { writeCurrentStage } = await import("../../../src/services/topicSelection.service");
   const { chatJson } = await import("../../../src/topic/llm");
   const { getCurrentStage, getCurrentQuestion, submit, SELECT_TOPIC_KEY } = await import(
     "../../../src/services/interviewOrchestrator.service"
   );
+  const { setupUserWithInterview } = await import("../../fixtures/interviewScope");
 
   const startedAt = new Date();
   const runId = formatRunId(startedAt);
@@ -61,14 +60,15 @@ async function main(): Promise<void> {
   const knownProfile = bio.filter((s) => s.name === "基本档案");
 
   const TEST_USER = `interview-luxun-${startedAt.getTime()}`;
-  createUserWorkspace(TEST_USER);
-  seedCommittedSections(TEST_USER, knownProfile);
-  writeCurrentStage(TEST_USER, 1);
+  const scope = setupUserWithInterview(TEST_USER);
+  seedCommittedSections(scope, knownProfile);
+  writeCurrentStage(scope, 1);
 
   console.log("\n=== 鲁迅 · 两接口真实访谈 ===");
   console.log("  traceDir:", traceDir);
   console.log("  userId:", TEST_USER);
-  console.log("  起始阶段:", getCurrentStage(TEST_USER).tier);
+  console.log("  interviewId:", scope.interviewId);
+  console.log("  起始阶段:", getCurrentStage(scope).tier);
 
   /** LLM 扮演鲁迅作答：给定问句（及备选）返回第一人称答案。 */
   async function answerAsLuxun(question: string, options: string[]): Promise<string> {
@@ -109,7 +109,7 @@ async function main(): Promise<void> {
   for (let step = 1; step <= MAX_STEPS; step++) {
     let q;
     try {
-      q = await getCurrentQuestion(TEST_USER);
+      q = await getCurrentQuestion(scope);
     } catch (err) {
       // LLM 偶发坏输出（如 EXTEND_INVALID）不中断整段访谈，记录后优雅结束。
       stopReason = `getCurrentQuestion 出错：${err instanceof Error ? err.message : String(err)}`;
@@ -145,7 +145,7 @@ async function main(): Promise<void> {
         options: q.options,
         submitted: chosen,
       });
-      submit(TEST_USER, { key: SELECT_TOPIC_KEY, text: q.text, value: chosen });
+      submit(scope, { key: SELECT_TOPIC_KEY, text: q.text, value: chosen });
       continue;
     }
 
@@ -165,7 +165,7 @@ async function main(): Promise<void> {
       options: q.options,
       submitted: answer,
     });
-    submit(TEST_USER, { key: q.key, text: q.text, value: answer });
+    submit(scope, { key: q.key, text: q.text, value: answer });
 
     if (answers >= MAX_ANSWERS) {
       stopReason = `已作答 ${answers} 题（达到上限）`;
@@ -174,7 +174,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const finalSections = getSections(TEST_USER);
+  const finalSections = getSections(scope);
   fs.writeFileSync(
     path.join(traceDir, "transcript.json"),
     JSON.stringify(transcript, null, 2),
@@ -190,13 +190,14 @@ async function main(): Promise<void> {
     JSON.stringify(
       {
         userId: TEST_USER,
+        interviewId: scope.interviewId,
         startedAt: startedAt.toISOString(),
         finishedAt: new Date().toISOString(),
         steps: transcript.length,
         answers,
         topicsCompleted,
         stopReason,
-        userRoot: getUserRootDir(TEST_USER),
+        interviewRoot: getInterviewRootDir(scope),
       },
       null,
       2,

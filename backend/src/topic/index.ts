@@ -40,7 +40,6 @@ export type {
 export type { RecommendTier2Params } from "./recommendTier2";
 export { loadTopics, getTopicFieldKeys } from "./catalog";
 export type { Topic } from "./catalog";
-export { MIN_STORY_ENTRIES, readStoryEntries, writeStoryEntries } from "./material/storyEntries";
 export {
   MIN_TIER5_SECTIONS,
   sectionsToPolishedEventSummaries,
