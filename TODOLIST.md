@@ -115,3 +115,42 @@
 - [x] 阶段 D：完成 8（加固与文档）
 
 > 当前建议优先级：先做 **P0**，拿到可登录可鉴权的最小闭环，再进入 P1/P2。
+
+---
+
+# 前端访谈模块 TODO
+
+> 目标：在 hello story2 前端对接新后端 `/api/interviews`（`interviewId` + `current` / `submit`），**不移植**老项目 `interviewV2`（`materialId` + MessageAgent）。  
+> 参考老项目仅作 UX/交互意图；实现保持薄客户端。持久化说明见 [`docs/interview-persistence.md`](docs/interview-persistence.md)。
+
+## 原则
+
+- 不复用老项目 `frontend/src/features/interviewV2/**` 源码
+- API 以 [`backend/src/routes/interview.routes.ts`](backend/src/routes/interview.routes.ts) 为准
+- 每期一个可联调闭环，再叠功能
+
+---
+
+## 阶段 1：最小访谈闭环（已完成）
+
+- [x] **1.1** `api/interviews.ts` + `types/interview.ts`（create / list / getCurrent / submit）
+- [x] **1.2** 访谈页：新建采访 → 循环读题/提交；按 `type: topic | normal` 渲染（选项 + 文本输入）
+- [x] **1.3** 与现有登录页串联：有 token 可进入访谈；展示 loading / 错误文案
+- [x] **1.4** 本地联调验收：登录 → 新建 → 基本档案冷启动 → 至少答 1 题 → 选主题 1 次（已完成 50 轮前端 trace）
+
+## 阶段 2：体验补强（进行中）
+
+- [x] 采访列表页：继续未完成 / 新建
+- [x] 展示当前 `title`（进行中主题）、简单进度提示
+- [x] 复制 `template-config.v2.json` 到 `public/`（仅展示/对照，后端 catalog 仍以代码为准）
+
+## 阶段 3：从老项目「借」交互（非移植，进行中）
+
+- [x] 参考老 `InterviewEditPage`：备选 chips、选主题卡片样式
+- [ ] 表单类题目（年月等）——仅当后端 `InterviewQuestion` 扩展后再做（当前协议暂无字段类型）
+
+## 阶段 4：后置（后端尚无能力）
+
+- [ ] 视频创建 / 制片条 / 素材墙（老 `materialId` 体系）
+- [ ] `catalog-v2`、status、progress 等老 HTTP
+- [ ] 全站 Tab 壳、钱包、故事墙
