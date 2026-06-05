@@ -149,8 +149,13 @@
 - [x] 参考老 `InterviewEditPage`：备选 chips、选主题卡片样式
 - [ ] 表单类题目（年月等）——仅当后端 `InterviewQuestion` 扩展后再做（当前协议暂无字段类型）
 
-## 阶段 4：后置（后端尚无能力）
+## 阶段 4：视频创建（传记成片 biography_narration，进行中）
 
-- [ ] 视频创建 / 制片条 / 素材墙（老 `materialId` 体系）
+- [x] **4.1** LLM 基础设施：`backend/src/video/shared/llm/`（client、loadPrompt、分片并发）
+- [x] **4.2** 传记成片 LLM 步骤（100→225 共 18 步）+ `prompts/create-video/`
+- [x] **4.3** 输入适配：`sections.json` → step-20 → pipeline JSON（`video/shared/input/` + `materialPolish20`）
+  - [ ] **4.4** 任务编排 + HTTP + 非 LLM 步（TTS / 文生图 / ffmpeg）
+  - [x] LLM + 渲染管道编排入口 `runBiographyVideoPipeline`（含 3/200/220/230/240/250，无 HTTP）
+- [ ] 制片条 / 素材墙（老 `materialId` 体系）
 - [ ] `catalog-v2`、status、progress 等老 HTTP
 - [ ] 全站 Tab 壳、钱包、故事墙

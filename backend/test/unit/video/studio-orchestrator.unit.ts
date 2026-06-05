@@ -1,0 +1,83 @@
+/**
+ * 演播室成片编排 smoke：shared prep stub + iv_script stub。
+ * 用法：npm run build && npm run test:video:studio
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { config as loadEnv } from "dotenv";
+import { seedCommittedSections } from "../../../src/services/answeredSections.service";
+import { createInterview } from "../../../src/services/interviewWorkspace.service";
+import { createUserWorkspace } from "../../../src/services/workspace.service";
+import type { AnsweredSection } from "../../../src/topic/types";
+import { createStudioVideoTask, runStudioVideoPipeline } from "../../../dist/video/studio/orchestrator/runStudioVideoPipeline.js";
+import { SECTIONS_SNAPSHOT_FILE } from "../../../dist/video/shared/orchestrator/videoTaskWorkspace.js";
+import { STUDIO_SCRIPT_FILE } from "../../../dist/video/studio/constants/studioFilenames.js";
+
+loadEnv();
+process.env.STUDIO_SCRIPT_STUB = "1";
+process.env.VIDEO_INPUT_STUB = "1";
+
+const FIXTURE: AnsweredSection[] = [
+  {
+    name: "基本档案",
+    qa: [
+      { q: "您怎么称呼？", a: "测试用户" },
+      { q: "哪年出生？", a: "1960年" },
+    ],
+  },
+];
+
+let passed = 0;
+let failed = 0;
+
+function check(label: string, cond: boolean, detail?: unknown): void {
+  if (cond) {
+    passed += 1;
+    console.log(`  [ok] ${label}`);
+  } else {
+    failed += 1;
+    const extra = detail !== undefined ? ` | ${JSON.stringify(detail)}` : "";
+    console.error(`  [FAIL] ${label}${extra}`);
+  }
+}
+
+async function main() {
+  const userId = `video-studio-test-${Date.now()}`;
+  createUserWorkspace(userId);
+  const interview = createInterview(userId, { title: "演播室测试" });
+  const scope = { userId, interviewId: interview.id };
+  seedCommittedSections(scope, FIXTURE);
+
+  const handle = createStudioVideoTask(scope);
+  check("create studio task meta", fs.existsSync(handle.paths.metaPath));
+
+  const result = await runStudioVideoPipeline(scope, {
+    taskId: handle.taskId,
+    polishMode: "stub",
+    hostVoice: "stub-host",
+    guestVoice: "stub-guest",
+    throughStep: "iv_script",
+  });
+
+  check("pipeline success", result.status === "success");
+  check("step-10 in results", result.stepResults.some((r) => r.stepId === "10"));
+  check("step-80 in results", result.stepResults.some((r) => r.stepId === "80"));
+  check("no era prep steps", !result.stepResults.some((r) => ["20", "30", "40", "50"].includes(r.stepId)));
+  check("iv_script in results", result.stepResults.some((r) => r.stepId === "iv_script"));
+
+  const snapshotPath = path.join(handle.paths.inputDir, SECTIONS_SNAPSHOT_FILE);
+  const scriptPath = path.join(handle.paths.pipelineDir, "interview-studio", STUDIO_SCRIPT_FILE);
+  check("sections snapshot written", fs.existsSync(snapshotPath));
+  check("studio script written", fs.existsSync(scriptPath));
+
+  if (failed > 0) {
+    console.error(`\ntest:video:studio FAILED (${passed} ok, ${failed} fail)`);
+    process.exit(1);
+  }
+  console.log(`\ntest:video:studio OK (${passed} checks)`);
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

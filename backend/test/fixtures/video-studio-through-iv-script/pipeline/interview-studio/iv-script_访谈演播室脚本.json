@@ -1,0 +1,32 @@
+{
+  "savedAt": "2026-06-05T12:00:00.000Z",
+  "qaGranularity": "hybrid",
+  "inputSegmentRefineFile": "pipeline/step-80_AI分割与去重后的个人事件.json",
+  "turns": [
+    {
+      "speaker": "host",
+      "text": "老陈，今天我们从您的早年说起，成都是怎样的童年？"
+    },
+    {
+      "speaker": "guest",
+      "text": "我1965年出生在成都，家里条件一般，但父母特别重视读书。"
+    },
+    {
+      "speaker": "host",
+      "text": "小学和初中阶段，有没有让您印象特别深的事？"
+    },
+    {
+      "speaker": "guest",
+      "text": "小学在城关第一小学，五年级进了广播站；初中在二中，最喜欢拆装小马达，还打了篮球。"
+    },
+    {
+      "speaker": "host",
+      "text": "后来第一份工作是在哪里？刚上班时感受如何？"
+    },
+    {
+      "speaker": "guest",
+      "text": "1990年进红星机械厂当技术员，师傅带我听轴承异响，头三个月几乎天天加班到九点。"
+    }
+  ],
+  "skippedModel": true
+}

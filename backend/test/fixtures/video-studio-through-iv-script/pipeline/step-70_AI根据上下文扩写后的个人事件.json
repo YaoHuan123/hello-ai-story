@@ -1,0 +1,49 @@
+{
+  "savedAt": "2026-06-05T03:35:15.415Z",
+  "inputClassifyFile": "pipeline/step-60_AI分离后的上下文和个人事件.json",
+  "polishedEventSummaryCount": 4,
+  "polishedContextSummaryCount": 1,
+  "skippedModel": false,
+  "polishedEventSummariesContextExpanded": [
+    {
+      "segmentIndex": 1,
+      "narrative": "我出生于四川成都",
+      "timeLabel": "1965年03月"
+    },
+    {
+      "segmentIndex": 2,
+      "narrative": "我在成都市城关第一小学读小学，五年级时加入了学校广播站，每天早读前念广播稿子，班主任王老师经常留我在办公室练习普通话。那时候我家住在府南河边的职工家属院，每天放学都要穿过一条窄巷才能到家",
+      "timeLabel": "1972年-1978年"
+    },
+    {
+      "segmentIndex": 3,
+      "narrative": "我在成都市第二中学读初中，上学期间最喜欢的科目是物理和劳技课，常常在车间里拆装小马达；初二那年加入了校篮球队，在队里打后卫的位置",
+      "timeLabel": "1978年-1981年"
+    },
+    {
+      "segmentIndex": 4,
+      "narrative": "我在成都工业专科学校就读机械制造专业，取得大专学历",
+      "timeLabel": "1981年-1984年"
+    },
+    {
+      "segmentIndex": 5,
+      "narrative": "我和刘慧结婚",
+      "timeLabel": "1988年"
+    },
+    {
+      "segmentIndex": 6,
+      "narrative": "女儿陈雨出生",
+      "timeLabel": "1989年"
+    },
+    {
+      "segmentIndex": 7,
+      "narrative": "我进入成都国营红星机械厂，在设备科担任技术员，负责机床的日常维护，这是我的第一份工作。刚上班的时候印象最深的是师傅李德明带我巡视车间，教我辨别轴承的异响，头三个月我几乎每天都要加班到九点。当时厂子在成都东郊，我每天都骑永久牌自行车上下班",
+      "timeLabel": "1990年07月"
+    },
+    {
+      "segmentIndex": 8,
+      "narrative": "汶川地震发生后，我请假到成都市府南河社区活动中心做志愿者，负责搬运物资、安置受灾的邻居，连续参与志愿服务二十多天。经历过这件事之后，我觉得邻里比我想象中更靠得住，后来我女儿高考志愿选了社会工作专业，多少也受到了我这段经历的影响",
+      "timeLabel": "2008年05月-2008年06月"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "savedAt": "2026-06-05T03:35:11.899Z",
+  "inputPolishedFile": "pipeline/用户通过模板输入的素材和自述-经过AI润色.json",
+  "polishedEntryCount": 5,
+  "turnAnswerItemCount": 0,
+  "skippedModel": false,
+  "step20EraBackdropSegments": [
+    {
+      "narrative": "那个年代的国营工厂是很多年轻人向往的就业去向，厂里不仅有完善的技术传帮带体系，不少工人都习惯每天骑自行车通勤，东郊工业区是当时成都工业生产的核心区域，承载了很多产业工人的职业记忆。",
+      "timeLabel": "1990年代"
+    },
+    {
+      "narrative": "当时汶川地震发生后，四川各地掀起了民间志愿救助的热潮，不少普通市民自发参与到物资搬运、受灾群众安置的工作中，普通人守望相助的善意也悄悄影响着年轻一代的职业选择。",
+      "timeLabel": "2008年5月-2008年6月"
+    }
+  ]
+}
