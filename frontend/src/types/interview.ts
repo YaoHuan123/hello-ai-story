@@ -1,10 +1,15 @@
+export type InterviewFieldType = "text" | "select" | "yearMonth";
+
 /** 与后端 `interviewOrchestrator.service` 的 `InterviewQuestion` 对齐。 */
 export type InterviewQuestion = {
   type: "topic" | "normal";
   title: string | null;
   key: string;
   text: string;
+  /** 选主题=候选主题；普通问答=LLM 备选答案 */
   options: string[];
+  fieldType?: InterviewFieldType;
+  fieldChoices?: string[];
 };
 
 export type SubmitPayload = {

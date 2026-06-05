@@ -17,7 +17,9 @@ import {
   getPendingTopics as selectPendingTopics,
   getTopicQuestions,
 } from "./topicSelection.service";
-import { getTopicFieldKeys } from "../topic/catalog";
+import { getTopicFieldKeys, getTopicFieldMeta } from "../topic/catalog";
+import { normalizeFieldAnswer } from "../topic/fieldAnswer";
+import type { InterviewFieldType } from "../topic/fieldMeta";
 import type { InterviewScope } from "./interviewWorkspace.service";
 import type { CurrentStage, QuestionSet, TopicPick } from "../topic/types";
 
@@ -64,9 +66,26 @@ export type InterviewQuestion = {
   key: string;
   /** 展示文案：选主题=提示语；普通问答=问句 */
   text: string;
-  /** 可选项：选主题=候选主题标题；普通问答=备选答案 */
+  /** 可选项：选主题=候选主题标题；普通问答=LLM 备选答案 */
   options: string[];
+  /** catalog 控件类型；缺省 text */
+  fieldType?: InterviewFieldType;
+  /** select 时的固定选项 */
+  fieldChoices?: string[];
 };
+
+function toNormalQuestion(title: string, question: NextQuestionDisplay): InterviewQuestion {
+  const meta = getTopicFieldMeta(title, question.key);
+  return {
+    type: "normal",
+    title,
+    key: question.key,
+    text: question.text,
+    options: question.suggestions,
+    fieldType: meta?.fieldType ?? "text",
+    ...(meta?.fieldChoices ? { fieldChoices: meta.fieldChoices } : {}),
+  };
+}
 
 /** 提交载荷：`value` = 选主题阶段的主题标题，或普通问答阶段的答案。 */
 export type SubmitInput = {
@@ -90,13 +109,7 @@ export async function getCurrentQuestion(scope: InterviewScope): Promise<Intervi
   if (title) {
     const question = await engineGetNextQuestion(scope);
     if (question) {
-      return {
-        type: "normal",
-        title,
-        key: question.key,
-        text: question.text,
-        options: question.suggestions,
-      };
+      return toNormalQuestion(title, question);
     }
     // 兜底：取题为 null 但主题未在 submit 时清空。
     // 仅发生在 catalog「最后一道模板题答完、扩展题此刻才懒生成且结果为空」的边界
@@ -114,13 +127,7 @@ export async function getCurrentQuestion(scope: InterviewScope): Promise<Intervi
   if (getSections(scope).length === 0 && !readQuestionSet(scope)) {
     const question = await startBasicProfileColdStart(scope);
     if (question) {
-      return {
-        type: "normal",
-        title: BASIC_PROFILE_TITLE,
-        key: question.key,
-        text: question.text,
-        options: question.suggestions,
-      };
+      return toNormalQuestion(BASIC_PROFILE_TITLE, question);
     }
     clearTopicDir(scope);
   }
@@ -152,11 +159,17 @@ export function submit(scope: InterviewScope, input: SubmitInput): void {
     const questionSet = getTopicQuestions(scope, input.value.trim());
     initQuestion(scope, questionSet);
   } else {
+    const topicTitle = readQuestionSet(scope)?.title.trim();
+    const meta = topicTitle ? getTopicFieldMeta(topicTitle, input.key) : undefined;
+    const normalized = normalizeFieldAnswer(meta, input.value);
+    if (!normalized.ok) {
+      throw new Error(`INVALID_FIELD_ANSWER: ${normalized.message}`);
+    }
     // 答题阶段：追加答案；若本主题题目已全部答完，立即合并进 sections 并清空 `出题/`。
     engineSubmitAnswer(scope, {
       key: input.key,
       questionText: input.text,
-      answer: input.value,
+      answer: normalized.value,
     });
     if (isTopicAnswered(scope)) {
       commitTopic(scope);

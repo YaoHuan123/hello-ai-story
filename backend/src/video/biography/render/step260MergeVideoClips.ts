@@ -69,23 +69,24 @@ export function mergeVideoClipsToFullVideo(params: {
   if (params.clips.length === 0) {
     throw new Error("MERGE_VIDEO_260_INVALID: 无视频片段可合并");
   }
+  const workspaceRoot = path.resolve(params.workspaceRoot);
   const sorted = [...params.clips].sort((a, b) => a.segmentIndex - b.segmentIndex);
   const lines: string[] = [];
   for (const c of sorted) {
-    const abs = path.join(params.workspaceRoot, c.videoRelativePath);
+    const abs = path.resolve(workspaceRoot, c.videoRelativePath);
     ensureOkFile(abs, "视频片段");
     const escaped = abs.replace(/\\/g, "/").replace(/'/g, "'\\''");
     lines.push(`file '${escaped}'`);
   }
-  const concatListPath = path.join(
-    params.workspaceRoot,
+  const concatListPath = path.resolve(
+    workspaceRoot,
     "pipeline",
     `.merge-video-clips-${Date.now()}.ffconcat.txt`,
   );
   fs.mkdirSync(path.dirname(concatListPath), { recursive: true });
   fs.writeFileSync(concatListPath, `${lines.join("\n")}\n`, "utf-8");
 
-  const outAbs = path.join(params.workspaceRoot, params.outputVideoRelativePath);
+  const outAbs = path.resolve(workspaceRoot, params.outputVideoRelativePath);
   fs.mkdirSync(path.dirname(outAbs), { recursive: true });
 
   runFfmpeg([

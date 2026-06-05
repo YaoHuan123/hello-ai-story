@@ -62,6 +62,7 @@ export async function runBiographyVideoPipeline(
     onStepComplete: opts?.onStepComplete,
     buildLanes: (prep) => {
       const ctx = {
+        scope: handle.scope,
         paths: handle.paths,
         downstreamPipeline: prep.downstream,
         ttsVoice: opts?.ttsVoice,

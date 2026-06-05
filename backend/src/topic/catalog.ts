@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { resolveFieldMeta, type TopicFieldMeta } from "./fieldMeta";
 
 /**
  * 话题配置模板（大类 → 子类）。与前端表单共用同一份：
@@ -21,13 +22,15 @@ export type Topic = {
   name: string;
 };
 
-type RawField = { key: string };
+type RawField = { key: string; control?: string };
 
 type RawCatalog = {
+  fieldOptions?: Record<string, string[]>;
   categories: Array<{
     id: string;
     name: string;
     subCategories: Array<{
+      id?: string;
       name: string;
       required?: RawField[];
       optional?: RawField[];
@@ -35,31 +38,67 @@ type RawCatalog = {
   }>;
 };
 
+type FieldDef = {
+  control: string;
+  subCategoryId: string;
+};
+
 let cache: Topic[] | null = null;
 let fieldKeysCache: Map<string, string[]> | null = null;
+let fieldDefsCache: Map<string, Map<string, FieldDef>> | null = null;
+let fieldOptionsCache: Record<string, string[]> | null = null;
 
-function buildFieldKeysCache(): Map<string, string[]> {
+function loadRawCatalog(): RawCatalog {
   const raw = fs.readFileSync(CATALOG_PATH, "utf-8");
-  const parsed = JSON.parse(raw) as RawCatalog;
-  const map = new Map<string, string[]>();
+  return JSON.parse(raw) as RawCatalog;
+}
+
+function buildFieldCaches(): {
+  keys: Map<string, string[]>;
+  defs: Map<string, Map<string, FieldDef>>;
+  fieldOptions: Record<string, string[]>;
+} {
+  const parsed = loadRawCatalog();
+  const keys = new Map<string, string[]>();
+  const defs = new Map<string, Map<string, FieldDef>>();
+  const fieldOptions = parsed.fieldOptions ?? {};
+
   for (const c of parsed.categories ?? []) {
     for (const sc of c.subCategories ?? []) {
-      const keys: string[] = [];
+      const topicName = sc.name;
+      const subCategoryId = (sc.id ?? topicName).trim();
+      const fieldKeys: string[] = [];
+      const fieldMap = new Map<string, FieldDef>();
+
       for (const f of [...(sc.required ?? []), ...(sc.optional ?? [])]) {
-        if (typeof f.key === "string" && f.key.trim()) {
-          keys.push(f.key.trim());
-        }
+        if (typeof f.key !== "string" || !f.key.trim()) continue;
+        const key = f.key.trim();
+        fieldKeys.push(key);
+        fieldMap.set(key, {
+          control: typeof f.control === "string" && f.control.trim() ? f.control.trim() : "text",
+          subCategoryId,
+        });
       }
-      map.set(sc.name, keys);
+
+      keys.set(topicName, fieldKeys);
+      defs.set(topicName, fieldMap);
     }
   }
-  return map;
+
+  return { keys, defs, fieldOptions };
+}
+
+function ensureFieldCaches(): void {
+  if (fieldKeysCache && fieldDefsCache && fieldOptionsCache) return;
+  const built = buildFieldCaches();
+  fieldKeysCache = built.keys;
+  fieldDefsCache = built.defs;
+  fieldOptionsCache = built.fieldOptions;
 }
 
 export function loadTopics(): Topic[] {
   if (cache) return cache;
-  const raw = fs.readFileSync(CATALOG_PATH, "utf-8");
-  const parsed = JSON.parse(raw) as RawCatalog;
+  const parsed = loadRawCatalog();
   if (!Array.isArray(parsed.categories) || parsed.categories.length === 0) {
     throw new Error("CATALOG_INVALID: template-config.v2.json 缺少 categories");
   }
@@ -83,12 +122,21 @@ export function loadTopics(): Topic[] {
  * @throws CATALOG_TOPIC_NOT_FOUND
  */
 export function getTopicFieldKeys(name: string): string[] {
-  if (!fieldKeysCache) {
-    fieldKeysCache = buildFieldKeysCache();
-  }
-  const keys = fieldKeysCache.get(name);
+  ensureFieldCaches();
+  const keys = fieldKeysCache!.get(name);
   if (keys === undefined) {
     throw new Error(`CATALOG_TOPIC_NOT_FOUND: 未找到话题「${name}」`);
   }
   return keys;
+}
+
+/**
+ * 按话题名 + 字段 key 取访谈控件元数据（fieldType / fieldChoices）。
+ * 扩展题等不在 catalog 中的 key 返回 undefined。
+ */
+export function getTopicFieldMeta(topicName: string, fieldKey: string): TopicFieldMeta | undefined {
+  ensureFieldCaches();
+  const def = fieldDefsCache!.get(topicName)?.get(fieldKey.trim());
+  if (!def) return undefined;
+  return resolveFieldMeta(def.control, def.subCategoryId, fieldOptionsCache!);
 }

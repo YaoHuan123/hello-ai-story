@@ -168,3 +168,24 @@ export type VideoStylesCatalog = {
   selectedStyleId: string;
   styles: PublicVideoStyle[];
 };
+
+export type InterviewPlaceImageItem = {
+  id: string;
+  placeKey: string;
+  relativePath: string;
+  mimeType: string;
+  savedAt: string;
+  originalName?: string;
+};
+
+export type InterviewPlaceImagesIndex = {
+  updatedAt: string;
+  items: InterviewPlaceImageItem[];
+};
+
+export type UploadPlaceImagePayload = {
+  placeKey: string;
+  mimeType: "image/jpeg" | "image/png" | "image/webp";
+  dataBase64: string;
+  originalName?: string;
+};

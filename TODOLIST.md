@@ -71,8 +71,8 @@
 - [x] `POST /api/auth/sms/send`
 - [x] `POST /api/auth/sms/login`
 - [x] `GET /api/auth/me`
-- [ ] `PATCH /api/auth/phone`（P1）
-- [ ] `DELETE /api/auth/me`（P1）
+- [x] `PATCH /api/auth/phone`（P1，验收见 `npm run test:auth:p1`）
+- [x] `DELETE /api/auth/me`（P1，验收见 `npm run test:auth:p1`）
 
 ---
 
@@ -92,9 +92,9 @@
 - [x] 后端启动无报错（`.env` 缺失时按预期走 mock 或报配置错误）
 - [x] 前端可完成短信登录流程
 - [x] `/api/auth/me` 可稳定返回用户信息
-- [ ] 验证 `token_version`：变更后旧 token 失效
-- [ ] （P1）换绑流程通过
-- [ ] （P1）删号流程通过
+- [x] 验证 `token_version`：变更后旧 token 失效（`npm run test:auth:p1`）
+- [x] （P1）换绑流程通过
+- [x] （P1）删号流程通过
 
 ---
 
@@ -147,15 +147,24 @@
 ## 阶段 3：从老项目「借」交互（非移植，进行中）
 
 - [x] 参考老 `InterviewEditPage`：备选 chips、选主题卡片样式
-- [ ] 表单类题目（年月等）——仅当后端 `InterviewQuestion` 扩展后再做（当前协议暂无字段类型）
+- [x] 表单类题目（年月 / 单选）：`InterviewQuestion.fieldType` + `fieldChoices`；catalog `control` 映射；`YearMonthInput` / 选项 chips
 
-## 阶段 4：视频创建（传记成片 biography_narration，进行中）
+## 阶段 4：视频创建（传记成片 biography_narration，已完成）
 
 - [x] **4.1** LLM 基础设施：`backend/src/video/shared/llm/`（client、loadPrompt、分片并发）
 - [x] **4.2** 传记成片 LLM 步骤（100→225 共 18 步）+ `prompts/create-video/`
 - [x] **4.3** 输入适配：`sections.json` → step-20 → pipeline JSON（`video/shared/input/` + `materialPolish20`）
-  - [ ] **4.4** 任务编排 + HTTP + 非 LLM 步（TTS / 文生图 / ffmpeg）
-  - [x] LLM + 渲染管道编排入口 `runBiographyVideoPipeline`（含 3/200/220/230/240/250，无 HTTP）
-- [ ] 制片条 / 素材墙（老 `materialId` 体系）
-- [ ] `catalog-v2`、status、progress 等老 HTTP
-- [ ] 全站 Tab 壳、钱包、故事墙
+- [x] **4.4** 任务编排 + HTTP + 非 LLM 步（TTS / 文生图 / ffmpeg）
+  - worker 队列 + `production.routes.ts`（传记/演播室入队、进度、产物下载）
+  - 前端 `ProductionPage` + `PipelineProgress` 制片条
+  - 开发：`npm run dev:worker`；文档：`backend/docs/video-worker.md`
+
+## 阶段 5：素材墙与成片增强（进行中）
+
+- [x] **5.1** 采访级地点实景图（最小素材墙）
+  - `采访/{id}/素材/places/` + HTTP `GET|POST|DELETE /assets/place-images`
+  - 前端生产页上传/列表/删除
+- [x] **5.2** step 220 用户地点图风格化（有图时图生图，无图跳过）
+- [ ] **5.3** step 220 → 240 文生图参考（**暂缓**，见 [`backend/docs/video-step220-240.md`](backend/docs/video-step220-240.md)）
+- [x] **5.4** E2E 验收：`E2E_VIDEO_RENDER=1` 跑通 240→260（文生图 + ffmpeg）；需 `HTTPS_PROXY` + 启动时 `NODE_USE_ENV_PROXY=1`
+- [ ] 全站 Tab 壳、钱包、故事墙（不移植老 `materialId` 体系）

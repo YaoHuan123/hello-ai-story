@@ -8,11 +8,14 @@ import {
   getVideoTaskArtifacts,
   getVideoTaskProgress,
   listTextTasks,
+  deletePlaceImage,
+  listPlaceImages,
   listVideoStyles,
   listVideoTasks,
   retryVideoTask,
   scheduleBiographyVideo,
   scheduleStudioVideo,
+  uploadPlaceImage,
 } from "../api/production";
 import { PipelineProgress } from "../components/production/PipelineProgress";
 import { ProductionFailureNotice } from "../components/production/ProductionFailureNotice";
@@ -21,6 +24,7 @@ import type {
   PolishMode,
   ProductionReadiness,
   TextTaskListItem,
+  InterviewPlaceImageItem,
   VideoStylesCatalog,
   VideoTaskArtifacts,
   VideoTaskListItem,
@@ -90,6 +94,9 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
   const [styleId, setStyleId] = useState("");
   const [polishMode, setPolishMode] = useState<PolishMode>("stub");
   const [videoKind, setVideoKind] = useState<"biography" | "studio">("biography");
+  const [placeImages, setPlaceImages] = useState<InterviewPlaceImageItem[]>([]);
+  const [placeKeyInput, setPlaceKeyInput] = useState("");
+  const [placeFile, setPlaceFile] = useState<File | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,14 +127,16 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
 
   const refreshLists = useCallback(async () => {
     if (!interviewId) return;
-    const [textRes, videoRes, readinessRes] = await Promise.all([
+    const [textRes, videoRes, readinessRes, placeRes] = await Promise.all([
       listTextTasks(interviewId),
       listVideoTasks(interviewId),
       getProductionReadiness(interviewId),
+      listPlaceImages(interviewId).catch(() => ({ updatedAt: "", items: [] })),
     ]);
     setTextTasks(textRes.tasks);
     setVideoTasks(videoRes.tasks);
     setReadiness(readinessRes);
+    setPlaceImages(placeRes.items);
   }, [interviewId]);
 
   const refreshVideoDetail = useCallback(async () => {
@@ -294,6 +303,46 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
     });
   };
 
+  const fileToUploadPayload = async (file: File, placeKey: string) => {
+    const mime = file.type as "image/jpeg" | "image/png" | "image/webp";
+    if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) {
+      throw new Error("仅支持 JPEG / PNG / WebP");
+    }
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 1) {
+      binary += String.fromCharCode(bytes[i]!);
+    }
+    return {
+      placeKey,
+      mimeType: mime,
+      dataBase64: btoa(binary),
+      originalName: file.name,
+    };
+  };
+
+  const handleUploadPlaceImage = () => {
+    if (!interviewId || !placeFile || !placeKeyInput.trim()) return;
+    void run(async () => {
+      const payload = await fileToUploadPayload(placeFile, placeKeyInput.trim());
+      const res = await uploadPlaceImage(interviewId, payload);
+      setPlaceImages(res.index.items);
+      setPlaceKeyInput("");
+      setPlaceFile(null);
+      setMessage(`已上传地点图：${res.item.placeKey}`);
+    });
+  };
+
+  const handleDeletePlaceImage = (imageId: string) => {
+    if (!interviewId) return;
+    void run(async () => {
+      const index = await deletePlaceImage(interviewId, imageId);
+      setPlaceImages(index.items);
+      setMessage("已删除地点图");
+    });
+  };
+
   const handleScheduleVideo = () => {
     if (!interviewId || !canProduce) return;
     void run(async () => {
@@ -439,6 +488,63 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
           </div>
         )}
       </section>
+
+      {videoKind === "biography" && (
+        <section className="production-section">
+          <h3 style={{ margin: "0 0 8px" }}>素材墙 · 地点实景图</h3>
+          <p className="production-muted" style={{ margin: "0 0 12px" }}>
+            上传与访谈相关的地点照片；传记成片 step 220 会按所选视频风格做图生图统一（可选，无图则跳过）。
+          </p>
+          <div style={{ display: "grid", gap: 8, maxWidth: 480 }}>
+            <label className="production-field">
+              地点标识
+              <input
+                value={placeKeyInput}
+                onChange={(e) => setPlaceKeyInput(e.target.value)}
+                placeholder="如：老家村口、母校校门"
+                disabled={loading}
+                className="production-select"
+                style={{ width: "100%" }}
+              />
+            </label>
+            <label className="production-field">
+              图片文件
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => setPlaceFile(e.target.files?.[0] ?? null)}
+                disabled={loading}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleUploadPlaceImage}
+              disabled={loading || !placeKeyInput.trim() || !placeFile}
+            >
+              上传地点图
+            </button>
+          </div>
+          {placeImages.length > 0 && (
+            <ul className="production-task-list" style={{ marginTop: 12 }}>
+              {placeImages.map((img) => (
+                <li key={img.id} className="production-task-item">
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                    <div>
+                      <strong>{img.placeKey}</strong>
+                      <div className="production-muted" style={{ marginTop: 4, fontSize: 13 }}>
+                        {img.originalName ?? img.relativePath} · {formatTime(img.savedAt)}
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => handleDeletePlaceImage(img.id)} disabled={loading}>
+                      删除
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <section className="production-section">
         <h3 style={{ margin: "0 0 8px" }}>成片 · 视频</h3>

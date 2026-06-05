@@ -83,6 +83,7 @@ import {
   VIDEO_PIPELINE_STEPS,
 } from "../constants/stepIds.js";
 import { isoNow, readJsonObjectFile, sortTimelineBySegmentIndex, writeJsonAtomic } from "../../shared/orchestrator/pipelineDisk.js";
+import type { InterviewScope } from "../../../services/interviewWorkspace.service";
 import type { VideoTaskPaths } from "../../shared/orchestrator/videoTaskWorkspace.js";
 
 export type BiographyVideoStepResult = {
@@ -93,6 +94,7 @@ export type BiographyVideoStepResult = {
 };
 
 export type BiographyRunContext = {
+  scope: InterviewScope;
   paths: VideoTaskPaths;
   downstreamPipeline: ClassifyPipelineJson;
   ttsVoice?: string;
@@ -427,8 +429,18 @@ case "90": {
     }
 
     case "220": {
-      const r = await runStyleUserPlaceImagesOptional(paths);
-      return { stepId: "220", skipped: r.skipped, savedAt: r.savedAt };
+      const r = await runStyleUserPlaceImagesOptional({
+        scope: ctx.scope,
+        paths,
+        styleConfigPath: ctx.styleConfigPath,
+        styleId: ctx.styleId,
+      });
+      return {
+        stepId: "220",
+        skipped: r.skipped,
+        savedAt: r.savedAt,
+        ...(r.outputRelativePath ? { outputRelativePath: r.outputRelativePath } : {}),
+      };
     }
 
     case "230": {

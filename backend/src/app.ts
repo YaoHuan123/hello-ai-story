@@ -15,7 +15,8 @@ export function createApp(db: DatabaseSync, authService: AuthService): Express {
 
   const app = express();
   app.use(cors());
-  app.use(express.json());
+  // 地点图上传走 base64 JSON，需大于默认 100kb 限制
+  app.use(express.json({ limit: "15mb" }));
 
   const configDir = path.resolve(process.cwd(), "config");
   app.use("/static/video-styles", express.static(path.join(configDir, "video-styles")));

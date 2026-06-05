@@ -32,6 +32,15 @@ function topicDir(scope: InterviewScope): string {
   return path.join(getInterviewRootDir(scope), "出题");
 }
 
+function sampleAnswer(
+  q: { fieldType?: string; fieldChoices?: string[] },
+  fallback: string,
+): string {
+  if (q.fieldType === "select" && q.fieldChoices?.length) return q.fieldChoices[0]!;
+  if (q.fieldType === "yearMonth") return "1990-03";
+  return fallback;
+}
+
 async function main(): Promise<void> {
   const { seedCommittedSections, getSections } = await import(
     "../../../src/services/answeredSections.service"
@@ -63,11 +72,16 @@ async function main(): Promise<void> {
     qCold0.type === "normal" && qCold0.title === "基本档案" && (qCold0.text?.length ?? 0) > 0,
     qCold0,
   );
+  check("冷启动首题 fieldType=text", qCold0.fieldType === "text", qCold0);
   let coldSteps = 0;
   const coldMax = 12;
   let qCold = qCold0;
   while (qCold.type === "normal" && coldSteps < coldMax) {
-    submit(coldScope, { key: qCold.key, text: qCold.text, value: `冷启动答${coldSteps + 1}` });
+    submit(coldScope, {
+      key: qCold.key,
+      text: qCold.text,
+      value: sampleAnswer(qCold, `冷启动答${coldSteps + 1}`),
+    });
     qCold = await getCurrentQuestion(coldScope);
     coldSteps += 1;
   }
@@ -80,11 +94,38 @@ async function main(): Promise<void> {
     !fs.existsSync(path.join(topicDir(coldScope), "questionSet.json")),
   );
 
+  console.log("\n=== 字段类型：性别 select + 非法答案拒绝 ===");
+  const scopeField = setupUserWithInterview(`${TEST_USER}-field`);
+  let qField = await getCurrentQuestion(scopeField);
+  if (qField.type === "normal") {
+    submit(scopeField, { key: qField.key, text: qField.text, value: sampleAnswer(qField, "测试") });
+    qField = await getCurrentQuestion(scopeField);
+  }
+  if (qField.type === "normal" && qField.fieldType === "select") {
+    let rejected = false;
+    try {
+      submit(scopeField, { key: qField.key, text: qField.text, value: "非法选项" });
+    } catch (e) {
+      rejected = e instanceof Error && e.message.startsWith("INVALID_FIELD_ANSWER:");
+    }
+    check("select 非法选项被拒绝", rejected);
+    submit(scopeField, { key: qField.key, text: qField.text, value: qField.fieldChoices![0]! });
+    const qAfterGender = await getCurrentQuestion(scopeField);
+    check("性别合法提交后进入下一题", qAfterGender.type === "normal" && qAfterGender.key !== qField.key, qAfterGender);
+    if (qAfterGender.type === "normal" && qAfterGender.fieldType === "yearMonth") {
+      submit(scopeField, { key: qAfterGender.key, text: qAfterGender.text, value: "1992年8月" });
+      const stored = readAnswers(scopeField).find((r) => r.key === qAfterGender.key);
+      check("出生年月落盘为 YYYY-MM", stored?.answer === "1992-08", stored);
+    }
+  } else {
+    check("字段类型用例：到达性别题", false, qField);
+  }
+
   console.log("\n=== 基本档案第 8 题：submit 后立即 commit ===");
   const scope8 = setupUserWithInterview(`${TEST_USER}-8th`);
   let q8 = await getCurrentQuestion(scope8);
   for (let i = 0; i < 7 && q8.type === "normal"; i++) {
-    submit(scope8, { key: q8.key, text: q8.text, value: `答${i + 1}` });
+    submit(scope8, { key: q8.key, text: q8.text, value: sampleAnswer(q8, `答${i + 1}`) });
     q8 = await getCurrentQuestion(scope8);
   }
   check("第 8 题仍为普通问答", q8.type === "normal", q8);

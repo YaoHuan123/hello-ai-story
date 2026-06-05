@@ -10,6 +10,11 @@ import { getTextTaskProgress, listTextTasks } from "../text/textTaskQuery";
 import { openTextTask } from "../text/orchestrator/textTaskWorkspace";
 import { listTextTaskArtifacts, openTextArtifactFile } from "../text/textTaskArtifacts";
 import {
+  addInterviewPlaceImage,
+  deleteInterviewPlaceImage,
+  listInterviewPlaceImages,
+} from "../services/interviewPlaceImages.service";
+import {
   getVideoTaskProgress,
   listVideoTasks,
   listVideoTaskArtifacts,
@@ -52,6 +57,13 @@ const createTextTaskSchema = z.object({
 
 const artifactRelQuerySchema = z.object({
   rel: z.string().min(1).max(500),
+});
+
+const placeImageUploadSchema = z.object({
+  placeKey: z.string().min(1).max(120),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  dataBase64: z.string().min(8).max(12_000_000),
+  originalName: z.string().max(200).optional(),
 });
 
 function sendArtifactFile(
@@ -114,8 +126,17 @@ function mapProductionError(res: Response, error: unknown): boolean {
     res.status(404).json({ code, message: "产物尚未生成或不存在" });
     return true;
   }
-  if (code === "VIDEO_ARTIFACT_PATH_INVALID") {
+  if (code === "VIDEO_ARTIFACT_PATH_INVALID" || code === "PLACE_IMAGE_PATH_INVALID") {
     res.status(400).json({ code, message: "产物路径无效" });
+    return true;
+  }
+  if (code === "PLACE_IMAGE_NOT_FOUND") {
+    res.status(404).json({ code, message: "地点图片不存在" });
+    return true;
+  }
+  if (code.startsWith("PLACE_IMAGE_")) {
+    const detail = msg.split(":").slice(1).join(":").trim();
+    res.status(400).json({ code, message: detail || "地点图片请求无效" });
     return true;
   }
   if (code === "VIDEO_TASK_SCOPE_MISMATCH" || code === "TEXT_TASK_SCOPE_MISMATCH") {
@@ -164,6 +185,9 @@ function mapProductionError(res: Response, error: unknown): boolean {
 /**
  * 成片 / 文本生产 HTTP（挂载于 `/api/interviews/:interviewId`，均需登录）。
  *
+ * - GET  /assets/place-images
+ * - POST /assets/place-images
+ * - DELETE /assets/place-images/:imageId
  * - GET  /production/readiness
  * - GET  /video/tasks
  * - GET  /video/tasks/:taskId
@@ -185,6 +209,64 @@ function mapProductionError(res: Response, error: unknown): boolean {
 export function createProductionRouter(): Router {
   const router = Router({ mergeParams: true });
   router.use(authMiddleware);
+
+  router.get("/assets/place-images", (req: Request<InterviewRouteParams>, res) => {
+    const userId = requireUserId(req);
+    if (!userId) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    const scope = scopeFromInterviewReq(req, userId);
+    try {
+      assertInterviewExists(scope);
+      res.status(200).json(listInterviewPlaceImages(scope));
+    } catch (error) {
+      if (mapProductionError(res, error)) return;
+      res.status(500).json({ code: "INTERNAL_ERROR", message: "读取地点图片失败" });
+    }
+  });
+
+  router.post("/assets/place-images", (req: Request<InterviewRouteParams>, res) => {
+    const userId = requireUserId(req);
+    if (!userId) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    const parsed = placeImageUploadSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      res
+        .status(400)
+        .json({ code: "INVALID_PARAMS", message: parsed.error.issues[0]?.message ?? "Invalid body" });
+      return;
+    }
+    const scope = scopeFromInterviewReq(req, userId);
+    try {
+      assertInterviewExists(scope);
+      const item = addInterviewPlaceImage(scope, parsed.data);
+      res.status(201).json({ item, index: listInterviewPlaceImages(scope) });
+    } catch (error) {
+      if (mapProductionError(res, error)) return;
+      res.status(500).json({ code: "INTERNAL_ERROR", message: "上传地点图片失败" });
+    }
+  });
+
+  router.delete("/assets/place-images/:imageId", (req: Request<InterviewRouteParams & { imageId: string }>, res) => {
+    const userId = requireUserId(req);
+    if (!userId) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    const scope = scopeFromInterviewReq(req, userId);
+    const imageId = req.params.imageId.trim();
+    try {
+      assertInterviewExists(scope);
+      deleteInterviewPlaceImage(scope, imageId);
+      res.status(200).json(listInterviewPlaceImages(scope));
+    } catch (error) {
+      if (mapProductionError(res, error)) return;
+      res.status(500).json({ code: "INTERNAL_ERROR", message: "删除地点图片失败" });
+    }
+  });
 
   router.get("/production/readiness", (req: Request<InterviewRouteParams>, res) => {
     const userId = requireUserId(req);

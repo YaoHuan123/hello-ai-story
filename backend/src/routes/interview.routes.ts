@@ -47,6 +47,11 @@ function mapInterviewError(res: Response, error: unknown): boolean {
     res.status(400).json({ code, message: "请求参数有误" });
     return true;
   }
+  if (code === "INVALID_FIELD_ANSWER") {
+    const detail = msg.split(":").slice(1).join(":").trim();
+    res.status(400).json({ code, message: detail || "答案格式不正确" });
+    return true;
+  }
   if (code === "TOPIC_PICK_NOT_FOUND") {
     res.status(400).json({ code, message: "所选主题不存在或已失效，请重新获取题目" });
     return true;

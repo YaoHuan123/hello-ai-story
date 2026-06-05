@@ -7,7 +7,9 @@ import {
   submitAnswer,
 } from "../api/interviews";
 import { ApiRequestError } from "../api/client";
+import { YearMonthInput } from "../components/YearMonthInput";
 import type { InterviewMeta, InterviewQuestion } from "../types/interview";
+import { normalizeYearMonthInRange } from "../utils/yearMonth";
 
 type Props = {
   interviewId: string | null;
@@ -122,12 +124,32 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
     });
   };
 
+  const resolveSubmitValue = (q: InterviewQuestion, raw: string): string | null => {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    if (q.type === "topic") return trimmed;
+    if (q.fieldType === "yearMonth") {
+      const ym = normalizeYearMonthInRange(trimmed);
+      return ym || null;
+    }
+    if (q.fieldType === "select" && q.fieldChoices?.length) {
+      return q.fieldChoices.includes(trimmed) ? trimmed : null;
+    }
+    return trimmed;
+  };
+
   const handleSubmit = () => {
     if (!interviewId || !question) return;
     if (submittingRef.current) return;
-    const value = answer.trim();
+    const value = resolveSubmitValue(question, answer);
     if (!value) {
-      setError("请输入或选择内容");
+      if (question.fieldType === "yearMonth") {
+        setError("请输入合法的年月，如 1992年3月");
+      } else if (question.fieldType === "select" && question.fieldChoices?.length) {
+        setError("请从给定选项中选择");
+      } else {
+        setError("请输入或选择内容");
+      }
       return;
     }
     void run(async () => {
@@ -167,6 +189,15 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
   const currentInterview = interviews.find((item) => item.id === interviewId) ?? null;
   const currentSubmittedCount = interviewId ? submittedCounts[interviewId] ?? 0 : 0;
   const isTopicQuestion = question?.type === "topic";
+  const fieldType = question?.fieldType ?? "text";
+  const choiceChips =
+    !isTopicQuestion && fieldType === "select" && question?.fieldChoices?.length
+      ? question.fieldChoices
+      : [];
+  const suggestionChips =
+    !isTopicQuestion && fieldType !== "select" && (question?.options.length ?? 0) > 0
+      ? question!.options
+      : [];
   const topicLabel = question?.type === "topic" ? "选主题" : question?.title ?? "未加载";
   const progressText = interviewId
     ? `本次已提交 ${currentSubmittedCount} 轮`
@@ -296,9 +327,9 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
             </div>
           )}
 
-          {!isTopicQuestion && question.options.length > 0 && (
+          {!isTopicQuestion && choiceChips.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-              {question.options.map((opt) => (
+              {choiceChips.map((opt) => (
                 <button
                   key={opt}
                   type="button"
@@ -319,15 +350,61 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
             </div>
           )}
 
-          <label style={{ display: "block", marginBottom: 12 }}>
-            {question.type === "topic" ? "或输入主题标题：" : "答案："}
-            <input
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 480, padding: 8 }}
-              disabled={loading}
-            />
-          </label>
+          {!isTopicQuestion && suggestionChips.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+              {suggestionChips.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => pickOption(opt)}
+                  disabled={loading}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: answer === opt ? "2px solid #2563eb" : "1px solid #ccc",
+                    background: answer === opt ? "#eff6ff" : "#fff",
+                    cursor: loading ? "default" : "pointer",
+                  }}
+                >
+                  {answer === opt ? "已选 · " : ""}
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!isTopicQuestion && fieldType === "yearMonth" && (
+            <label style={{ display: "block", marginBottom: 12 }}>
+              年月：
+              <div style={{ marginTop: 6 }}>
+                <YearMonthInput value={answer} onChange={setAnswer} disabled={loading} />
+              </div>
+            </label>
+          )}
+
+          {!isTopicQuestion && fieldType !== "yearMonth" && fieldType !== "select" && (
+            <label style={{ display: "block", marginBottom: 12 }}>
+              答案：
+              <input
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 480, padding: 8 }}
+                disabled={loading}
+              />
+            </label>
+          )}
+
+          {isTopicQuestion && (
+            <label style={{ display: "block", marginBottom: 12 }}>
+              或输入主题标题：
+              <input
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 480, padding: 8 }}
+                disabled={loading}
+              />
+            </label>
+          )}
 
           <button type="button" onClick={handleSubmit} disabled={loading}>
             提交
