@@ -5,16 +5,30 @@ interface ApiErrorPayload {
   message?: string;
 }
 
+export class ApiRequestError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
 export async function parseApiError(response: Response): Promise<Error> {
   let message = `HTTP ${response.status}`;
+  let code: string | undefined;
   try {
     const payload = (await response.json()) as ApiErrorPayload;
     if (payload.message) message = payload.message;
     else if (payload.code) message = payload.code;
+    code = payload.code;
   } catch {
     // ignore
   }
-  return new Error(message);
+  return new ApiRequestError(message, response.status, code);
 }
 
 export async function apiRequest<T>(url: string, init: RequestInit = {}, useAuth = false): Promise<T> {

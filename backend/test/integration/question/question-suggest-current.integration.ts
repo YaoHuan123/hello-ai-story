@@ -23,9 +23,7 @@ function check(label: string, cond: boolean, detail?: unknown): void {
 }
 
 async function main(): Promise<void> {
-  const { parseSuggestCurrent, suggestedAnswerValuesFromCandidates } = await import(
-    "../../../src/question/parseSuggestCurrent"
-  );
+  const { parseSuggestCurrent } = await import("../../../src/question/parseSuggestCurrent");
   const { suggestCurrentAnswers, shouldSuggestCurrentQuestion } = await import(
     "../../../src/question/suggestCurrent"
   );
@@ -35,7 +33,12 @@ async function main(): Promise<void> {
   const { stubSections } = await import("../../fixtures/sections.stub");
 
   console.log("\n=== parseSuggestCurrent（无 LLM）===");
-  const candidates = parseSuggestCurrent({
+  const values = parseSuggestCurrent({
+    suggestedAnswers: ["1970-09", "1970-09", ""],
+  });
+  check("解析字符串数组并去重", values.length === 1 && values[0] === "1970-09", values);
+
+  const legacyValues = parseSuggestCurrent({
     suggestedAnswers: [
       {
         value: "1970-09",
@@ -51,9 +54,7 @@ async function main(): Promise<void> {
       },
     ],
   });
-  const values = suggestedAnswerValuesFromCandidates(candidates);
-  check("解析 2 条候选", candidates.length === 2, candidates);
-  check("高置信过滤后 1 条", values.length === 1 && values[0] === "1970-09", values);
+  check("兼容旧对象数组", legacyValues.length === 2 && legacyValues[0] === "1970-09", legacyValues);
 
   const sections = stubSections();
 
@@ -115,16 +116,9 @@ async function main(): Promise<void> {
   console.log("  ", JSON.stringify(result, null, 2));
 
   check(
-    "suggestedAnswers ≤4 且来自高置信候选",
+    "suggestedAnswers ≤4 且为短字符串",
     result.suggestedAnswers.length <= 4 &&
       result.suggestedAnswers.every((v) => v.length > 0 && v.length <= 40),
-    result,
-  );
-  check(
-    "candidates 与 suggestedAnswers 一致",
-    result.suggestedAnswers.every((v) =>
-      result.candidates.some((c) => c.value === v && c.confidence >= 0.7),
-    ),
     result,
   );
 

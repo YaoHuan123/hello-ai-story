@@ -1,4 +1,5 @@
 import { commitSection, getSections } from "./answeredSections.service";
+import { runWithQuestionTrace, traceQuestionStep } from "../question/questionTrace";
 import {
   answeredSectionFromTopic,
   getNextQuestion as engineGetNextQuestion,
@@ -74,7 +75,10 @@ export type SubmitInput = {
   value: string;
 };
 
-// ───────────────────────── 对外两接口 ─────────────────────────
+/** 对外：带 trace 的 getCurrentQuestion（HTTP 层调用）。 */
+export async function getCurrentQuestionTraced(scope: InterviewScope): Promise<InterviewQuestion> {
+  return runWithQuestionTrace(scope, "getCurrentQuestion", () => getCurrentQuestion(scope));
+}
 
 /**
  * 读：返回当前应展示的题目（选主题 or 普通问答，见 `type`）。
@@ -168,9 +172,9 @@ async function pendingWithAutoPromote(scope: InterviewScope): Promise<TopicPick[
   for (let i = 0; i < 8; i++) {
     const sections = getSections(scope);
     const answered = new Set(sections.map((s) => s.name.trim()));
-    const topics = (await selectPendingTopics(scope, sections)).filter(
-      (t) => !answered.has(t.title.trim()),
-    );
+    const topics = (
+      await traceQuestionStep("topic.selectPending", () => selectPendingTopics(scope, sections))
+    ).filter((t) => !answered.has(t.title.trim()));
     if (topics.length > 0) return topics;
     advanceStage(scope);
   }

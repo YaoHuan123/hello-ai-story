@@ -1,0 +1,251 @@
+.production-page {
+  display: grid;
+  gap: 16px;
+}
+
+.production-section {
+  border: 1px solid var(--border, #ddd);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.production-muted {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.production-readiness {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.production-readiness--ok {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.production-readiness--warn {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+.production-field {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.production-select {
+  display: block;
+  margin-top: 6px;
+  width: 100%;
+  max-width: 420px;
+  padding: 8px;
+}
+
+.production-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.production-task-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.production-task-item {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
+.production-task-item--selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.production-failure {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.production-failure__detail,
+.production-failure__hint {
+  margin: 6px 0 0;
+  font-weight: normal;
+}
+
+.production-failure__hint {
+  color: #b45309;
+}
+
+.pipeline-progress {
+  margin-top: 8px;
+}
+
+.pipeline-progress__header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.pipeline-progress__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.pipeline-progress__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  transition: width 0.4s ease;
+}
+
+.pipeline-progress__phases {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pipeline-progress__phase-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.pipeline-progress__steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.pipeline-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.pipeline-step__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
+
+.pipeline-step__id {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  min-width: 4.5em;
+  color: #9ca3af;
+}
+
+.pipeline-step--done {
+  color: #374151;
+}
+
+.pipeline-step--done .pipeline-step__dot {
+  background: #22c55e;
+}
+
+.pipeline-step--active {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.pipeline-step--active .pipeline-step__dot {
+  background: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.pipeline-step--failed {
+  color: #b91c1c;
+}
+
+.pipeline-step--failed .pipeline-step__dot {
+  background: #ef4444;
+}
+
+.video-style-picker__card {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fafafa;
+  max-width: 520px;
+}
+
+@media (max-width: 520px) {
+  .video-style-picker__card {
+    grid-template-columns: 1fr;
+  }
+}
+
+.video-style-picker__cover {
+  width: 100%;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #e5e7eb;
+}
+
+.video-style-picker__name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.video-style-picker__badge {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: normal;
+  color: #2563eb;
+}
+
+.video-style-picker__desc,
+.video-style-picker__suitable {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.production-message {
+  margin: 0;
+  color: #15803d;
+}
+
+.production-error-banner {
+  margin: 0;
+  color: crimson;
+}

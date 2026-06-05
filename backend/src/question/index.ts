@@ -28,9 +28,7 @@ export { parseRefine } from "./parseRefine";
 export { suggestCurrentAnswers, shouldSuggestCurrentQuestion } from "./suggestCurrent";
 export {
   parseSuggestCurrent,
-  suggestedAnswerValuesFromCandidates,
   MAX_SUGGEST_CURRENT,
-  SUGGEST_CURRENT_MIN_CONFIDENCE,
 } from "./parseSuggestCurrent";
 export { refineAndSuggestCurrent } from "./refineAndSuggestCurrent";
 export { mergeSuggestedAnswersForDisplay, MAX_DISPLAY_SUGGESTIONS } from "./mergeSuggestedAnswers";
@@ -54,8 +52,6 @@ export type {
   AnsweredInTopicItem,
   RefineCurrentQuestionParams,
   RefineCurrentQuestionResult,
-  CurrentAnswerSuggestionCandidate,
-  CurrentAnswerSuggestionInferenceType,
   SuggestCurrentQuestionParams,
   SuggestCurrentQuestionResult,
   RefineAndSuggestCurrentParams,

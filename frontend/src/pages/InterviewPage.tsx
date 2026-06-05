@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createInterview,
+  deleteInterview,
   getCurrentQuestion,
   listInterviews,
   submitAnswer,
 } from "../api/interviews";
+import { ApiRequestError } from "../api/client";
 import type { InterviewMeta, InterviewQuestion } from "../types/interview";
 
 type Props = {
@@ -20,6 +22,22 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
   const [submittedCounts, setSubmittedCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+
+  const isStaleProgressError = (err: unknown): boolean => {
+    if (err instanceof ApiRequestError) {
+      if (err.status === 409) return true;
+      const code = err.code ?? "";
+      return (
+        code === "QUESTION_ENGINE_DUPLICATE" ||
+        code === "QUESTION_ENGINE_COMPLETE" ||
+        code === "QUESTION_ENGINE_NO_SESSION" ||
+        code === "INTERVIEW_TOPIC_IN_PROGRESS"
+      );
+    }
+    const msg = err instanceof Error ? err.message : "";
+    return msg.includes("提交与当前进度不一致");
+  };
 
   const run = useCallback(async (fn: () => Promise<void>) => {
     setLoading(true);
@@ -52,10 +70,19 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
   );
 
   useEffect(() => {
-    void run(async () => {
-      await refreshList();
-    });
+    void run(refreshList);
   }, [run, refreshList]);
+
+  useEffect(() => {
+    if (!interviewId) {
+      setQuestion(null);
+      setAnswer("");
+      return;
+    }
+    void run(async () => {
+      await loadQuestion(interviewId);
+    });
+  }, [interviewId, run, loadQuestion]);
 
   const handleNewInterview = () => {
     void run(async () => {
@@ -73,24 +100,63 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
     });
   };
 
+  const handleDeleteInterview = (id: string) => {
+    const item = interviews.find((x) => x.id === id);
+    const label = item?.title || id.slice(0, 8);
+    if (!window.confirm(`确定删除「${label}」吗？删除后素材、答题记录和生产产物都无法恢复。`)) {
+      return;
+    }
+    void run(async () => {
+      await deleteInterview(id);
+      if (id === interviewId) {
+        onInterviewIdChange(null);
+        setQuestion(null);
+        setAnswer("");
+      }
+      setSubmittedCounts((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      await refreshList();
+    });
+  };
+
   const handleSubmit = () => {
     if (!interviewId || !question) return;
+    if (submittingRef.current) return;
     const value = answer.trim();
     if (!value) {
       setError("请输入或选择内容");
       return;
     }
     void run(async () => {
-      await submitAnswer(interviewId, {
-        key: question.key,
-        text: question.text,
-        value,
-      });
-      setSubmittedCounts((prev) => ({
-        ...prev,
-        [interviewId]: (prev[interviewId] ?? 0) + 1,
-      }));
-      await loadQuestion(interviewId);
+      submittingRef.current = true;
+      try {
+        await submitAnswer(interviewId, {
+          key: question.key,
+          text: question.text,
+          value,
+        });
+        setSubmittedCounts((prev) => ({
+          ...prev,
+          [interviewId]: (prev[interviewId] ?? 0) + 1,
+        }));
+        await loadQuestion(interviewId);
+      } catch (err) {
+        if (isStaleProgressError(err)) {
+          await loadQuestion(interviewId);
+          setError("当前题目已过期（可能已答过或本节已结束），已为你刷新，请继续作答。");
+          return;
+        }
+        const msg = err instanceof Error ? err.message : "请求失败";
+        if (msg.includes("未登录") || msg.includes("Unauthorized")) {
+          onNeedLogin();
+        }
+        setError(msg);
+      } finally {
+        submittingRef.current = false;
+      }
     });
   };
 
@@ -157,13 +223,27 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
                       <span style={{ marginLeft: 8 }}>创建：{new Date(item.createdAt).toLocaleString()}</span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleContinue(item.id)}
-                    disabled={loading || item.id === interviewId}
-                  >
-                    {item.id === interviewId ? "已打开" : "继续"}
-                  </button>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => handleContinue(item.id)}
+                      disabled={loading || item.id === interviewId}
+                    >
+                      {item.id === interviewId ? "已打开" : "继续"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteInterview(item.id)}
+                      disabled={loading}
+                      style={{
+                        borderColor: "#fecaca",
+                        color: "#b91c1c",
+                        background: "#fff",
+                      }}
+                    >
+                      删除
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}

@@ -34,25 +34,39 @@ async function main(): Promise<void> {
   const questions = ["入学时间（必填）", "学校名称（必填）", "学校地点（必填）"];
 
   console.log("\n=== parseDedupe（无 LLM）===");
+  // 新格式：用 i (index)
   const valid = parseDedupe(
     {
       decisions: [
-        { question: questions[0], skip: true, reason: "基本档案已含出生信息" },
-        { question: questions[1], skip: false, reason: "尚未记录学校名称" },
-        { question: questions[2], skip: false, reason: "需确认就读地点" },
+        { i: 0, skip: true },
+        { i: 1, skip: false },
+        { i: 2, skip: false },
       ],
     },
     questions,
   );
-  check("合法 decisions 解析", valid.length === 3 && valid[0].skip === true, valid);
+  check("新格式 (i) 合法 decisions 解析", valid.length === 3 && valid[0].skip === true && valid[0].question === questions[0], valid);
+
+  // 旧格式兼容：用 question
+  const legacyValid = parseDedupe(
+    {
+      decisions: [
+        { question: questions[0], skip: true },
+        { question: questions[1], skip: false },
+        { question: questions[2], skip: false },
+      ],
+    },
+    questions,
+  );
+  check("旧格式 (question) 兼容解析", legacyValid.length === 3 && legacyValid[0].question === questions[0], legacyValid);
 
   let parseErr = "";
   try {
-    parseDedupe({ decisions: [{ question: questions[0], skip: true, reason: "" }] }, questions);
+    parseDedupe({ decisions: [{ i: 0, skip: true, questionText: "重复输出" }] }, questions);
   } catch (e) {
     parseErr = e instanceof Error ? e.message : String(e);
   }
-  check("reason 缺失抛错", parseErr.includes("DEDUPE_INVALID"), parseErr);
+  check("questionText 非法抛错", parseErr.includes("DEDUPE_INVALID"), parseErr);
 
   console.log("\n=== dedupeQuestions 边界（无 LLM）===");
   const basicSet: QuestionSet = {
@@ -108,8 +122,8 @@ async function main(): Promise<void> {
     result,
   );
   check(
-    "每条 decision 含 reason",
-    result.decisions.every((d) => d.reason.length > 0 && d.reason.length <= 60),
+    "每条 decision 不要求 reason",
+    result.decisions.every((d) => typeof d.reason === "undefined" || d.reason.length <= 60),
     result,
   );
 

@@ -3,18 +3,25 @@ import {
   createTextTask,
   fetchVideoArtifactBlob,
   fetchVideoPrimaryBlob,
+  getProductionReadiness,
   getTextArticle,
   getVideoTaskArtifacts,
   getVideoTaskProgress,
   listTextTasks,
+  listVideoStyles,
   listVideoTasks,
   retryVideoTask,
   scheduleBiographyVideo,
   scheduleStudioVideo,
 } from "../api/production";
+import { PipelineProgress } from "../components/production/PipelineProgress";
+import { ProductionFailureNotice } from "../components/production/ProductionFailureNotice";
+import { VideoStylePicker } from "../components/production/VideoStylePicker";
 import type {
   PolishMode,
+  ProductionReadiness,
   TextTaskListItem,
+  VideoStylesCatalog,
   VideoTaskArtifacts,
   VideoTaskListItem,
   VideoTaskProgress,
@@ -26,6 +33,8 @@ import {
   DEFAULT_STUDIO_HOST_VOICE,
   TTS_VOICE_OPTIONS,
 } from "../constants/ttsVoices";
+import { formatProductionError } from "../lib/formatProductionError";
+import "./ProductionPage.css";
 
 type Props = {
   interviewId: string | null;
@@ -54,9 +63,17 @@ function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function parseApiErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return "请求失败";
+}
+
 export function ProductionPage({ interviewId, onNeedLogin }: Props) {
   const [textTasks, setTextTasks] = useState<TextTaskListItem[]>([]);
   const [videoTasks, setVideoTasks] = useState<VideoTaskListItem[]>([]);
+  const [readiness, setReadiness] = useState<ProductionReadiness | null>(null);
+  const [styleCatalog, setStyleCatalog] = useState<VideoStylesCatalog | null>(null);
+
   const [selectedTextTaskId, setSelectedTextTaskId] = useState<string | null>(null);
   const [article, setArticle] = useState<string | null>(null);
   const [articleMeta, setArticleMeta] = useState<{ sectionCount?: number; skippedModel?: boolean } | null>(
@@ -70,12 +87,15 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
   const [ttsVoice, setTtsVoice] = useState(DEFAULT_BIOGRAPHY_TTS_VOICE);
   const [hostVoice, setHostVoice] = useState(DEFAULT_STUDIO_HOST_VOICE);
   const [guestVoice, setGuestVoice] = useState(DEFAULT_STUDIO_GUEST_VOICE);
+  const [styleId, setStyleId] = useState("");
   const [polishMode, setPolishMode] = useState<PolishMode>("stub");
   const [videoKind, setVideoKind] = useState<"biography" | "studio">("biography");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  const canProduce = readiness?.ready === true;
 
   const run = useCallback(
     async (fn: () => Promise<void>) => {
@@ -85,11 +105,12 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
       try {
         await fn();
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "请求失败";
-        if (msg.includes("未登录") || msg.includes("Unauthorized")) {
+        const raw = parseApiErrorMessage(err);
+        if (raw.includes("未登录") || raw.includes("Unauthorized")) {
           onNeedLogin();
         }
-        setError(msg);
+        const friendly = formatProductionError(raw);
+        setError(friendly ? `${friendly.title}${friendly.hint ? ` — ${friendly.hint}` : ""}` : raw);
       } finally {
         setLoading(false);
       }
@@ -99,18 +120,38 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
 
   const refreshLists = useCallback(async () => {
     if (!interviewId) return;
-    const [textRes, videoRes] = await Promise.all([
+    const [textRes, videoRes, readinessRes] = await Promise.all([
       listTextTasks(interviewId),
       listVideoTasks(interviewId),
+      getProductionReadiness(interviewId),
     ]);
     setTextTasks(textRes.tasks);
     setVideoTasks(videoRes.tasks);
+    setReadiness(readinessRes);
   }, [interviewId]);
+
+  const refreshVideoDetail = useCallback(async () => {
+    if (!interviewId || !selectedVideoTaskId) return;
+    const detail = await getVideoTaskProgress(interviewId, selectedVideoTaskId);
+    setVideoDetail(detail);
+  }, [interviewId, selectedVideoTaskId]);
+
+  useEffect(() => {
+    void listVideoStyles()
+      .then((catalog) => {
+        setStyleCatalog(catalog);
+        setStyleId((prev) => prev || catalog.selectedStyleId || catalog.styles[0]?.id || "");
+      })
+      .catch(() => {
+        /* 风格列表非阻塞；传记仍可走服务端默认 */
+      });
+  }, []);
 
   useEffect(() => {
     if (!interviewId) {
       setTextTasks([]);
       setVideoTasks([]);
+      setReadiness(null);
       setArticle(null);
       setVideoDetail(null);
       return;
@@ -123,15 +164,21 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
     [videoTasks],
   );
 
+  const selectedTaskActive = useMemo(() => {
+    const task = videoTasks.find((t) => t.taskId === selectedVideoTaskId);
+    return task ? isVideoActive(task.status) : false;
+  }, [videoTasks, selectedVideoTaskId]);
+
   useEffect(() => {
-    if (!interviewId || !hasActiveVideo) return;
+    if (!interviewId || (!hasActiveVideo && !selectedTaskActive)) return;
     const timer = window.setInterval(() => {
-      void refreshLists().catch(() => {
-        /* polling errors surfaced on manual actions */
-      });
+      void refreshLists().catch(() => undefined);
+      if (selectedVideoTaskId) {
+        void refreshVideoDetail().catch(() => undefined);
+      }
     }, 4000);
     return () => window.clearInterval(timer);
-  }, [interviewId, hasActiveVideo, refreshLists]);
+  }, [interviewId, hasActiveVideo, selectedTaskActive, selectedVideoTaskId, refreshLists, refreshVideoDetail]);
 
   useEffect(() => {
     if (!interviewId || !selectedVideoTaskId) {
@@ -145,7 +192,7 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
       })
       .catch((err) => {
         if (!cancelled) {
-          const msg = err instanceof Error ? err.message : "加载详情失败";
+          const msg = parseApiErrorMessage(err);
           if (msg.includes("未登录") || msg.includes("Unauthorized")) onNeedLogin();
           setError(msg);
         }
@@ -165,16 +212,11 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
       .then((artifacts) => {
         if (!cancelled) setVideoArtifacts(artifacts);
       })
-      .catch((err) => {
-        if (!cancelled) {
-          const msg = err instanceof Error ? err.message : "加载产物失败";
-          if (msg.includes("未登录") || msg.includes("Unauthorized")) onNeedLogin();
-        }
-      });
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [interviewId, selectedVideoTaskId, onNeedLogin]);
+  }, [interviewId, selectedVideoTaskId]);
 
   useEffect(() => {
     if (!interviewId || !selectedVideoTaskId || !videoArtifacts?.primaryVideo.available) {
@@ -224,7 +266,7 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
   };
 
   const handleCreateText = () => {
-    if (!interviewId) return;
+    if (!interviewId || !canProduce) return;
     void run(async () => {
       const result = await createTextTask(interviewId, { mode: polishMode });
       setMessage(`文本任务已创建：${result.taskId.slice(0, 8)}…`);
@@ -253,11 +295,15 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
   };
 
   const handleScheduleVideo = () => {
-    if (!interviewId) return;
+    if (!interviewId || !canProduce) return;
     void run(async () => {
       const scheduled =
         videoKind === "biography"
-          ? await scheduleBiographyVideo(interviewId, { ttsVoice, polishMode })
+          ? await scheduleBiographyVideo(interviewId, {
+              ttsVoice,
+              styleId: styleId || undefined,
+              polishMode,
+            })
           : await scheduleStudioVideo(interviewId, { hostVoice, guestVoice, polishMode });
       setMessage(`成片任务已入队：${scheduled.taskId.slice(0, 8)}…`);
       setSelectedVideoTaskId(scheduled.taskId);
@@ -277,9 +323,9 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
 
   if (!interviewId) {
     return (
-      <div style={{ border: "1px solid var(--border, #ddd)", borderRadius: 10, padding: 16 }}>
+      <div className="production-section">
         <h2 style={{ margin: 0 }}>生产</h2>
-        <p style={{ margin: "12px 0 0", color: "#666" }}>
+        <p className="production-muted" style={{ marginTop: 12 }}>
           请先在「访谈」页选择或新建一场采访，再进入生产。
         </p>
       </div>
@@ -287,14 +333,28 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
   }
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <section style={{ border: "1px solid var(--border, #ddd)", borderRadius: 10, padding: 16 }}>
+    <div className="production-page">
+      <section className="production-section">
         <h2 style={{ margin: 0 }}>生产</h2>
-        <p style={{ margin: "8px 0 0", fontSize: 13, color: "#666" }}>
+        <p className="production-muted" style={{ marginTop: 8 }}>
           当前采访：<code>{interviewId}</code>
           {hasActiveVideo && <span style={{ marginLeft: 12 }}>· 成片任务自动刷新中</span>}
         </p>
-        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+
+        {readiness && (
+          <div
+            className={`production-readiness ${readiness.ready ? "production-readiness--ok" : "production-readiness--warn"}`}
+          >
+            {readiness.message}
+            {readiness.ready && readiness.sectionNames.length > 0 && (
+              <span style={{ display: "block", marginTop: 4, fontSize: 12, opacity: 0.85 }}>
+                小节：{readiness.sectionNames.join("、")}
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="production-toolbar">
           <button type="button" onClick={() => void run(refreshLists)} disabled={loading}>
             刷新任务列表
           </button>
@@ -312,45 +372,38 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
         </div>
       </section>
 
-      <section style={{ border: "1px solid var(--border, #ddd)", borderRadius: 10, padding: 16 }}>
+      <section className="production-section">
         <h3 style={{ margin: "0 0 8px" }}>文本 · 正式文章</h3>
-        <p style={{ margin: "0 0 12px", fontSize: 13, color: "#666" }}>
+        <p className="production-muted" style={{ margin: "0 0 12px" }}>
           同步生成，基于已答 sections 合成一篇传记文章。
         </p>
-        <button type="button" onClick={handleCreateText} disabled={loading}>
+        <button type="button" onClick={handleCreateText} disabled={loading || !canProduce}>
           生成文章
         </button>
+        {!canProduce && (
+          <p className="production-muted" style={{ marginTop: 8 }}>
+            需先完成访谈问答后再生成。
+          </p>
+        )}
+
         {textTasks.length > 0 && (
-          <ul style={{ margin: "12px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
+          <ul className="production-task-list">
             {textTasks.map((task) => (
               <li
                 key={task.taskId}
-                style={{
-                  border:
-                    task.taskId === selectedTextTaskId ? "1px solid #2563eb" : "1px solid #eee",
-                  borderRadius: 8,
-                  padding: 10,
-                  background: task.taskId === selectedTextTaskId ? "#eff6ff" : "#fff",
-                }}
+                className={`production-task-item ${task.taskId === selectedTextTaskId ? "production-task-item--selected" : ""}`}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div>
+                  <div style={{ flex: 1, minWidth: 200 }}>
                     <strong>{task.status === "success" ? "已完成" : task.status}</strong>
-                    <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
+                    <div className="production-muted" style={{ marginTop: 4 }}>
                       <code>{task.taskId.slice(0, 8)}…</code>
                       <span style={{ marginLeft: 8 }}>{formatTime(task.createdAt)}</span>
-                      {task.status === "success" && <span style={{ marginLeft: 8 }}>可阅读</span>}
                     </div>
-                    {task.lastError && (
-                      <div style={{ fontSize: 12, color: "crimson", marginTop: 4 }}>{task.lastError}</div>
-                    )}
+                    <ProductionFailureNotice lastError={task.lastError} />
                   </div>
                   {task.status === "success" && (
-                    <button
-                      type="button"
-                      onClick={() => handleLoadArticle(task.taskId)}
-                      disabled={loading}
-                    >
+                    <button type="button" onClick={() => handleLoadArticle(task.taskId)} disabled={loading}>
                       查看文章
                     </button>
                   )}
@@ -359,9 +412,10 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
             ))}
           </ul>
         )}
+
         {article && (
           <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 13, color: "#666", marginBottom: 8 }}>
+            <div className="production-muted" style={{ marginBottom: 8 }}>
               {articleMeta?.sectionCount != null && <span>{articleMeta.sectionCount} 个小节 · </span>}
               {articleMeta?.skippedModel && <span>stub 模式 · </span>}
               {article.length} 字
@@ -386,73 +440,76 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
         )}
       </section>
 
-      <section style={{ border: "1px solid var(--border, #ddd)", borderRadius: 10, padding: 16 }}>
+      <section className="production-section">
         <h3 style={{ margin: "0 0 8px" }}>成片 · 视频</h3>
-        <p style={{ margin: "0 0 12px", fontSize: 13, color: "#666" }}>
-          异步入队，需后台运行 <code>npm run worker:video</code> 消费任务。
+        <p className="production-muted" style={{ margin: "0 0 12px" }}>
+          异步入队，需后台运行 <code>npm run dev:worker</code> 消费任务。
         </p>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={() => setVideoKind("biography")}
-            disabled={loading || videoKind === "biography"}
-          >
+        <div className="production-toolbar" style={{ marginTop: 0, marginBottom: 12 }}>
+          <button type="button" onClick={() => setVideoKind("biography")} disabled={loading || videoKind === "biography"}>
             传记 narrated
           </button>
-          <button
-            type="button"
-            onClick={() => setVideoKind("studio")}
-            disabled={loading || videoKind === "studio"}
-          >
+          <button type="button" onClick={() => setVideoKind("studio")} disabled={loading || videoKind === "studio"}>
             演播室对话
           </button>
         </div>
 
         {videoKind === "biography" ? (
-          <label style={{ display: "block", marginBottom: 12, fontSize: 14 }}>
-            TTS 音色（voice_type）
-            <select
-              value={ttsVoice}
-              onChange={(e) => setTtsVoice(e.target.value)}
-              style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 360, padding: 8 }}
-              disabled={loading}
-            >
-              {TTS_VOICE_OPTIONS.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name} — {v.id}
-                </option>
-              ))}
-            </select>
-          </label>
+          <>
+            {styleCatalog && styleCatalog.styles.length > 0 && (
+              <VideoStylePicker
+                styles={styleCatalog.styles}
+                selectedStyleId={styleId || styleCatalog.selectedStyleId}
+                onChange={setStyleId}
+                disabled={loading}
+              />
+            )}
+            <label className="production-field">
+              TTS 音色
+              <select
+                value={ttsVoice}
+                onChange={(e) => setTtsVoice(e.target.value)}
+                className="production-select"
+                disabled={loading}
+              >
+                {TTS_VOICE_OPTIONS.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                    {v.note ? ` — ${v.note}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
         ) : (
-          <div style={{ display: "grid", gap: 8, marginBottom: 12, maxWidth: 360 }}>
-            <label style={{ display: "block", fontSize: 14 }}>
+          <div style={{ display: "grid", gap: 8, maxWidth: 420 }}>
+            <label className="production-field">
               主持人音色
               <select
                 value={hostVoice}
                 onChange={(e) => setHostVoice(e.target.value)}
-                style={{ display: "block", marginTop: 6, width: "100%", padding: 8 }}
+                className="production-select"
                 disabled={loading}
               >
                 {TTS_VOICE_OPTIONS.map((v) => (
                   <option key={`host-${v.id}`} value={v.id}>
-                    {v.name} — {v.id}
+                    {v.name}
                   </option>
                 ))}
               </select>
             </label>
-            <label style={{ display: "block", fontSize: 14 }}>
+            <label className="production-field">
               嘉宾音色
               <select
                 value={guestVoice}
                 onChange={(e) => setGuestVoice(e.target.value)}
-                style={{ display: "block", marginTop: 6, width: "100%", padding: 8 }}
+                className="production-select"
                 disabled={loading}
               >
                 {TTS_VOICE_OPTIONS.map((v) => (
                   <option key={`guest-${v.id}`} value={v.id}>
-                    {v.name} — {v.id}
+                    {v.name}
                   </option>
                 ))}
               </select>
@@ -460,139 +517,139 @@ export function ProductionPage({ interviewId, onNeedLogin }: Props) {
           </div>
         )}
 
-        <button type="button" onClick={handleScheduleVideo} disabled={loading}>
+        <button type="button" onClick={handleScheduleVideo} disabled={loading || !canProduce}>
           创建成片任务
         </button>
-
-        {videoTasks.length > 0 && (
-          <ul style={{ margin: "12px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
-            {videoTasks.map((task) => (
-              <li
-                key={task.taskId}
-                style={{
-                  border:
-                    task.taskId === selectedVideoTaskId ? "1px solid #2563eb" : "1px solid #eee",
-                  borderRadius: 8,
-                  padding: 10,
-                  background: task.taskId === selectedVideoTaskId ? "#eff6ff" : "#fff",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div>
-                    <strong>
-                      {task.productionMode === "interview_studio" ? "演播室" : "传记"} ·{" "}
-                      {VIDEO_STATUS_LABEL[task.status]}
-                    </strong>
-                    <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>
-                      <code>{task.taskId.slice(0, 8)}…</code>
-                      <span style={{ marginLeft: 8 }}>{formatTime(task.createdAt)}</span>
-                    </div>
-                    {task.completedSteps.length > 0 && (
-                      <div style={{ fontSize: 12, color: "#444", marginTop: 4 }}>
-                        已完成步骤：{task.completedSteps.join(", ")}
-                      </div>
-                    )}
-                    {task.lastError && (
-                      <div style={{ fontSize: 12, color: "crimson", marginTop: 4 }}>{task.lastError}</div>
-                    )}
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedVideoTaskId(task.taskId)}
-                      disabled={loading}
-                    >
-                      详情
-                    </button>
-                    {task.status === "failed" && (
-                      <button type="button" onClick={() => handleRetryVideo(task.taskId)} disabled={loading}>
-                        重试
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+        {!canProduce && (
+          <p className="production-muted" style={{ marginTop: 8 }}>
+            需先完成访谈问答后再创建成片。
+          </p>
         )}
 
-        {videoDetail && selectedVideoTaskId === videoDetail.taskId && (
-          <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
-            {videoPreviewUrl && (
-              <div>
-                <p style={{ margin: "0 0 8px", fontSize: 13, color: "#666" }}>完整视频预览</p>
-                <video
-                  controls
-                  src={videoPreviewUrl}
-                  style={{ width: "100%", maxWidth: 640, borderRadius: 8, background: "#000" }}
-                />
-              </div>
-            )}
-            {videoArtifacts && (
-              <div>
-                <p style={{ margin: "0 0 8px", fontSize: 13, color: "#666" }}>
-                  产物（{videoArtifacts.items.length} 个文件 · 视频 {videoArtifacts.counts.video} ·
-                  音频 {videoArtifacts.counts.audio} · 图片 {videoArtifacts.counts.image}）
-                </p>
-                {videoArtifacts.items.length === 0 ? (
-                  <p style={{ margin: 0, fontSize: 13, color: "#888" }}>尚无媒体产物（需跑至 step 180+ 或 260）</p>
-                ) : (
-                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
-                    {videoArtifacts.items.map((item) => (
-                      <li
-                        key={item.relativePath}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 8,
-                          flexWrap: "wrap",
-                          fontSize: 13,
-                          border: "1px solid #eee",
-                          borderRadius: 6,
-                          padding: "6px 8px",
-                        }}
-                      >
-                        <span>
-                          <code>{item.relativePath}</code>
-                          <span style={{ marginLeft: 8, color: "#666" }}>
-                            {item.kind} · {formatBytes(item.sizeBytes)}
-                          </span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadVideoArtifact(item.relativePath)}
-                          disabled={loading}
-                        >
-                          下载
+        {videoTasks.length > 0 && (
+          <ul className="production-task-list">
+            {videoTasks.map((task) => {
+              const isSelected = task.taskId === selectedVideoTaskId;
+              const detail = isSelected && videoDetail?.taskId === task.taskId ? videoDetail : null;
+              return (
+                <li
+                  key={task.taskId}
+                  className={`production-task-item ${isSelected ? "production-task-item--selected" : ""}`}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <strong>
+                        {task.productionMode === "interview_studio" ? "演播室" : "传记"} ·{" "}
+                        {VIDEO_STATUS_LABEL[task.status]}
+                      </strong>
+                      <div className="production-muted" style={{ marginTop: 4 }}>
+                        <code>{task.taskId.slice(0, 8)}…</code>
+                        <span style={{ marginLeft: 8 }}>{formatTime(task.createdAt)}</span>
+                      </div>
+                      <PipelineProgress
+                        productionMode={task.productionMode}
+                        status={task.status}
+                        completedSteps={task.completedSteps}
+                        compact={!isSelected}
+                      />
+                      {!isSelected && task.status === "failed" && (
+                        <ProductionFailureNotice lastError={task.lastError} />
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignSelf: "flex-start" }}>
+                      <button type="button" onClick={() => setSelectedVideoTaskId(task.taskId)} disabled={loading}>
+                        {isSelected ? "已展开" : "详情"}
+                      </button>
+                      {task.status === "failed" && (
+                        <button type="button" onClick={() => handleRetryVideo(task.taskId)} disabled={loading}>
+                          重试
                         </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-            <details>
-              <summary style={{ cursor: "pointer", fontSize: 13, color: "#666" }}>任务进度 JSON</summary>
-              <pre
-                style={{
-                  margin: "8px 0 0",
-                  background: "var(--code-bg, #f7f7f7)",
-                  padding: 12,
-                  borderRadius: 8,
-                  fontSize: 12,
-                  overflow: "auto",
-                }}
-              >
-                {JSON.stringify(videoDetail, null, 2)}
-              </pre>
-            </details>
-          </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {isSelected && detail && (
+                    <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
+                      <PipelineProgress
+                        productionMode={detail.productionMode}
+                        status={detail.status}
+                        completedSteps={detail.completedSteps}
+                      />
+                      {detail.status === "failed" && (
+                        <ProductionFailureNotice
+                          lastError={detail.lastError}
+                          queueError={detail.queue?.error}
+                        />
+                      )}
+
+                      {videoPreviewUrl && (
+                        <div>
+                          <p className="production-muted" style={{ margin: "0 0 8px" }}>
+                            完整视频预览
+                          </p>
+                          <video
+                            controls
+                            src={videoPreviewUrl}
+                            style={{ width: "100%", maxWidth: 640, borderRadius: 8, background: "#000" }}
+                          />
+                        </div>
+                      )}
+
+                      {videoArtifacts && (
+                        <div>
+                          <p className="production-muted" style={{ margin: "0 0 8px" }}>
+                            产物（{videoArtifacts.items.length} 个文件 · 视频 {videoArtifacts.counts.video} · 音频{" "}
+                            {videoArtifacts.counts.audio} · 图片 {videoArtifacts.counts.image}）
+                          </p>
+                          {videoArtifacts.items.length === 0 ? (
+                            <p className="production-muted">尚无媒体产物（需跑至 step 180+ 或 260）</p>
+                          ) : (
+                            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+                              {videoArtifacts.items.map((item) => (
+                                <li
+                                  key={item.relativePath}
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: 8,
+                                    flexWrap: "wrap",
+                                    fontSize: 13,
+                                    border: "1px solid #eee",
+                                    borderRadius: 6,
+                                    padding: "6px 8px",
+                                  }}
+                                >
+                                  <span>
+                                    <code>{item.relativePath}</code>
+                                    <span className="production-muted" style={{ marginLeft: 8 }}>
+                                      {item.kind} · {formatBytes(item.sizeBytes)}
+                                    </span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadVideoArtifact(item.relativePath)}
+                                    disabled={loading}
+                                  >
+                                    下载
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
 
       {loading && <p style={{ margin: 0 }}>处理中…</p>}
-      {message && <p style={{ margin: 0, color: "green" }}>{message}</p>}
-      {error && <p style={{ margin: 0, color: "crimson" }}>{error}</p>}
+      {message && <p className="production-message">{message}</p>}
+      {error && <p className="production-error-banner">{error}</p>}
     </div>
   );
 }

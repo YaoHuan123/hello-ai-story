@@ -95,3 +95,16 @@ export function assertInterviewExists(scope: InterviewScope): void {
     throw new Error(`INTERVIEW_NOT_FOUND: 采访「${scope.interviewId}」不存在`);
   }
 }
+
+/** 删除一场采访及其素材/生产产物目录。 */
+export function deleteInterview(userId: string, interviewId: string): void {
+  const id = interviewId.trim();
+  const base = path.resolve(interviewsDir(userId));
+  const target = path.resolve(base, id);
+  if (!target.startsWith(`${base}${path.sep}`)) {
+    throw new Error("INTERVIEW_INVALID: 采访 id 无效");
+  }
+  const scope = { userId, interviewId: id };
+  assertInterviewExists(scope);
+  fs.rmSync(target, { recursive: true, force: true });
+}

@@ -30,12 +30,24 @@ export function parseSuggestBatch(parsed: unknown, allowedQuestions: readonly st
   const seen = new Set<string>();
   const out: SuggestBatchItem[] = [];
 
-  for (const item of arr) {
+  for (let idx = 0; idx < arr.length; idx++) {
+    const item = arr[idx];
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       throw new Error("SUGGEST_BATCH_INVALID: suggestions 项须为对象");
     }
     const row = item as Record<string, unknown>;
-    const question = String(row.question ?? row.fieldKey ?? "").trim();
+    // 优先用 i (index)，兼容旧格式 question
+    const iRaw = row.i;
+    let question: string;
+    if (typeof iRaw === "number") {
+      if (!Number.isInteger(iRaw) || iRaw < 0 || iRaw >= allowedQuestions.length) {
+        throw new Error(`SUGGEST_BATCH_INVALID: i=${iRaw} 超出范围 (0-${allowedQuestions.length - 1})`);
+      }
+      question = allowedQuestions[iRaw]!;
+    } else {
+      // 旧格式兼容
+      question = String(row.question ?? row.fieldKey ?? "").trim();
+    }
     if (!question || !allowed.has(question)) {
       throw new Error(`SUGGEST_BATCH_INVALID: 非法 question="${question}"`);
     }

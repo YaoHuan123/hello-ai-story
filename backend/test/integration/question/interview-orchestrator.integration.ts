@@ -48,7 +48,9 @@ async function main(): Promise<void> {
   const { stubSections } = await import("../../fixtures/sections.stub");
   const { writeCurrentStage } = await import("../../../src/services/topicSelection.service");
   const { writePending } = await import("../../../src/topic/tierPending");
-  const { readPrep, readAnswers, writePrep } = await import("../../../src/question/topicPersist");
+  const { readPrep, readAnswers, writePrep, readQuestionSet } = await import(
+    "../../../src/question/topicPersist"
+  );
 
   const scope = setupUserWithInterview(TEST_USER);
   seedCommittedSections(scope, stubSections());
@@ -77,6 +79,21 @@ async function main(): Promise<void> {
     "冷启动答完后清空出题器",
     !fs.existsSync(path.join(topicDir(coldScope), "questionSet.json")),
   );
+
+  console.log("\n=== 基本档案第 8 题：submit 后立即 commit ===");
+  const scope8 = setupUserWithInterview(`${TEST_USER}-8th`);
+  let q8 = await getCurrentQuestion(scope8);
+  for (let i = 0; i < 7 && q8.type === "normal"; i++) {
+    submit(scope8, { key: q8.key, text: q8.text, value: `答${i + 1}` });
+    q8 = await getCurrentQuestion(scope8);
+  }
+  check("第 8 题仍为普通问答", q8.type === "normal", q8);
+  if (q8.type === "normal") {
+    submit(scope8, { key: q8.key, text: q8.text, value: "浙江省杭州市余杭区" });
+    check("第 8 题 submit 后出题器已清空", readQuestionSet(scope8) === null);
+    const basic8 = getSections(scope8).find((s) => s.name === "基本档案");
+    check("第 8 题 submit 后 sections 含 8 问", basic8?.qa.length === 8, basic8);
+  }
 
   const title = "基本档案";
   const questionSet = {

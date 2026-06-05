@@ -22,8 +22,8 @@ export type DedupeDecision = {
   question: string;
   /** true = sections 已能覆盖，本轮不必再问 */
   skip: boolean;
-  /** 判定依据，≤60 字 */
-  reason: string;
+  /** 兼容旧 trace / 旧模型输出；新 prompt 不再要求模型输出 */
+  reason?: string;
 };
 
 /** 步骤 1 入参。 */
@@ -52,8 +52,8 @@ export type ColloquializeItem = {
   question: string;
   /** 访谈展示用问句，≤80 字 */
   questionText: string;
-  /** 改写说明，≤60 字 */
-  reason: string;
+  /** 兼容旧 trace / 旧模型输出；新 prompt 不再要求模型输出 */
+  reason?: string;
 };
 
 /** 步骤 2 入参。 */
@@ -187,40 +187,14 @@ export type RefineCurrentQuestionResult = {
   mode: "open";
   /** 结合已答上下文后的展示问句 */
   questionText: string;
-  /** 改写说明，≤60 字 */
-  reason: string;
+  /** 改写说明，≤60 字；新 prompt 不再要求输出 */
+  reason?: string;
 };
 
 // ─── 步骤 6：逐题备选 ─────────────────────────────────────────
 //
 // 与步骤 5 同轮；依据本主题已答推断当前题备选。
 // UI：`(prep.answerSuggestions[current] ∪ suggestedAnswers)` 去重后最多 4 条。
-
-/**
- * 逐题备选推断类型（模型输出，parse 校验；chip 展示只用 `value`）。
- *
- * - `direct_extract`：从已答中直接摘录/同指
- * - `calculation`：时间链、学制等推算
- * - `entity_location`：由校名/单位名等推地点
- * - `enum_match`：匹配枚举选项（若题型有 choices）
- */
-export type CurrentAnswerSuggestionInferenceType =
-  | "direct_extract"
-  | "calculation"
-  | "entity_location"
-  | "enum_match";
-
-/** 逐题备选单条（与 suggest-current prompt 的对象数组对齐）。 */
-export type CurrentAnswerSuggestionCandidate = {
-  /** 可点选短答案，≤40 字 */
-  value: string;
-  /** 0～1；`suggestCurrentAnswers` 默认仅保留 ≥ 0.7 */
-  confidence: number;
-  /** 推断方式，见 `CurrentAnswerSuggestionInferenceType` */
-  inferenceType: CurrentAnswerSuggestionInferenceType;
-  /** 推断依据，非空 */
-  basis: string;
-};
 
 /** 步骤 6 入参。 */
 export type SuggestCurrentQuestionParams = {
@@ -244,9 +218,7 @@ export type SuggestCurrentQuestionParams = {
 
 /** 步骤 6 结果。 */
 export type SuggestCurrentQuestionResult = {
-  /** 模型原始结构化输出（含低置信项，调试用） */
-  candidates: CurrentAnswerSuggestionCandidate[];
-  /** 高置信 `value` 列表，供合并进 UI chip；最多 4 条 */
+  /** 高置信答案列表，供合并进 UI chip；最多 4 条 */
   suggestedAnswers: string[];
 };
 

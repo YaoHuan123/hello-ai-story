@@ -6,6 +6,7 @@ import type {
   RefineAndSuggestCurrentResult,
 } from "./types";
 import { isRefineNotApplicable, isRefineSkipped } from "./types";
+import { traceQuestionStep, runWithLlmTraceLabel } from "./questionTrace";
 
 /**
  * 步骤 7：逐题 refine + 逐题备选，并合并展示用 chip 列表。
@@ -23,21 +24,29 @@ export async function refineAndSuggestCurrent(
     throw new Error(`REFINE_SKIPPED: 主题「${questionSet.title}」跳过逐题 refine+备选`);
   }
 
-  const refine = await refineCurrentQuestion({
-    sections: params.sections,
-    questionSet,
-    currentQuestion: params.currentQuestion,
-    batchQuestionText: params.batchQuestionText,
-    answeredInTopic: params.answeredInTopic,
-  });
+  const refine = await traceQuestionStep("refine.current", () =>
+    runWithLlmTraceLabel("refine.current", () =>
+      refineCurrentQuestion({
+        sections: params.sections,
+        questionSet,
+        currentQuestion: params.currentQuestion,
+        batchQuestionText: params.batchQuestionText,
+        answeredInTopic: params.answeredInTopic,
+      }),
+    ),
+  );
 
-  const suggest = await suggestCurrentAnswers({
-    sections: params.sections,
-    questionSet,
-    currentQuestion: params.currentQuestion,
-    questionText: refine.questionText,
-    answeredInTopic: params.answeredInTopic,
-  });
+  const suggest = await traceQuestionStep("refine.suggestCurrent", () =>
+    runWithLlmTraceLabel("refine.suggestCurrent", () =>
+      suggestCurrentAnswers({
+        sections: params.sections,
+        questionSet,
+        currentQuestion: params.currentQuestion,
+        questionText: refine.questionText,
+        answeredInTopic: params.answeredInTopic,
+      }),
+    ),
+  );
 
   const batchSuggested = (params.batchSuggestedAnswers ?? [])
     .map((s) => String(s).trim())
@@ -45,7 +54,7 @@ export async function refineAndSuggestCurrent(
 
   return {
     questionText: refine.questionText,
-    refineReason: refine.reason,
+    refineReason: refine.reason ?? "",
     suggestedAnswers: mergeSuggestedAnswersForDisplay(suggest.suggestedAnswers, batchSuggested),
   };
 }

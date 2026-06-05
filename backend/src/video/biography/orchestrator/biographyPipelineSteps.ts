@@ -74,7 +74,7 @@ import { mergeVideoClipsToFullVideo, parseVideoClipIndexesFromPipeline } from ".
 import { runStyleUserPlaceImagesOptional } from "../render/step220StyleUserPlaceImages.js";
 import {
   defaultVideoStylesConfigPath,
-  loadVideoStyles,
+  resolveStyleConfig,
 } from "../llm/steps/videoStyles.js";
 import {
   VIDEO_BIOGRAPHY_MERGE_LANE_STEP_IDS,
@@ -97,6 +97,7 @@ export type BiographyRunContext = {
   downstreamPipeline: ClassifyPipelineJson;
   ttsVoice?: string;
   styleConfigPath?: string;
+  styleId?: string;
 };
 
 function relPipeline(filename: string): string {
@@ -398,7 +399,7 @@ case "90": {
         ? (raw.mergedNarrativeSegments as MergedNarrativeSegmentItem[])
         : [];
       const styleConfigPath = ctx.styleConfigPath ?? defaultVideoStylesConfigPath();
-      const styleConfig = loadVideoStyles(styleConfigPath);
+      const styleConfig = resolveStyleConfig(styleConfigPath, ctx.styleId);
       const skipped = mergedNarrativeSegments.length === 0;
       let styledMerged = mergedNarrativeSegments;
       let styleId = "";

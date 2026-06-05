@@ -12,6 +12,8 @@ import type {
   VideoTaskArtifacts,
   VideoTaskListItem,
   VideoTaskProgress,
+  ProductionReadiness,
+  VideoStylesCatalog,
 } from "../types/production";
 
 function productionPath(interviewId: string, suffix: string): string {
@@ -137,6 +139,18 @@ export function videoPrimaryVideoUrl(interviewId: string, taskId: string): strin
 
 export async function fetchVideoPrimaryBlob(interviewId: string, taskId: string): Promise<Blob> {
   return fetchAuthenticatedBlob(videoPrimaryVideoUrl(interviewId, taskId));
+}
+
+export async function getProductionReadiness(interviewId: string) {
+  return apiRequest<ProductionReadiness>(
+    productionPath(interviewId, "/production/readiness"),
+    { method: "GET" },
+    true,
+  );
+}
+
+export async function listVideoStyles() {
+  return apiRequest<VideoStylesCatalog>("/api/production/video-styles", { method: "GET" }, true);
 }
 
 export async function fetchVideoArtifactBlob(

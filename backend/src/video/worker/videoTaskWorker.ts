@@ -60,9 +60,11 @@ function parseBiographyPayload(payload: Record<string, unknown>): BiographyVideo
     typeof payload.styleConfigPath === "string" && payload.styleConfigPath.trim()
       ? payload.styleConfigPath.trim()
       : undefined;
+  const styleId =
+    typeof payload.styleId === "string" && payload.styleId.trim() ? payload.styleId.trim() : undefined;
   const throughStep =
     typeof payload.throughStep === "string" && payload.throughStep.trim() ? payload.throughStep.trim() : undefined;
-  return { ttsVoice, polishMode, styleConfigPath, throughStep };
+  return { ttsVoice, polishMode, styleConfigPath, styleId, throughStep };
 }
 
 function parseStudioPayload(payload: Record<string, unknown>): StudioVideoQueuePayload {
@@ -99,6 +101,7 @@ export async function executeVideoQueueTask(
           taskId: rec.videoTaskId,
           ttsVoice: p.ttsVoice,
           styleConfigPath: p.styleConfigPath,
+          styleId: p.styleId,
           polishMode: p.polishMode,
           ...(p.throughStep
             ? {

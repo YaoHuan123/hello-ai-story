@@ -1,4 +1,5 @@
 import type { InterviewScope } from "../../services/interviewWorkspace.service";
+import { assertProductionReady } from "../../services/productionReadiness.service";
 import {
   createBiographyVideoTask,
   createStudioVideoTask,
@@ -17,6 +18,7 @@ export type ScheduleBiographyVideoTaskOptions = {
   taskId?: string;
   ttsVoice: string;
   styleConfigPath?: string;
+  styleId?: string;
   polishMode?: MaterialPolishMode;
   throughStep?: string;
 };
@@ -59,6 +61,8 @@ export function scheduleBiographyVideoTask(
   const ttsVoice = opts.ttsVoice.trim();
   if (!ttsVoice) throw new Error("VIDEO_SCHEDULE_TTS_REQUIRED: 传记成片须提供 ttsVoice");
 
+  assertProductionReady(scope);
+
   const handle = opts.taskId
     ? openVideoTask(scope, opts.taskId)
     : createBiographyVideoTask(scope);
@@ -66,6 +70,7 @@ export function scheduleBiographyVideoTask(
   const payload: BiographyVideoQueuePayload = {
     ttsVoice,
     ...(opts.styleConfigPath?.trim() ? { styleConfigPath: opts.styleConfigPath.trim() } : {}),
+    ...(opts.styleId?.trim() ? { styleId: opts.styleId.trim() } : {}),
     ...(opts.polishMode ? { polishMode: opts.polishMode } : {}),
     ...(opts.throughStep?.trim() ? { throughStep: opts.throughStep.trim() } : {}),
   };
@@ -96,6 +101,8 @@ export function scheduleStudioVideoTask(
   if (!hostVoice || !guestVoice) {
     throw new Error("VIDEO_SCHEDULE_VOICES_REQUIRED: 演播室须提供 hostVoice 与 guestVoice");
   }
+
+  assertProductionReady(scope);
 
   const handle = opts.taskId ? openVideoTask(scope, opts.taskId) : createStudioVideoTask(scope);
 

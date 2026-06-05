@@ -35,6 +35,17 @@ export function loadVideoStyles(configPath: string): VideoStylesFile {
   return parsed;
 }
 
+/** 读取配置并按任务所选 `styleId` 覆盖 `selectedStyleId`（默认读 config/video-styles.json）。 */
+export function resolveStyleConfig(configPath: string, styleId?: string): VideoStylesFile {
+  const config = loadVideoStyles(configPath);
+  const id = styleId?.trim();
+  if (!id) return config;
+  if (!config.styles.some((s) => s.id === id)) {
+    throw new Error(`VIDEO_STYLE_NOT_FOUND: 未找到视频风格「${id}」`);
+  }
+  return { ...config, selectedStyleId: id };
+}
+
 export function resolveSelectedStyle(config: VideoStylesFile): VideoStyleRow {
   const found = config.styles.find((s) => s.id === config.selectedStyleId);
   if (found) return found;

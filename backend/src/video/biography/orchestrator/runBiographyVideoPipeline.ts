@@ -27,6 +27,7 @@ export type RunBiographyVideoPipelineOptions = {
   polishMode?: MaterialPolishMode;
   ttsVoice?: string;
   styleConfigPath?: string;
+  styleId?: string;
   sections?: AnsweredSection[];
   throughStep?: typeof VIDEO_PREP_STEPS.POLISH | BiographyPipelineStepId;
   /** 从该步（含）开始；此前步骤跳过（须已有 pipeline 落盘，常用于集成测试 seed 续跑）。 */
@@ -65,6 +66,7 @@ export async function runBiographyVideoPipeline(
         downstreamPipeline: prep.downstream,
         ttsVoice: opts?.ttsVoice,
         styleConfigPath: opts?.styleConfigPath,
+        styleId: opts?.styleId,
       };
       const runStep = (stepId: string) => runBiographyPipelineStep(stepId, ctx);
       return [

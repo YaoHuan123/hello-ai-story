@@ -90,6 +90,21 @@ async function main(): Promise<void> {
     const unauth = await fetch(`${prodBase}/text/tasks`);
     check("GET /text/tasks without token → 401", unauth.status === 401);
 
+    console.log("\n=== 生产就绪 & 配置 ===");
+    const readiness = await fetch(`${prodBase}/production/readiness`, { headers: authHeader(token) });
+    const readinessBody = (await readiness.json()) as { ready?: boolean; usableSectionCount?: number };
+    check(
+      "GET /production/readiness → ready",
+      readiness.status === 200 && readinessBody.ready === true && (readinessBody.usableSectionCount ?? 0) >= 1,
+    );
+
+    const styles = await fetch(`${base}/api/production/video-styles`, { headers: authHeader(token) });
+    const stylesBody = (await styles.json()) as { styles?: Array<{ id: string }>; selectedStyleId?: string };
+    check(
+      "GET /api/production/video-styles",
+      styles.status === 200 && (stylesBody.styles?.length ?? 0) >= 1 && !!stylesBody.selectedStyleId,
+    );
+
     console.log("\n=== 文本生产（同步） ===");
     const createText = await fetch(`${prodBase}/text/tasks`, {
       method: "POST",
@@ -140,7 +155,11 @@ async function main(): Promise<void> {
     const scheduleBio = await fetch(`${prodBase}/video/biography`, {
       method: "POST",
       headers: authHeader(token),
-      body: JSON.stringify({ ttsVoice: "test-voice", polishMode: "stub" }),
+      body: JSON.stringify({
+        ttsVoice: "zh_male_M392_conversation_wvae_bigtts",
+        styleId: stylesBody.selectedStyleId,
+        polishMode: "stub",
+      }),
     });
     const bioBody = (await scheduleBio.json()) as { taskId?: string; status?: string };
     check("POST /video/biography → 202", scheduleBio.status === 202, bioBody);

@@ -3,6 +3,7 @@ import { dedupeQuestions } from "./dedupe";
 import { suggestBatchAnswers } from "./suggestBatch";
 import type { TemplatePrepParams, TemplatePrepResult } from "./types";
 import { isCatalogPrepNotApplicable, isCatalogPrepSkipped } from "./types";
+import { traceQuestionStep, runWithLlmTraceLabel } from "./questionTrace";
 
 function passthroughQuestionTexts(questions: string[]): Record<string, string> {
   const questionTexts: Record<string, string> = {};
@@ -42,7 +43,9 @@ export async function runTemplatePrep(params: TemplatePrepParams): Promise<Templ
     throw new Error("TEMPLATE_PREP_MISSING_INPUT: sections 为空");
   }
 
-  const dedupe = await dedupeQuestions({ sections, questionSet });
+  const dedupe = await traceQuestionStep("prep.dedupe", () =>
+    runWithLlmTraceLabel("prep.dedupe", () => dedupeQuestions({ sections, questionSet })),
+  );
   const { askQuestions, skippedQuestions } = dedupe;
 
   if (askQuestions.length === 0) {
@@ -55,18 +58,22 @@ export async function runTemplatePrep(params: TemplatePrepParams): Promise<Templ
     };
   }
 
-  const colloquialize = await colloquializeQuestions({
-    sections,
-    questionSet,
-    askQuestions,
-  });
+  const colloquialize = await traceQuestionStep("prep.colloquialize", () =>
+    runWithLlmTraceLabel("prep.colloquialize", () =>
+      colloquializeQuestions({ sections, questionSet, askQuestions }),
+    ),
+  );
 
-  const suggest = await suggestBatchAnswers({
-    sections,
-    questionSet,
-    askQuestions,
-    questionTexts: colloquialize.questionTexts,
-  });
+  const suggest = await traceQuestionStep("prep.suggestBatch", () =>
+    runWithLlmTraceLabel("prep.suggestBatch", () =>
+      suggestBatchAnswers({
+        sections,
+        questionSet,
+        askQuestions,
+        questionTexts: colloquialize.questionTexts,
+      }),
+    ),
+  );
 
   return {
     skipped: false,

@@ -40,12 +40,9 @@ export function parseRefine(parsed: unknown): RefineCurrentQuestionResult {
   if (/吧？\s*$|对吗\s*$|应该是/.test(questionText)) {
     throw new Error("REFINE_INVALID: questionText 不得为判断句结尾");
   }
-  if (!reason) {
-    throw new Error("REFINE_INVALID: reason 缺失");
-  }
   if (reason.length > REASON_MAX_LEN) {
     throw new Error("REFINE_INVALID: reason 超过 60 字");
   }
 
-  return { mode: "open", questionText, reason };
+  return { mode: "open", questionText, ...(reason ? { reason } : {}) };
 }

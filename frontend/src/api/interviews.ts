@@ -21,6 +21,11 @@ export async function listInterviews(): Promise<InterviewListResponse> {
   return apiRequest<InterviewListResponse>("/api/interviews", { method: "GET" }, true);
 }
 
+export async function deleteInterview(interviewId: string): Promise<void> {
+  const id = encodeURIComponent(interviewId);
+  await apiRequest<{ ok: true }>(`/api/interviews/${id}`, { method: "DELETE" }, true);
+}
+
 export async function getCurrentQuestion(interviewId: string): Promise<InterviewQuestion> {
   const id = encodeURIComponent(interviewId);
   return apiRequest<InterviewQuestion>(`/api/interviews/${id}/current`, { method: "GET" }, true);

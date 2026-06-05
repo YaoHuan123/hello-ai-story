@@ -33,7 +33,20 @@ async function main(): Promise<void> {
   const ask = ["入学时间（必填）", "学校名称（必填）"];
 
   console.log("\n=== parseSuggestBatch（无 LLM）===");
+  // 新格式：用 i (index)
   const valid = parseSuggestBatch(
+    {
+      suggestions: [
+        { i: 0, suggestedAnswers: ["1964-09"] },
+        { i: 1, suggestedAnswers: [] },
+      ],
+    },
+    ask,
+  );
+  check("新格式 (i) 合法 suggestions 解析", valid.length === 2 && valid[0].question === ask[0], valid);
+
+  // 旧格式兼容：用 question
+  const legacyValid = parseSuggestBatch(
     {
       suggestions: [
         { question: ask[0], suggestedAnswers: ["1964-09"] },
@@ -42,7 +55,7 @@ async function main(): Promise<void> {
     },
     ask,
   );
-  check("合法 suggestions 解析", valid.length === 2, valid);
+  check("旧格式 (question) 兼容解析", legacyValid.length === 2 && legacyValid[0].question === ask[0], legacyValid);
 
   console.log("\n=== suggestBatchAnswers 边界（无 LLM）===");
   const sections = stubSections();

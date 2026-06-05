@@ -30,6 +30,7 @@ import {
   refineAndSuggestCurrent,
   runTemplatePrep,
 } from "./questionGeneration.service";
+import { traceQuestionStep } from "../question/questionTrace";
 import type { InterviewScope } from "./interviewWorkspace.service";
 import type { AnsweredSection, QuestionSet } from "../topic/types";
 
@@ -61,7 +62,9 @@ async function ensureCatalogPrep(
   if (existing) return existing;
 
   const sections = sectionsForPrompt(scope);
-  const prep = await runTemplatePrep({ sections, questionSet });
+  const prep = await traceQuestionStep("engine.runTemplatePrep", () =>
+    runTemplatePrep({ sections, questionSet }),
+  );
   writePrep(scope, prep);
   return prep;
 }
@@ -85,11 +88,13 @@ async function ensureExtend(
   }
 
   const sections = sectionsForPrompt(scope);
-  const extended = await extendSubCategoryQuestions({
-    sections,
-    questionSet,
-    templateAnswered,
-  });
+  const extended = await traceQuestionStep("engine.extend", () =>
+    extendSubCategoryQuestions({
+      sections,
+      questionSet,
+      templateAnswered,
+    }),
+  );
   writeExtend(scope, { questions: extended.questions });
 }
 
@@ -109,14 +114,16 @@ async function buildCatalogTemplateDisplay(
 
   if (!isRefineSkipped(questionSet) && template.length > 0) {
     const sections = sectionsForPrompt(scope);
-    const display = await refineAndSuggestCurrent({
-      sections,
-      questionSet,
-      currentQuestion: key,
-      batchQuestionText: batchText,
-      batchSuggestedAnswers: batchSuggested,
-      answeredInTopic: toAnsweredInTopic(answers),
-    });
+    const display = await traceQuestionStep("engine.refineAndSuggest", () =>
+      refineAndSuggestCurrent({
+        sections,
+        questionSet,
+        currentQuestion: key,
+        batchQuestionText: batchText,
+        batchSuggestedAnswers: batchSuggested,
+        answeredInTopic: toAnsweredInTopic(answers),
+      }),
+    );
     questionText = display.questionText;
     suggestions = display.suggestedAnswers;
   }
@@ -240,6 +247,11 @@ export function isTopicAnswered(scope: InterviewScope): boolean {
   const prep = readPrep(scope);
   if (!prep) return false;
   if (templateAnswers(answers).length < prep.askQuestions.length) return false;
+
+  // 基本档案等跳过 extend 的主题：模板题答完即视为本节结束（不必等 extend.json）。
+  if (isExtendSkipped(questionSet)) {
+    return true;
+  }
 
   const extend = readExtend(scope);
   if (!extend) return false;

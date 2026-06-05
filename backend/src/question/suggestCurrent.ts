@@ -1,10 +1,7 @@
 import { chatJson } from "../topic/llm";
 import { loadSuggestCurrentPrompt } from "./loadPrompt";
 import { narratorProfileFromSections } from "./narratorProfile";
-import {
-  parseSuggestCurrent,
-  suggestedAnswerValuesFromCandidates,
-} from "./parseSuggestCurrent";
+import { parseSuggestCurrent } from "./parseSuggestCurrent";
 import type {
   SuggestCurrentQuestionParams,
   SuggestCurrentQuestionResult,
@@ -64,7 +61,7 @@ export async function suggestCurrentAnswers(
   }
 
   if (!shouldSuggestCurrentQuestion(params.answeredInTopic)) {
-    return { candidates: [], suggestedAnswers: [] };
+    return { suggestedAnswers: [] };
   }
 
   const promptInput = {
@@ -90,7 +87,6 @@ export async function suggestCurrentAnswers(
     { role: "user", content: userContent },
   ]);
 
-  const candidates = parseSuggestCurrent(parsed);
-  const suggestedAnswers = suggestedAnswerValuesFromCandidates(candidates);
-  return { candidates, suggestedAnswers };
+  const suggestedAnswers = parseSuggestCurrent(parsed);
+  return { suggestedAnswers };
 }

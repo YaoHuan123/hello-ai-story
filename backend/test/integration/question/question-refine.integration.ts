@@ -32,16 +32,24 @@ async function main(): Promise<void> {
   const { stubSections } = await import("../../fixtures/sections.stub");
 
   console.log("\n=== parseRefine（无 LLM）===");
+  // 新格式：无 reason
   const valid = parseRefine({
+    mode: "open",
+    questionText: "长沙实验小学是在长沙哪个区上的学？",
+  });
+  check("新格式（无 reason）合法解析", valid.mode === "open" && valid.questionText.length > 0, valid);
+
+  // 旧格式兼容：有 reason
+  const legacyValid = parseRefine({
     mode: "open",
     questionText: "长沙实验小学是在长沙哪个区上的学？",
     reason: "已知校名追问区位",
   });
-  check("合法 open 解析", valid.mode === "open" && valid.questionText.length > 0, valid);
+  check("旧格式（有 reason）兼容解析", legacyValid.mode === "open" && legacyValid.reason === "已知校名追问区位", legacyValid);
 
   let parseErr = "";
   try {
-    parseRefine({ mode: "judgment", questionText: "x", reason: "y" });
+    parseRefine({ mode: "judgment", questionText: "x" });
   } catch (e) {
     parseErr = e instanceof Error ? e.message : String(e);
   }
@@ -72,6 +80,7 @@ async function main(): Promise<void> {
     first.questionText === "你上小学时读的是哪所学校？" && first.reason === "first-question-use-batch",
     first,
   );
+  check("第 1 题 reason 为内置值", first.reason === "first-question-use-batch", first);
 
   let skipErr = "";
   try {
@@ -130,7 +139,7 @@ async function main(): Promise<void> {
     result.questionText.length > 0 && result.questionText.length <= 80,
     result,
   );
-  check("reason 非空", result.reason.length > 0, result);
+  check("reason 不要求", typeof result.reason === "undefined" || result.reason.length <= 60, result);
   check(
     "与批量文案不完全相同（通常应承接已答）",
     result.questionText !== prep.questionTexts[q2] || result.reason !== "first-question-use-batch",

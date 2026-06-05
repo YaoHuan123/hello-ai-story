@@ -5,10 +5,11 @@ import { createUserWorkspace } from "../services/workspace.service";
 import {
   createInterview,
   assertInterviewExists,
+  deleteInterview,
   listInterviews,
   type InterviewScope,
 } from "../services/interviewWorkspace.service";
-import { getCurrentQuestion, submit } from "../services/interviewOrchestrator.service";
+import { getCurrentQuestionTraced, submit } from "../services/interviewOrchestrator.service";
 
 const submitSchema = z.object({
   key: z.string().min(1).max(300),
@@ -75,6 +76,7 @@ function mapInterviewError(res: Response, error: unknown): boolean {
  * 访谈 HTTP 层（均需登录）：
  * - POST /api/interviews              创建采访
  * - GET  /api/interviews              列出采访
+ * - DELETE /api/interviews/:id        删除采访
  * - GET  /api/interviews/:id/current  读当前题
  * - POST /api/interviews/:id/submit   交（主题 / 答案）
  */
@@ -124,11 +126,26 @@ export const createInterviewRouter = (): Router => {
     const scope = scopeFromReq(user.userId, req.params.interviewId);
     try {
       assertInterviewExists(scope);
-      const question = await getCurrentQuestion(scope);
+      const question = await getCurrentQuestionTraced(scope);
       res.status(200).json(question);
     } catch (error) {
       if (mapInterviewError(res, error)) return;
       res.status(500).json({ code: "INTERNAL_ERROR", message: "获取当前题目失败" });
+    }
+  });
+
+  router.delete("/:interviewId", (req, res) => {
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    try {
+      deleteInterview(user.userId, req.params.interviewId);
+      res.status(200).json({ ok: true as const });
+    } catch (error) {
+      if (mapInterviewError(res, error)) return;
+      res.status(500).json({ code: "INTERNAL_ERROR", message: "删除采访失败" });
     }
   });
 

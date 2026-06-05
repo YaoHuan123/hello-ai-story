@@ -83,6 +83,7 @@ export type PolishMode = "llm" | "stub";
 export type ScheduleBiographyPayload = {
   ttsVoice: string;
   styleConfigPath?: string;
+  styleId?: string;
   polishMode?: PolishMode;
   throughStep?: string;
   taskId?: string;
@@ -141,4 +142,29 @@ export type TextTaskArtifacts = {
     hasArticle: boolean;
     articleLength?: number;
   }>;
+};
+
+export type ProductionReadiness = {
+  sectionCount: number;
+  usableSectionCount: number;
+  sectionNames: string[];
+  ready: boolean;
+  message: string;
+};
+
+export type PublicVideoStyle = {
+  id: string;
+  order: number;
+  name: string;
+  badge: string;
+  positioning: string;
+  atmosphere: string;
+  suitableFor: string;
+  detailedDesc: string;
+  coverUrl: string | null;
+};
+
+export type VideoStylesCatalog = {
+  selectedStyleId: string;
+  styles: PublicVideoStyle[];
 };

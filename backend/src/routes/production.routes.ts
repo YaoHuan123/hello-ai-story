@@ -4,6 +4,7 @@ import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { assertInterviewExists, type InterviewScope } from "../services/interviewWorkspace.service";
+import { getProductionReadiness } from "../services/productionReadiness.service";
 import { runTextPipeline } from "../text/orchestrator/runTextPipeline";
 import { getTextTaskProgress, listTextTasks } from "../text/textTaskQuery";
 import { openTextTask } from "../text/orchestrator/textTaskWorkspace";
@@ -30,6 +31,7 @@ const ttsVoiceSchema = z
 const scheduleBiographySchema = z.object({
   ttsVoice: ttsVoiceSchema,
   styleConfigPath: z.string().max(500).optional(),
+  styleId: z.string().min(1).max(120).optional(),
   polishMode: polishModeSchema,
   throughStep: z.string().max(64).optional(),
   taskId: z.string().uuid().optional(),
@@ -138,9 +140,18 @@ function mapProductionError(res: Response, error: unknown): boolean {
     code.endsWith("_REQUIRED") ||
     code.endsWith("_INVALID") ||
     code === "TEXT_PIPELINE_NO_SECTIONS" ||
+    code === "VIDEO_PIPELINE_NO_SECTIONS" ||
+    code === "VIDEO_STYLE_NOT_FOUND" ||
     code === "INVALID_PARAMS"
   ) {
-    res.status(400).json({ code, message: msg.split(":").slice(1).join(":").trim() || "请求参数有误" });
+    const detail = msg.split(":").slice(1).join(":").trim();
+    const friendly =
+      code === "VIDEO_PIPELINE_NO_SECTIONS" || code === "TEXT_PIPELINE_NO_SECTIONS"
+        ? detail || "请先完成访谈问答"
+        : code === "VIDEO_STYLE_NOT_FOUND"
+          ? detail || "所选视频风格不存在"
+          : detail || "请求参数有误";
+    res.status(400).json({ code, message: friendly });
     return true;
   }
   if (code.startsWith("LLM_") || code.startsWith("OPENAI_") || code.includes("_LLM_")) {
@@ -153,7 +164,7 @@ function mapProductionError(res: Response, error: unknown): boolean {
 /**
  * 成片 / 文本生产 HTTP（挂载于 `/api/interviews/:interviewId`，均需登录）。
  *
- * Video（异步，需 worker）：
+ * - GET  /production/readiness
  * - GET  /video/tasks
  * - GET  /video/tasks/:taskId
  * - POST /video/biography
@@ -174,6 +185,22 @@ function mapProductionError(res: Response, error: unknown): boolean {
 export function createProductionRouter(): Router {
   const router = Router({ mergeParams: true });
   router.use(authMiddleware);
+
+  router.get("/production/readiness", (req: Request<InterviewRouteParams>, res) => {
+    const userId = requireUserId(req);
+    if (!userId) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    const scope = scopeFromInterviewReq(req, userId);
+    try {
+      assertInterviewExists(scope);
+      res.status(200).json(getProductionReadiness(scope));
+    } catch (error) {
+      if (mapProductionError(res, error)) return;
+      res.status(500).json({ code: "INTERNAL_ERROR", message: "查询生产就绪状态失败" });
+    }
+  });
 
   router.get("/video/tasks", (req: Request<InterviewRouteParams>, res) => {
     const userId = requireUserId(req);

@@ -42,12 +42,24 @@ export function parseColloquialize(
   const seen = new Set<string>();
   const out: ColloquializeItem[] = [];
 
-  for (const item of arr) {
+  for (let idx = 0; idx < arr.length; idx++) {
+    const item = arr[idx];
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       throw new Error("COLLOQUIALIZE_INVALID: questions 项须为对象");
     }
     const row = item as Record<string, unknown>;
-    const question = String(row.question ?? row.fieldKey ?? "").trim();
+    // 优先用 i (index)，兼容旧格式 question
+    const iRaw = row.i;
+    let question: string;
+    if (typeof iRaw === "number") {
+      if (!Number.isInteger(iRaw) || iRaw < 0 || iRaw >= allowedQuestions.length) {
+        throw new Error(`COLLOQUIALIZE_INVALID: i=${iRaw} 超出范围 (0-${allowedQuestions.length - 1})`);
+      }
+      question = allowedQuestions[iRaw]!;
+    } else {
+      // 旧格式兼容
+      question = String(row.question ?? row.fieldKey ?? "").trim();
+    }
     const questionText = String(row.questionText ?? "").trim();
     const reason = String(row.reason ?? "").trim();
 
@@ -71,7 +83,7 @@ export function parseColloquialize(
     if (reason.length > REASON_MAX_LEN) {
       throw new Error("COLLOQUIALIZE_INVALID: reason 超过 60 字");
     }
-    out.push({ question, questionText, reason: reason || "colloquialized" });
+    out.push({ question, questionText, ...(reason ? { reason } : {}) });
   }
 
   for (const q of allowedQuestions) {

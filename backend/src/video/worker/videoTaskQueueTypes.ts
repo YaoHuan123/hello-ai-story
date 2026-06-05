@@ -28,6 +28,8 @@ export type VideoQueueTaskRecord = {
 export type BiographyVideoQueuePayload = {
   ttsVoice: string;
   styleConfigPath?: string;
+  /** 覆盖 config/video-styles.json 的 selectedStyleId */
+  styleId?: string;
   polishMode?: "llm" | "stub";
   /** 调试：只跑到该步（含） */
   throughStep?: string;

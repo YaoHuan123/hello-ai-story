@@ -29,12 +29,24 @@ export function parseDedupe(parsed: unknown, allowedQuestions: readonly string[]
   const seen = new Set<string>();
   const out: DedupeDecision[] = [];
 
-  for (const item of arr) {
+  for (let idx = 0; idx < arr.length; idx++) {
+    const item = arr[idx];
     if (!item || typeof item !== "object" || Array.isArray(item)) {
       throw new Error("DEDUPE_INVALID: decisions 项须为对象");
     }
     const row = item as Record<string, unknown>;
-    const question = String(row.question ?? row.fieldKey ?? "").trim();
+    // 优先用 i (index)，兼容旧格式 question
+    const iRaw = row.i;
+    let question: string;
+    if (typeof iRaw === "number") {
+      if (!Number.isInteger(iRaw) || iRaw < 0 || iRaw >= allowedQuestions.length) {
+        throw new Error(`DEDUPE_INVALID: i=${iRaw} 超出范围 (0-${allowedQuestions.length - 1})`);
+      }
+      question = allowedQuestions[iRaw]!;
+    } else {
+      // 旧格式兼容
+      question = String(row.question ?? row.fieldKey ?? "").trim();
+    }
     const skip = row.skip === true;
     const reason = String(row.reason ?? "").trim();
 
@@ -48,13 +60,10 @@ export function parseDedupe(parsed: unknown, allowedQuestions: readonly string[]
     if (String(row.questionText ?? "").trim()) {
       throw new Error(`DEDUPE_INVALID: 去重步不得输出 questionText（${question}）`);
     }
-    if (!reason) {
-      throw new Error(`DEDUPE_INVALID: reason 缺失（${question}）`);
-    }
     if (reason.length > REASON_MAX_LEN) {
       throw new Error("DEDUPE_INVALID: reason 超过 60 字");
     }
-    out.push({ question, skip, reason });
+    out.push({ question, skip, ...(reason ? { reason } : {}) });
   }
 
   for (const q of allowedQuestions) {

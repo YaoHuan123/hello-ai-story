@@ -1,4 +1,10 @@
 import { OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL } from "../config";
+import {
+  currentLlmTraceLabel,
+  recordQuestionLlmCall,
+  writeQuestionLlmInput,
+  writeQuestionLlmOutput,
+} from "../question/questionTrace";
 
 /** 发给模型的一条对话消息（仅用到 system 与 user 两种角色）。 */
 export type ChatMessage = { role: "system" | "user"; content: string };
@@ -35,6 +41,8 @@ function stripCodeFence(raw: string): string {
  *         AbortError 超过 {@link REQUEST_TIMEOUT_MS}
  */
 export async function chatJson<T>(messages: ChatMessage[]): Promise<T> {
+  const llmLabel = currentLlmTraceLabel() ?? "chatJson";
+  const llmT0 = Date.now();
   const isDoubao = /doubao/i.test(OPENAI_MODEL);
   const body: Record<string, unknown> = {
     model: OPENAI_MODEL,
@@ -47,6 +55,10 @@ export async function chatJson<T>(messages: ChatMessage[]): Promise<T> {
   } else {
     body.response_format = { type: "json_object" };
   }
+  const inputFile = writeQuestionLlmInput({
+    label: llmLabel,
+    request: body,
+  });
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -61,12 +73,48 @@ export async function chatJson<T>(messages: ChatMessage[]): Promise<T> {
       body: JSON.stringify(body),
       signal: controller.signal,
     });
+  } catch (error) {
+    const outputFile = writeQuestionLlmOutput({
+      label: llmLabel,
+      inputFile,
+      ok: false,
+      output: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+    recordQuestionLlmCall({
+      label: llmLabel,
+      durationMs: Date.now() - llmT0,
+      ok: false,
+      detail: error instanceof Error ? error.message : String(error),
+      inputFile,
+      outputFile,
+    });
+    throw error;
   } finally {
     clearTimeout(timer);
   }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
+    const outputFile = writeQuestionLlmOutput({
+      label: llmLabel,
+      inputFile,
+      ok: false,
+      output: {
+        status: res.status,
+        statusText: res.statusText,
+        rawText: text,
+      },
+    });
+    recordQuestionLlmCall({
+      label: llmLabel,
+      durationMs: Date.now() - llmT0,
+      ok: false,
+      detail: `HTTP ${res.status}`,
+      inputFile,
+      outputFile,
+    });
     throw new Error(`LLM_HTTP_${res.status}: ${text.slice(0, 400)}`);
   }
 
@@ -75,12 +123,68 @@ export async function chatJson<T>(messages: ChatMessage[]): Promise<T> {
   };
   const content = data.choices?.[0]?.message?.content ?? "";
   if (!content.trim()) {
+    const outputFile = writeQuestionLlmOutput({
+      label: llmLabel,
+      inputFile,
+      ok: false,
+      output: {
+        response: data,
+        rawContent: content,
+        error: "empty response",
+      },
+    });
+    recordQuestionLlmCall({
+      label: llmLabel,
+      durationMs: Date.now() - llmT0,
+      ok: false,
+      detail: "empty response",
+      inputFile,
+      outputFile,
+    });
     throw new Error("LLM_EMPTY_RESPONSE: 模型未返回内容");
   }
   const cleaned = stripCodeFence(content);
   try {
-    return JSON.parse(cleaned) as T;
-  } catch {
+    const parsed = JSON.parse(cleaned) as T;
+    const outputFile = writeQuestionLlmOutput({
+      label: llmLabel,
+      inputFile,
+      ok: true,
+      output: {
+        response: data,
+        rawContent: content,
+        cleanedContent: cleaned,
+        parsed,
+      },
+    });
+    recordQuestionLlmCall({
+      label: llmLabel,
+      durationMs: Date.now() - llmT0,
+      ok: true,
+      inputFile,
+      outputFile,
+    });
+    return parsed;
+  } catch (error) {
+    const outputFile = writeQuestionLlmOutput({
+      label: llmLabel,
+      inputFile,
+      ok: false,
+      output: {
+        response: data,
+        rawContent: content,
+        cleanedContent: cleaned,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+    recordQuestionLlmCall({
+      label: llmLabel,
+      durationMs: Date.now() - llmT0,
+      ok: false,
+      detail: "bad json",
+      inputFile,
+      outputFile,
+    });
     throw new Error(`LLM_BAD_JSON: 无法解析模型输出：${cleaned.slice(0, 400)}`);
   }
 }

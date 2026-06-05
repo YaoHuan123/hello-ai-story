@@ -2,6 +2,7 @@ import { chatJson } from "../topic/llm";
 import { loadExtendPrompt } from "./loadPrompt";
 import { narratorProfileFromSections } from "./narratorProfile";
 import { parseExtend } from "./parseExtend";
+import { traceQuestionStep, runWithLlmTraceLabel } from "./questionTrace";
 import type { ExtendSubCategoryParams, ExtendSubCategoryResult } from "./types";
 import { isExtendNotApplicable, isExtendSkipped } from "./types";
 
@@ -47,10 +48,14 @@ export async function extendSubCategoryQuestions(
   const { system, userTemplate } = loadExtendPrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
 
-  const parsed = await chatJson<unknown>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
+  const parsed = await traceQuestionStep("extend.subCategory", () =>
+    runWithLlmTraceLabel("extend.subCategory", () =>
+      chatJson<unknown>([
+        { role: "system", content: system },
+        { role: "user", content: userContent },
+      ]),
+    ),
+  );
 
   const questions = parseExtend(parsed);
   return { questions };

@@ -35,7 +35,20 @@ async function main(): Promise<void> {
   const ask = ["学校名称（必填）", "学校地点（必填）"];
 
   console.log("\n=== parseColloquialize（无 LLM）===");
+  // 新格式：用 i (index)
   const valid = parseColloquialize(
+    {
+      questions: [
+        { i: 0, questionText: "你上小学时读的是哪所学校？" },
+        { i: 1, questionText: "这所小学在哪个城市或地区？" },
+      ],
+    },
+    ask,
+  );
+  check("新格式 (i) 合法 questions 解析", valid.length === 2 && valid[0].questionText.length > 0 && valid[0].question === ask[0], valid);
+
+  // 旧格式兼容：用 question
+  const legacyValid = parseColloquialize(
     {
       questions: [
         { question: ask[0], questionText: "你上小学时读的是哪所学校？" },
@@ -44,11 +57,11 @@ async function main(): Promise<void> {
     },
     ask,
   );
-  check("合法 questions 解析", valid.length === 2 && valid[0].questionText.length > 0, valid);
+  check("旧格式 (question) 兼容解析", legacyValid.length === 2 && legacyValid[0].question === ask[0], legacyValid);
 
   let parseErr = "";
   try {
-    parseColloquialize({ questions: [{ question: ask[0], questionText: "" }] }, ask);
+    parseColloquialize({ questions: [{ i: 0, questionText: "" }] }, ask);
   } catch (e) {
     parseErr = e instanceof Error ? e.message : String(e);
   }
@@ -121,6 +134,11 @@ async function main(): Promise<void> {
   check(
     "每条 questionText 非空且 ≤80 字",
     result.questions.every((q) => q.questionText.length > 0 && q.questionText.length <= 80),
+    result,
+  );
+  check(
+    "不要求 reason",
+    result.questions.every((q) => typeof q.reason === "undefined" || q.reason.length <= 60),
     result,
   );
 
