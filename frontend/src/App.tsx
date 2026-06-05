@@ -3,11 +3,13 @@ import "./App.css";
 import { getMe, sendSms, smsLogin } from "./api/auth";
 import { authTokenStore } from "./lib/authToken";
 import { InterviewPage } from "./pages/InterviewPage";
+import { ProductionPage } from "./pages/ProductionPage";
 import type { AuthResult, MeResponse } from "./types/auth";
 
-type Tab = "auth" | "interview";
+type Tab = "auth" | "interview" | "production";
 
 function App() {
+  const [activeInterviewId, setActiveInterviewId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("auth");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -78,6 +80,13 @@ function App() {
         >
           访谈
         </button>
+        <button
+          type="button"
+          onClick={() => setTab("production")}
+          disabled={!hasToken || tab === "production"}
+        >
+          生产
+        </button>
       </nav>
 
       {tab === "auth" && (
@@ -129,7 +138,19 @@ function App() {
       )}
 
       {tab === "interview" && hasToken && (
-        <InterviewPage onNeedLogin={() => setTab("auth")} />
+        <InterviewPage
+          interviewId={activeInterviewId}
+          onInterviewIdChange={setActiveInterviewId}
+          onNeedLogin={() => setTab("auth")}
+        />
+      )}
+
+      {tab === "production" && hasToken && (
+        <ProductionPage interviewId={activeInterviewId} onNeedLogin={() => setTab("auth")} />
+      )}
+
+      {tab === "production" && !hasToken && (
+        <p>请先登录后再进入生产。</p>
       )}
 
       {tab === "interview" && !hasToken && (

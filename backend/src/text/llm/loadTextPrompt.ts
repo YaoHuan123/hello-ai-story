@@ -4,10 +4,13 @@ import { stripUserSuffixSchemaAppendix } from "../../video/shared/llm/loadPrompt
 
 const cache = new Map<string, { systemText: string; userSuffix: string }>();
 
+/** 仓库根 `prompts/create-text`（dist 下 __dirname 为 backend/dist/text/llm，向上 4 级到 repo 根）。 */
+const DEFAULT_TEXT_PROMPT_ROOT = path.join(__dirname, "..", "..", "..", "..", "prompts", "create-text");
+
 function textPromptRoot(): string {
   const override = (process.env.TEXT_PROMPT_ROOT ?? "").trim();
   if (override) return override;
-  return path.join(__dirname, "..", "..", "..", "..", "..", "prompts", "create-text");
+  return DEFAULT_TEXT_PROMPT_ROOT;
 }
 
 function resolveTextPromptPath(basename: string): string {

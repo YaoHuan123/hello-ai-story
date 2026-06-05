@@ -1,0 +1,34 @@
+# systemd unit — Hello Story2 成片 worker（磁盘队列，单实例）
+#
+# 安装示例：
+#   sudo cp backend/deploy/systemd/hello-story-video-worker.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now hello-story-video-worker
+#
+# 必须与 API 共用同一 DATA_USERS_ROOT（同一机器或共享挂载）。
+
+[Unit]
+Description=Hello Story2 Video Pipeline Worker
+After=network.target hello-story-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/hello-story2/backend
+EnvironmentFile=/opt/hello-story2/backend/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node dist/video/worker/cli.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hello-story-video-worker
+
+# 长任务（传记 pipeline 可能 30min+）
+TimeoutStopSec=600
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

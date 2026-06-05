@@ -1,8 +1,14 @@
 /**
  * 成片 worker CLI（无 HTTP）。
- * 用法：
- *   npm run worker:video          # 持续轮询
- *   npm run worker:video -- --once  # 处理一条后退出
+ *
+ * 开发：
+ *   npm run worker:video
+ *   npm run worker:video -- --once
+ *
+ * 生产（先 npm run build）：
+ *   npm run start:worker
+ *   npm run start:worker:once
+ *   pm2 start ecosystem.config.cjs
  */
 import { config as loadEnv } from "dotenv";
 import { runVideoWorkerLoop } from "./videoTaskWorker.js";

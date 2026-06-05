@@ -8,12 +8,13 @@ import {
 import type { InterviewMeta, InterviewQuestion } from "../types/interview";
 
 type Props = {
+  interviewId: string | null;
+  onInterviewIdChange: (id: string | null) => void;
   onNeedLogin: () => void;
 };
 
-export function InterviewPage({ onNeedLogin }: Props) {
+export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }: Props) {
   const [interviews, setInterviews] = useState<InterviewMeta[]>([]);
-  const [interviewId, setInterviewId] = useState<string | null>(null);
   const [question, setQuestion] = useState<InterviewQuestion | null>(null);
   const [answer, setAnswer] = useState("");
   const [submittedCounts, setSubmittedCounts] = useState<Record<string, number>>({});
@@ -59,7 +60,7 @@ export function InterviewPage({ onNeedLogin }: Props) {
   const handleNewInterview = () => {
     void run(async () => {
       const meta = await createInterview();
-      setInterviewId(meta.id);
+      onInterviewIdChange(meta.id);
       await refreshList();
       await loadQuestion(meta.id);
     });
@@ -67,7 +68,7 @@ export function InterviewPage({ onNeedLogin }: Props) {
 
   const handleContinue = (id: string) => {
     void run(async () => {
-      setInterviewId(id);
+      onInterviewIdChange(id);
       await loadQuestion(id);
     });
   };

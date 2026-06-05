@@ -29,3 +29,13 @@ export async function apiRequest<T>(url: string, init: RequestInit = {}, useAuth
   if (!response.ok) throw await parseApiError(response);
   return (await response.json()) as T;
 }
+
+export async function fetchAuthenticatedBlob(url: string): Promise<Blob> {
+  const token = authTokenStore.get();
+  if (!token) throw new Error("未登录");
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw await parseApiError(response);
+  return response.blob();
+}

@@ -1,0 +1,34 @@
+# systemd unit — Hello Story2 HTTP API
+#
+# 安装示例（Linux）：
+#   sudo cp backend/deploy/systemd/hello-story-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now hello-story-api
+#
+# 部署前请修改 User、WorkingDirectory、EnvironmentFile。
+
+[Unit]
+Description=Hello Story2 Backend API
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/hello-story2/backend
+EnvironmentFile=/opt/hello-story2/backend/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node dist/index.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hello-story-api
+
+# 优雅退出
+TimeoutStopSec=30
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

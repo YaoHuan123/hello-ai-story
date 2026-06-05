@@ -3,3 +3,4 @@ export * from "./videoTaskQueue.js";
 export * from "./videoTaskQuery.js";
 export * from "./videoTaskScheduler.js";
 export * from "./videoTaskWorker.js";
+export * from "./videoTaskArtifacts.js";
