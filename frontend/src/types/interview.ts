@@ -10,12 +10,28 @@ export type InterviewQuestion = {
   options: string[];
   fieldType?: InterviewFieldType;
   fieldChoices?: string[];
+  /** 选填 / 扩展 / 非 catalog 题可跳过 */
+  skippable?: boolean;
 };
+
+export const INTERVIEW_SKIP_LABEL = "（跳过）";
 
 export type SubmitPayload = {
   key: string;
   text: string;
-  value: string;
+  value?: string;
+  skip?: boolean;
+};
+
+export type InterviewChatMessage = {
+  id: string;
+  role: "ai" | "user";
+  text: string;
+  meta?: string;
+};
+
+export type InterviewMessagesResponse = {
+  messages: InterviewChatMessage[];
 };
 
 export type InterviewMeta = {

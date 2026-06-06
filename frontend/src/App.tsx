@@ -1,27 +1,77 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { getMe, sendSms, smsLogin } from "./api/auth";
+import { getHealth, type HealthResponse } from "./api/health";
+import { listInterviews } from "./api/interviews";
+import { AppPageShell } from "./components/AppPageShell";
+import { MainTabShell, type MainTab } from "./layout/MainTabShell";
+import "./layout/MainTabShell.css";
 import { authTokenStore } from "./lib/authToken";
+import { CreateHomePage } from "./pages/CreateHomePage";
 import { InterviewPage } from "./pages/InterviewPage";
-import { ProductionPage } from "./pages/ProductionPage";
+import { LoginPage } from "./pages/LoginPage";
+import { TextCreatePage } from "./pages/TextCreatePage";
+import { VideoCreatePage } from "./pages/VideoCreatePage";
 import type { AuthResult, MeResponse } from "./types/auth";
 
-type Tab = "auth" | "interview" | "production";
+type Screen =
+  | { kind: "shell"; tab: MainTab }
+  | { kind: "create-home"; interviewId: string }
+  | { kind: "interview"; interviewId: string }
+  | { kind: "text-create"; interviewId: string }
+  | { kind: "video-create"; interviewId: string };
 
 function App() {
-  const [activeInterviewId, setActiveInterviewId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("auth");
+  const [screen, setScreen] = useState<Screen>({ kind: "shell", tab: "story" });
+  const [interviewTitles, setInterviewTitles] = useState<Record<string, string>>({});
+  const [storyRefreshKey, setStoryRefreshKey] = useState(0);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [authResult, setAuthResult] = useState<AuthResult | null>(null);
   const [me, setMe] = useState<MeResponse | null>(null);
+  const [health, setHealth] = useState<HealthResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const hasToken = useMemo(() => Boolean(authTokenStore.get()), [authResult, tab]);
+  const hasToken = useMemo(() => Boolean(authTokenStore.get()), [authResult, me, screen]);
 
-  const runAction = async (action: () => Promise<void>) => {
+  useEffect(() => {
+    void getHealth()
+      .then(setHealth)
+      .catch(() => setHealth(null));
+  }, []);
+
+  useEffect(() => {
+    if (!authTokenStore.get()) return;
+    void getMe()
+      .then((profile) => setMe(profile))
+      .catch(() => {
+        authTokenStore.clear();
+        setMe(null);
+        setAuthResult(null);
+      });
+  }, []);
+
+  const refreshInterviewTitles = async () => {
+    try {
+      const res = await listInterviews();
+      const map: Record<string, string> = {};
+      for (const item of res.interviews) {
+        if (item.title?.trim()) map[item.id] = item.title.trim();
+      }
+      setInterviewTitles(map);
+    } catch {
+      /* 标题仅用于展示 */
+    }
+  };
+
+  useEffect(() => {
+    if (!hasToken) return;
+    void refreshInterviewTitles();
+  }, [hasToken, storyRefreshKey]);
+
+  const runAuthAction = async (action: () => Promise<void>) => {
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -35,132 +85,144 @@ function App() {
   };
 
   const handleSendSms = () => {
-    void runAction(async () => {
+    void runAuthAction(async () => {
       await sendSms(phone, "login");
-      setMessage("验证码已发送（若在 mock 模式，固定验证码是 123456）");
+      setMessage(
+        health?.sms?.mode === "real"
+          ? "验证码已发送，请查收短信"
+          : "验证码已发送（当前为 mock 模式，固定验证码 123456）",
+      );
     });
   };
 
   const handleLogin = () => {
-    void runAction(async () => {
+    void runAuthAction(async () => {
       const result = await smsLogin(phone, code);
       setAuthResult(result);
-      setMessage("登录成功");
-      setTab("interview");
-    });
-  };
-
-  const handleGetMe = () => {
-    void runAction(async () => {
       const profile = await getMe();
       setMe(profile);
-      setMessage("获取用户信息成功");
+      setMessage("登录成功");
+      setScreen({ kind: "shell", tab: "story" });
+      setStoryRefreshKey((k) => k + 1);
     });
   };
 
-  const handleLogout = () => {
-    authTokenStore.clear();
+  const handleLoggedOut = () => {
     setAuthResult(null);
     setMe(null);
-    setTab("auth");
-    setMessage("已清除本地 token");
+    setScreen({ kind: "shell", tab: "me" });
+    setMessage("已退出登录");
   };
 
-  return (
-    <div style={{ maxWidth: 720, margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
-      <h1>Hello Story2</h1>
-      <nav style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        <button type="button" onClick={() => setTab("auth")} disabled={tab === "auth"}>
-          登录
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("interview")}
-          disabled={!hasToken || tab === "interview"}
-        >
-          访谈
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("production")}
-          disabled={!hasToken || tab === "production"}
-        >
-          生产
-        </button>
-      </nav>
+  const goShell = (tab: MainTab = "story") => {
+    setScreen({ kind: "shell", tab });
+    setStoryRefreshKey((k) => k + 1);
+  };
 
-      {tab === "auth" && (
-        <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: 16, display: "grid", gap: 12 }}>
-          <p style={{ margin: 0 }}>发送验证码 → 登录 → 可选查看 /api/auth/me</p>
-          <label>
-            手机号：
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="例如 13800138000"
-              style={{ marginLeft: 8, width: 240 }}
-            />
-          </label>
-          <label>
-            验证码：
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="例如 123456"
-              style={{ marginLeft: 8, width: 240 }}
-            />
-          </label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" onClick={handleSendSms} disabled={loading || !phone}>
-              发送验证码
-            </button>
-            <button type="button" onClick={handleLogin} disabled={loading || !phone || !code}>
-              登录
-            </button>
-            <button type="button" onClick={handleGetMe} disabled={loading || !hasToken}>
-              获取我的信息
-            </button>
-            <button type="button" onClick={handleLogout} disabled={loading || !hasToken}>
-              退出
-            </button>
-          </div>
-          {authResult && (
-            <pre style={{ margin: 0, background: "#f7f7f7", padding: 12, borderRadius: 8, fontSize: 12 }}>
-              {JSON.stringify(authResult, null, 2)}
-            </pre>
-          )}
-          {me && (
-            <pre style={{ margin: 0, background: "#f7f7f7", padding: 12, borderRadius: 8, fontSize: 12 }}>
-              {JSON.stringify(me, null, 2)}
-            </pre>
-          )}
-        </div>
-      )}
+  const goCreateHome = (interviewId: string) => {
+    setScreen({ kind: "create-home", interviewId });
+  };
 
-      {tab === "interview" && hasToken && (
+  const loginBlock = !hasToken ? (
+    <LoginPage
+      phone={phone}
+      code={code}
+      loading={loading}
+      error={error}
+      message={message}
+      health={health}
+      onPhoneChange={setPhone}
+      onCodeChange={setCode}
+      onSendSms={handleSendSms}
+      onLogin={handleLogin}
+    />
+  ) : null;
+
+  if (!hasToken) {
+    return (
+      <AppPageShell>
+        {loginBlock}
+        <footer className="app-shell-footer" style={{ padding: "0 20px 24px" }}>
+          {health?.ok ? (
+            <span>
+              后端在线 · {new Date(health.timestamp).toLocaleString()}
+              {health.sms && <> · 短信 {health.sms.mode === "real" ? "真实" : "mock"}</>}
+            </span>
+          ) : (
+            <span>后端状态未知</span>
+          )}
+        </footer>
+      </AppPageShell>
+    );
+  }
+
+  if (screen.kind === "create-home") {
+    const title = interviewTitles[screen.interviewId];
+    return (
+      <CreateHomePage
+        interviewTitle={title}
+        onBack={() => goShell("story")}
+        onInterviewChat={() => setScreen({ kind: "interview", interviewId: screen.interviewId })}
+        onTextCreate={() =>
+          setScreen({ kind: "text-create", interviewId: screen.interviewId })
+        }
+        onVideoCreate={() =>
+          setScreen({ kind: "video-create", interviewId: screen.interviewId })
+        }
+      />
+    );
+  }
+
+  if (screen.kind === "interview") {
+    const title = interviewTitles[screen.interviewId];
+    return (
+      <AppPageShell className="iv-subpage-shell">
         <InterviewPage
-          interviewId={activeInterviewId}
-          onInterviewIdChange={setActiveInterviewId}
-          onNeedLogin={() => setTab("auth")}
+          interviewId={screen.interviewId}
+          interviewTitle={title}
+          onBack={() => goCreateHome(screen.interviewId)}
+          onNeedLogin={handleLoggedOut}
         />
-      )}
+      </AppPageShell>
+    );
+  }
 
-      {tab === "production" && hasToken && (
-        <ProductionPage interviewId={activeInterviewId} onNeedLogin={() => setTab("auth")} />
-      )}
+  if (screen.kind === "text-create") {
+    const title = interviewTitles[screen.interviewId];
+    return (
+      <TextCreatePage
+        interviewId={screen.interviewId}
+        interviewTitle={title}
+        onBack={() => goCreateHome(screen.interviewId)}
+        onNeedLogin={handleLoggedOut}
+      />
+    );
+  }
 
-      {tab === "production" && !hasToken && (
-        <p>请先登录后再进入生产。</p>
-      )}
+  if (screen.kind === "video-create") {
+    const title = interviewTitles[screen.interviewId];
+    return (
+      <VideoCreatePage
+        interviewId={screen.interviewId}
+        interviewTitle={title}
+        onBack={() => goCreateHome(screen.interviewId)}
+        onNeedLogin={handleLoggedOut}
+      />
+    );
+  }
 
-      {tab === "interview" && !hasToken && (
-        <p>请先登录后再进入访谈。</p>
-      )}
-
-      {loading && tab === "auth" && <p>处理中...</p>}
-      {error && tab === "auth" && <p style={{ color: "red" }}>错误：{error}</p>}
-      {message && tab === "auth" && <p style={{ color: "green" }}>{message}</p>}
-    </div>
+  return (
+    <MainTabShell
+      activeTab={screen.tab}
+      onTabChange={(tab) => setScreen({ kind: "shell", tab })}
+      me={me}
+      onMeChange={setMe}
+      onLoggedOut={handleLoggedOut}
+      onOpenCreate={goCreateHome}
+      onNeedLogin={handleLoggedOut}
+      storyRefreshKey={storyRefreshKey}
+      health={health}
+    />
   );
 }
 

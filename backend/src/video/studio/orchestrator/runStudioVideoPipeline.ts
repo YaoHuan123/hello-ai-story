@@ -22,6 +22,7 @@ import type { InterviewQaGranularity } from "../llm/studioScript.js";
 export type RunStudioVideoPipelineOptions = {
   taskId?: string;
   createTask?: boolean;
+  textTaskId?: string;
   polishMode?: MaterialPolishMode;
   sections?: AnsweredSection[];
   hostVoice: string;
@@ -60,6 +61,7 @@ export async function runStudioVideoPipeline(
 
   return runVideoPipelineWithPrep<StudioPipelineStepResult>(handle, {
     polishMode: opts.polishMode,
+    textTaskId: opts.textTaskId,
     sections: opts.sections,
     throughStep: opts.throughStep,
     fromStep: opts.fromStep,

@@ -6,6 +6,7 @@ import {
 } from "../../biography/render/step260MergeVideoClips.js";
 import { readJsonObjectFile } from "../../shared/orchestrator/pipelineDisk.js";
 import type { VideoTaskPaths } from "../../shared/orchestrator/videoTaskWorkspace.js";
+import { ensurePosterJpegBesideMergedMp4 } from "../../shared/render/mergedVideoPoster.js";
 import { MERGED_VIDEO_REL, studioClipIndexRel } from "../constants/studioFilenames.js";
 
 const ERR = "INTERVIEW_STUDIO_MERGE_INVALID";
@@ -36,6 +37,11 @@ export function runStudioMergeStep(paths: VideoTaskPaths): Promise<{
   }
 
   const mergedVideoFilePath = path.join(paths.taskRoot, MERGED_VIDEO_REL.split("/").join(path.sep));
+  try {
+    ensurePosterJpegBesideMergedMp4(mergedVideoFilePath);
+  } catch {
+    /* 封面失败不阻断成片 */
+  }
   return Promise.resolve({
     mergedVideoRelativePath: MERGED_VIDEO_REL,
     mergedVideoFilePath,

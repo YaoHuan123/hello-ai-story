@@ -9,6 +9,7 @@ import { seedCommittedSections } from "../../../src/services/answeredSections.se
 import { createInterview } from "../../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../../src/services/workspace.service";
 import type { AnsweredSection } from "../../../src/topic/types";
+import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import {
   createBiographyVideoTask,
   runBiographyVideoPipeline,
@@ -17,6 +18,8 @@ import { SECTIONS_SNAPSHOT_FILE } from "../../../dist/video/shared/orchestrator/
 import { MATERIAL_COMBINED_POLISHED_FILE } from "../../../dist/video/shared/constants/prepFilenames.js";
 
 loadEnv();
+process.env.TEXT_ARTICLE_STUB = "1";
+process.env.VIDEO_INPUT_STUB = "1";
 
 const FIXTURE: AnsweredSection[] = [
   {
@@ -48,6 +51,8 @@ async function main() {
   const interview = createInterview(userId, { title: "编排测试" });
   const scope = { userId, interviewId: interview.id };
   seedCommittedSections(scope, FIXTURE);
+
+  await runTextPipeline(scope, { createTask: true, mode: "stub", sections: FIXTURE });
 
   const handle = createBiographyVideoTask(scope);
   check("create task meta", fs.existsSync(handle.paths.metaPath));

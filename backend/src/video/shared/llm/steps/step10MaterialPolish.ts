@@ -21,7 +21,7 @@ function sectionNamesFromInput(input: MaterialPolishLlmInput): string[] {
   return input.sections.map((s) => s.name.trim()).filter(Boolean);
 }
 
-function assertPolishedCoversAllSections(
+export function assertPolishedCoversAllSections(
   polished: Record<string, unknown>,
   sectionNames: string[],
 ): Record<string, string> {

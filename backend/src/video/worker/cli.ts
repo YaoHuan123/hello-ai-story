@@ -10,10 +10,8 @@
  *   npm run start:worker:once
  *   pm2 start ecosystem.config.cjs
  */
-import { config as loadEnv } from "dotenv";
+import "../../bootstrapEnv.js";
 import { runVideoWorkerLoop } from "./videoTaskWorker.js";
-
-loadEnv();
 
 const once = process.argv.includes("--once");
 

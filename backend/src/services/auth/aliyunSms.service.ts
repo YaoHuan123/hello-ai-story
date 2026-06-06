@@ -116,6 +116,14 @@ function isProductionEnv(): boolean {
   return (process.env.NODE_ENV ?? "").trim().toLowerCase() === "production";
 }
 
+export type AliyunSmsModeInfo = {
+  mode: "real" | "mock";
+  /** 为 true 时即使配齐密钥也走 mock（固定码 123456） */
+  forcedMock: boolean;
+  production: boolean;
+  missingEnv: string[];
+};
+
 function decideMode(): { mode: "real" | "mock"; missing: string[] } {
   const missing = listMissingEnvKeys();
   if (isDevMockForced()) {
@@ -128,6 +136,18 @@ function decideMode(): { mode: "real" | "mock"; missing: string[] } {
     return { mode: "mock", missing };
   }
   return { mode: "real", missing };
+}
+
+/** 供 health / 运维自检：当前短信走真实阿里云还是本地 mock。 */
+export function describeAliyunSmsMode(): AliyunSmsModeInfo {
+  const missing = listMissingEnvKeys();
+  const { mode } = decideMode();
+  return {
+    mode,
+    forcedMock: isDevMockForced(),
+    production: isProductionEnv(),
+    missingEnv: missing,
+  };
 }
 
 export class AliyunSmsService {

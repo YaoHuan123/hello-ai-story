@@ -1,3 +1,4 @@
+import { authTokenStore } from "../lib/authToken";
 import { apiRequest, fetchAuthenticatedBlob } from "./client";
 import type {
   CreateTextTaskPayload,
@@ -72,6 +73,24 @@ export async function retryVideoTask(interviewId: string, taskId: string) {
   );
 }
 
+export async function deleteVideoTask(interviewId: string, taskId: string): Promise<void> {
+  const tid = encodeURIComponent(taskId);
+  await apiRequest<void>(
+    productionPath(interviewId, `/video/tasks/${tid}`),
+    { method: "DELETE" },
+    true,
+  );
+}
+
+export async function deleteTextTask(interviewId: string, taskId: string): Promise<void> {
+  const tid = encodeURIComponent(taskId);
+  await apiRequest<void>(
+    productionPath(interviewId, `/text/tasks/${tid}`),
+    { method: "DELETE" },
+    true,
+  );
+}
+
 export async function listTextTasks(interviewId: string) {
   return apiRequest<{ tasks: TextTaskListItem[] }>(
     productionPath(interviewId, "/text/tasks"),
@@ -140,6 +159,15 @@ export function videoPrimaryVideoUrl(interviewId: string, taskId: string): strin
   return productionPath(interviewId, `/video/tasks/${tid}/video`);
 }
 
+/** 成片封面直链，供 `<img src>` 使用（query 传 JWT）。 */
+export function videoTaskCoverUrl(interviewId: string, taskId: string): string | null {
+  const token = authTokenStore.get();
+  if (!token) return null;
+  const tid = encodeURIComponent(taskId);
+  const q = new URLSearchParams({ token });
+  return `${productionPath(interviewId, `/video/tasks/${tid}/cover`)}?${q.toString()}`;
+}
+
 export async function fetchVideoPrimaryBlob(interviewId: string, taskId: string): Promise<Blob> {
   return fetchAuthenticatedBlob(videoPrimaryVideoUrl(interviewId, taskId));
 }
@@ -181,10 +209,23 @@ export async function deletePlaceImage(interviewId: string, imageId: string) {
   );
 }
 
+export function placeImageFileUrl(interviewId: string, imageId: string): string {
+  const id = encodeURIComponent(imageId);
+  return productionPath(interviewId, `/assets/place-images/${id}/file`);
+}
+
+export async function fetchPlaceImageBlob(interviewId: string, imageId: string): Promise<Blob> {
+  return fetchAuthenticatedBlob(placeImageFileUrl(interviewId, imageId));
+}
+
 export async function fetchVideoArtifactBlob(
   interviewId: string,
   taskId: string,
   rel: string,
 ): Promise<Blob> {
   return fetchAuthenticatedBlob(videoArtifactFileUrl(interviewId, taskId, rel));
+}
+
+export async function fetchTextArtifactBlob(interviewId: string, taskId: string): Promise<Blob> {
+  return fetchAuthenticatedBlob(textArtifactFileUrl(interviewId, taskId));
 }

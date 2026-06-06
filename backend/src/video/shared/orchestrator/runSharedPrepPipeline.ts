@@ -11,7 +11,9 @@ import {
   isEraPrepStepId,
   type VideoPrepProfile,
 } from "../constants/prepStepIds.js";
-import { filterSectionsForVideo, polishSectionsForVideoPipeline } from "../input/sectionsVideoInput.js";
+import { resolveStoryArticle } from "../../../text/storyArticleSource.js";
+import { STORY_ARTICLE_SOURCE_FILE } from "../constants/prepFilenames.js";
+import { filterSectionsForVideo, polishStoryArticleForVideoPipeline } from "../input/sectionsVideoInput.js";
 import type { MaterialPolishMode } from "../input/sectionsVideoInput.js";
 import { writeJsonAtomic } from "./pipelineDisk.js";
 import {
@@ -35,11 +37,13 @@ export type Step10Result = {
 
 export type SharedPrepPipelineResult = {
   stepResults: Array<PrepStepResult | Step10Result>;
-  downstream: Awaited<ReturnType<typeof polishSectionsForVideoPipeline>>["downstreamPipeline"];
+  downstream: Awaited<ReturnType<typeof polishStoryArticleForVideoPipeline>>["downstreamPipeline"];
 };
 
 export type RunSharedPrepOptions = {
   polishMode?: MaterialPolishMode;
+  /** 成片所依据的文本任务；省略时用最近一次成功故事。 */
+  textTaskId?: string;
   sections?: AnsweredSection[];
   throughStep?: (typeof VIDEO_PREP_ALL_STEP_IDS)[number];
   /** `studio` 跳过时代背景 20–50，仅跑 10 + 60–80。默认 `full`。 */
@@ -82,7 +86,15 @@ export async function runSharedPrepPipeline(
   const savedAt = new Date().toISOString();
   writeJsonAtomic(path.join(handle.paths.inputDir, SECTIONS_SNAPSHOT_FILE), sections);
 
-  const polished = await polishSectionsForVideoPipeline(filtered, {
+  const story = resolveStoryArticle(handle.scope, opts?.textTaskId);
+
+  writeJsonAtomic(path.join(handle.paths.inputDir, STORY_ARTICLE_SOURCE_FILE), {
+    textTaskId: story.taskId,
+    articleLength: story.article.length,
+    ...(story.skippedModel !== undefined ? { skippedModel: story.skippedModel } : {}),
+  });
+
+  const polished = await polishStoryArticleForVideoPipeline(sections, story.article, {
     mode: opts?.polishMode,
     inputDir: handle.paths.inputDir,
   });

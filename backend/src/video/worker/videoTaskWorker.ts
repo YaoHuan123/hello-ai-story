@@ -64,7 +64,9 @@ function parseBiographyPayload(payload: Record<string, unknown>): BiographyVideo
     typeof payload.styleId === "string" && payload.styleId.trim() ? payload.styleId.trim() : undefined;
   const throughStep =
     typeof payload.throughStep === "string" && payload.throughStep.trim() ? payload.throughStep.trim() : undefined;
-  return { ttsVoice, polishMode, styleConfigPath, styleId, throughStep };
+  const textTaskId =
+    typeof payload.textTaskId === "string" && payload.textTaskId.trim() ? payload.textTaskId.trim() : undefined;
+  return { ttsVoice, polishMode, styleConfigPath, styleId, textTaskId, throughStep };
 }
 
 function parseStudioPayload(payload: Record<string, unknown>): StudioVideoQueuePayload {
@@ -82,7 +84,9 @@ function parseStudioPayload(payload: Record<string, unknown>): StudioVideoQueueP
   const polishMode = payload.polishMode === "stub" || payload.polishMode === "llm" ? payload.polishMode : undefined;
   const throughStep =
     typeof payload.throughStep === "string" && payload.throughStep.trim() ? payload.throughStep.trim() : undefined;
-  return { hostVoice, guestVoice, qaGranularity: qa, polishMode, throughStep };
+  const textTaskId =
+    typeof payload.textTaskId === "string" && payload.textTaskId.trim() ? payload.textTaskId.trim() : undefined;
+  return { hostVoice, guestVoice, qaGranularity: qa, polishMode, textTaskId, throughStep };
 }
 
 /** 执行已认领的队列任务（调用方须先 claim 并取得 runToken）。 */
@@ -102,6 +106,7 @@ export async function executeVideoQueueTask(
           ttsVoice: p.ttsVoice,
           styleConfigPath: p.styleConfigPath,
           styleId: p.styleId,
+          textTaskId: p.textTaskId,
           polishMode: p.polishMode,
           ...(p.throughStep
             ? {
@@ -118,6 +123,7 @@ export async function executeVideoQueueTask(
           hostVoice: p.hostVoice,
           guestVoice: p.guestVoice,
           qaGranularity: p.qaGranularity,
+          textTaskId: p.textTaskId,
           polishMode: p.polishMode,
           ...(p.throughStep
             ? {

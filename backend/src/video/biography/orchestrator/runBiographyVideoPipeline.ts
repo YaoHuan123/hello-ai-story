@@ -24,6 +24,7 @@ import { runVideoPipelineWithPrep } from "../../shared/orchestrator/runVideoPipe
 export type RunBiographyVideoPipelineOptions = {
   taskId?: string;
   createTask?: boolean;
+  textTaskId?: string;
   polishMode?: MaterialPolishMode;
   ttsVoice?: string;
   styleConfigPath?: string;
@@ -56,6 +57,7 @@ export async function runBiographyVideoPipeline(
 
   const result = await runVideoPipelineWithPrep<BiographyVideoStepResult>(handle, {
     polishMode: opts?.polishMode,
+    textTaskId: opts?.textTaskId,
     sections: opts?.sections,
     throughStep: opts?.throughStep,
     fromStep: opts?.fromStep,

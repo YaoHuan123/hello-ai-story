@@ -328,6 +328,145 @@ async function main(): Promise<void> {
   check("generated 直接出题", genQ?.text.includes("开心") ?? false, genQ);
   check("generated 仍无 prep", readPrep(scopeGen) === null);
 
+  console.log("\n=== 跳过：非 catalog / 选填 / 扩展 / 必填拒绝 ===");
+  const { isQuestionSkippable, INTERVIEW_SKIP_LABEL } = await import("../../../src/question/skip");
+  const { getTopicFieldKeys } = await import("../../../src/topic/catalog");
+  const { writeExtend } = await import("../../../src/question/topicPersist");
+
+  check(
+    "isQuestionSkippable: generated",
+    isQuestionSkippable({ title: "童年趣事", tier: 3, kind: "generated", questions: ["q"] }, "q"),
+  );
+  check(
+    "isQuestionSkippable: 选填",
+    isQuestionSkippable(
+      { title: "大学", tier: 1, kind: "catalog", questions: getTopicFieldKeys("大学") },
+      "室友或社团（选填）",
+    ),
+  );
+  check(
+    "isQuestionSkippable: 必填 false",
+    !isQuestionSkippable(
+      { title: "大学", tier: 1, kind: "catalog", questions: getTopicFieldKeys("大学") },
+      "学校名称（必填）",
+    ),
+  );
+  check("isQuestionSkippable: extend", isQuestionSkippable(
+    { title: "大学", tier: 1, kind: "catalog", questions: [] },
+    "__extend_0",
+  ));
+
+  const scopeSkipGen = setupUserWithInterview(`${TEST_USER}-skip-gen`);
+  questionEngine.initQuestion(scopeSkipGen, {
+    title: "童年趣事",
+    tier: 3 as const,
+    kind: "generated" as const,
+    questions: ["你小时候最开心的一件事是什么？"],
+  });
+  const qSkipGen = await getCurrentQuestion(scopeSkipGen);
+  check("非 catalog 题 skippable", qSkipGen.type === "normal" && qSkipGen.skippable === true, qSkipGen);
+  submit(scopeSkipGen, { key: qSkipGen.key, text: qSkipGen.text, value: "", skip: true });
+  check(
+    "非 catalog 跳过后 commit",
+    getSections(scopeSkipGen).some(
+      (s) => s.name === "童年趣事" && s.qa[0]?.a === INTERVIEW_SKIP_LABEL,
+    ),
+  );
+
+  const scopeSkipReq = setupUserWithInterview(`${TEST_USER}-skip-req`);
+  const qReq = await getCurrentQuestion(scopeSkipReq);
+  check("基本档案首题不可跳过", qReq.skippable !== true, qReq);
+  let reqRejected = false;
+  try {
+    submit(scopeSkipReq, { key: qReq.key, text: qReq.text, value: "", skip: true });
+  } catch (e) {
+    reqRejected = e instanceof Error && e.message.includes("QUESTION_NOT_SKIPPABLE");
+  }
+  check("必填跳过被拒绝", reqRejected);
+
+  const scopeSkipOpt = setupUserWithInterview(`${TEST_USER}-skip-opt`);
+  questionEngine.initQuestion(scopeSkipOpt, {
+    title: "大学",
+    tier: 1 as const,
+    kind: "catalog" as const,
+    questions: getTopicFieldKeys("大学"),
+  });
+  writePrep(scopeSkipOpt, {
+    skipped: false,
+    askQuestions: ["室友或社团（选填）"],
+    skippedQuestions: [],
+    questionTexts: { "室友或社团（选填）": "大学室友或社团？" },
+    answerSuggestions: {},
+  });
+  const qSkipOpt = await getCurrentQuestion(scopeSkipOpt);
+  check("选填题 skippable", qSkipOpt.skippable === true, qSkipOpt);
+  submit(scopeSkipOpt, { key: qSkipOpt.key, text: qSkipOpt.text, value: "", skip: true });
+  check(
+    "选填跳过落盘",
+    readAnswers(scopeSkipOpt).some(
+      (r) => r.key === "室友或社团（选填）" && r.answer === INTERVIEW_SKIP_LABEL,
+    ),
+  );
+
+  const scopeSkipExt = setupUserWithInterview(`${TEST_USER}-skip-ext`);
+  questionEngine.initQuestion(scopeSkipExt, {
+    title: "大学",
+    tier: 1 as const,
+    kind: "catalog" as const,
+    questions: getTopicFieldKeys("大学"),
+  });
+  writePrep(scopeSkipExt, {
+    skipped: false,
+    askQuestions: ["入学时间（必填）"],
+    skippedQuestions: [],
+    questionTexts: { "入学时间（必填）": "大学入学时间？" },
+    answerSuggestions: {},
+  });
+  submitAnswer(scopeSkipExt, {
+    key: "入学时间（必填）",
+    questionText: "大学入学时间？",
+    answer: "2012-09",
+  });
+  writeExtend(scopeSkipExt, {
+    questions: [{ q: "大学室友谁印象最深？", suggestedAnswers: [] }],
+  });
+  const qSkipExt = await getCurrentQuestion(scopeSkipExt);
+  check("扩展题 skippable", qSkipExt.skippable === true && qSkipExt.key === "__extend_0", qSkipExt);
+  submit(scopeSkipExt, { key: qSkipExt.key, text: qSkipExt.text, value: "", skip: true });
+  check(
+    "扩展跳过 commit 进 sections",
+    getSections(scopeSkipExt).some(
+      (s) =>
+        s.name === "大学" &&
+        s.qa.some((row) => row.a === INTERVIEW_SKIP_LABEL && row.q.includes("室友")),
+    ),
+  );
+
+  console.log("\n=== 聊天记录还原 ===");
+  const { getInterviewChatHistory } = await import("../../../src/services/interviewChatHistory.service");
+  const scopeHist = setupUserWithInterview(`${TEST_USER}-hist`);
+  questionEngine.initQuestion(scopeHist, {
+    title: "童年趣事",
+    tier: 3 as const,
+    kind: "generated" as const,
+    questions: ["你小时候最开心的一件事是什么？"],
+  });
+  submit(scopeHist, {
+    key: "你小时候最开心的一件事是什么？",
+    text: "你小时候最开心的一件事是什么？",
+    value: "考了第一名",
+  });
+  const hist = getInterviewChatHistory(scopeHist);
+  check(
+    "进行中答题进历史",
+    hist.length === 2 &&
+      hist[0]?.role === "ai" &&
+      hist[0]?.meta === "童年趣事" &&
+      hist[1]?.role === "user" &&
+      hist[1]?.text === "考了第一名",
+    hist,
+  );
+
   if (process.env.OPENAI_API_KEY?.trim()) {
     console.log("\n=== enterTopic 小学（LLM 仅取第 1 题）===");
     const scopeLlm = setupUserWithInterview(`${TEST_USER}-llm`);

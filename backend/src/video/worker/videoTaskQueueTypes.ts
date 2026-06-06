@@ -30,6 +30,8 @@ export type BiographyVideoQueuePayload = {
   styleConfigPath?: string;
   /** 覆盖 config/video-styles.json 的 selectedStyleId */
   styleId?: string;
+  /** 成片所依据的文本任务 */
+  textTaskId?: string;
   polishMode?: "llm" | "stub";
   /** 调试：只跑到该步（含） */
   throughStep?: string;
@@ -39,6 +41,7 @@ export type StudioVideoQueuePayload = {
   hostVoice: string;
   guestVoice: string;
   qaGranularity?: "hybrid" | "per_event" | "batch";
+  textTaskId?: string;
   polishMode?: "llm" | "stub";
   throughStep?: string;
 };

@@ -2,23 +2,28 @@ import fs from "node:fs";
 import path from "node:path";
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware, verifyUserIdFromRequest } from "../middleware/auth";
 import { assertInterviewExists, type InterviewScope } from "../services/interviewWorkspace.service";
 import { getProductionReadiness } from "../services/productionReadiness.service";
 import { runTextPipeline } from "../text/orchestrator/runTextPipeline";
+import { deleteTextTask } from "../text/deleteTextTask";
 import { getTextTaskProgress, listTextTasks } from "../text/textTaskQuery";
 import { openTextTask } from "../text/orchestrator/textTaskWorkspace";
 import { listTextTaskArtifacts, openTextArtifactFile } from "../text/textTaskArtifacts";
 import {
   addInterviewPlaceImage,
   deleteInterviewPlaceImage,
+  getInterviewPlaceImage,
   listInterviewPlaceImages,
+  resolveInterviewPlaceImageAbs,
 } from "../services/interviewPlaceImages.service";
 import {
   getVideoTaskProgress,
   listVideoTasks,
   listVideoTaskArtifacts,
   openVideoArtifactFile,
+  openVideoTaskCoverFile,
+  deleteVideoTask,
   retryScheduledVideoTask,
   scheduleBiographyVideoTask,
   scheduleStudioVideoTask,
@@ -37,6 +42,7 @@ const scheduleBiographySchema = z.object({
   ttsVoice: ttsVoiceSchema,
   styleConfigPath: z.string().max(500).optional(),
   styleId: z.string().min(1).max(120).optional(),
+  textTaskId: z.string().uuid().optional(),
   polishMode: polishModeSchema,
   throughStep: z.string().max(64).optional(),
   taskId: z.string().uuid().optional(),
@@ -46,6 +52,7 @@ const scheduleStudioSchema = z.object({
   hostVoice: ttsVoiceSchema,
   guestVoice: ttsVoiceSchema,
   qaGranularity: z.enum(["hybrid", "per_event", "batch"]).optional(),
+  textTaskId: z.string().uuid().optional(),
   polishMode: polishModeSchema,
   throughStep: z.string().max(64).optional(),
   taskId: z.string().uuid().optional(),
@@ -120,6 +127,7 @@ function mapProductionError(res: Response, error: unknown): boolean {
   }
   if (
     code === "VIDEO_ARTIFACT_NOT_FOUND" ||
+    code === "VIDEO_COVER_NOT_FOUND" ||
     code === "TEXT_ARTIFACT_NOT_FOUND" ||
     code === "TEXT_ARTICLE_NOT_FOUND"
   ) {
@@ -143,6 +151,11 @@ function mapProductionError(res: Response, error: unknown): boolean {
     res.status(403).json({ code, message: "无权访问该任务" });
     return true;
   }
+  if (code === "TEXT_TASK_DELETE_BUSY" || code === "VIDEO_TASK_DELETE_BUSY") {
+    const detail = msg.split(":").slice(1).join(":").trim();
+    res.status(409).json({ code, message: detail || "任务进行中，暂不可删除" });
+    return true;
+  }
   if (
     code === "VIDEO_QUEUE_RETRY_INVALID" ||
     code === "VIDEO_QUEUE_INVALID" ||
@@ -162,6 +175,8 @@ function mapProductionError(res: Response, error: unknown): boolean {
     code.endsWith("_INVALID") ||
     code === "TEXT_PIPELINE_NO_SECTIONS" ||
     code === "VIDEO_PIPELINE_NO_SECTIONS" ||
+    code === "VIDEO_PIPELINE_NO_STORY_TEXT" ||
+    code === "STORY_ARTICLE_MISSING" ||
     code === "VIDEO_STYLE_NOT_FOUND" ||
     code === "INVALID_PARAMS"
   ) {
@@ -169,9 +184,13 @@ function mapProductionError(res: Response, error: unknown): boolean {
     const friendly =
       code === "VIDEO_PIPELINE_NO_SECTIONS" || code === "TEXT_PIPELINE_NO_SECTIONS"
         ? detail || "请先完成访谈问答"
-        : code === "VIDEO_STYLE_NOT_FOUND"
-          ? detail || "所选视频风格不存在"
-          : detail || "请求参数有误";
+        : code === "VIDEO_PIPELINE_NO_STORY_TEXT"
+          ? detail || "请先在「创作文本」生成故事文本"
+          : code === "STORY_ARTICLE_MISSING"
+            ? detail || "所选故事文本不可用"
+            : code === "VIDEO_STYLE_NOT_FOUND"
+              ? detail || "所选视频风格不存在"
+              : detail || "请求参数有误";
     res.status(400).json({ code, message: friendly });
     return true;
   }
@@ -185,9 +204,8 @@ function mapProductionError(res: Response, error: unknown): boolean {
 /**
  * 成片 / 文本生产 HTTP（挂载于 `/api/interviews/:interviewId`，均需登录）。
  *
- * - GET  /assets/place-images
- * - POST /assets/place-images
- * - DELETE /assets/place-images/:imageId
+ * - GET|POST|DELETE /assets/place-images（产品 UI 当前不做，见 docs/place-images-material-wall.md）
+ * - GET    /assets/place-images/:imageId/file
  * - GET  /production/readiness
  * - GET  /video/tasks
  * - GET  /video/tasks/:taskId
@@ -197,6 +215,7 @@ function mapProductionError(res: Response, error: unknown): boolean {
  * - GET  /video/tasks/:taskId/artifacts
  * - GET  /video/tasks/:taskId/artifacts/file?rel=
  * - GET  /video/tasks/:taskId/video
+ * - GET  /video/tasks/:taskId/cover（Bearer 或 query token=，供 img 标签）
  *
  * Text（同步生成）：
  * - GET  /text/tasks
@@ -208,6 +227,27 @@ function mapProductionError(res: Response, error: unknown): boolean {
  */
 export function createProductionRouter(): Router {
   const router = Router({ mergeParams: true });
+
+  router.get("/video/tasks/:taskId/cover", (req: Request<TaskRouteParams>, res) => {
+    const userId = verifyUserIdFromRequest(req);
+    if (!userId) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    const scope = scopeFromInterviewReq(req, userId);
+    const taskId = req.params.taskId.trim();
+    try {
+      assertInterviewExists(scope);
+      const file = openVideoTaskCoverFile(scope, taskId);
+      res.setHeader("Content-Type", file.mimeType);
+      res.setHeader("Cache-Control", "private, max-age=300");
+      res.sendFile(path.resolve(file.absPath));
+    } catch (error) {
+      if (mapProductionError(res, error)) return;
+      res.status(500).json({ code: "INTERNAL_ERROR", message: "读取成片封面失败" });
+    }
+  });
+
   router.use(authMiddleware);
 
   router.get("/assets/place-images", (req: Request<InterviewRouteParams>, res) => {
@@ -267,6 +307,33 @@ export function createProductionRouter(): Router {
       res.status(500).json({ code: "INTERNAL_ERROR", message: "删除地点图片失败" });
     }
   });
+
+  router.get(
+    "/assets/place-images/:imageId/file",
+    (req: Request<InterviewRouteParams & { imageId: string }>, res) => {
+      const userId = requireUserId(req);
+      if (!userId) {
+        res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+        return;
+      }
+      const scope = scopeFromInterviewReq(req, userId);
+      const imageId = req.params.imageId.trim();
+      try {
+        assertInterviewExists(scope);
+        const item = getInterviewPlaceImage(scope, imageId);
+        const abs = resolveInterviewPlaceImageAbs(scope, item);
+        if (!fs.existsSync(abs)) {
+          res.status(404).json({ code: "PLACE_IMAGE_NOT_FOUND", message: "图片文件不存在" });
+          return;
+        }
+        res.setHeader("Content-Type", item.mimeType);
+        res.sendFile(abs);
+      } catch (error) {
+        if (mapProductionError(res, error)) return;
+        res.status(500).json({ code: "INTERNAL_ERROR", message: "读取地点图片失败" });
+      }
+    },
+  );
 
   router.get("/production/readiness", (req: Request<InterviewRouteParams>, res) => {
     const userId = requireUserId(req);
@@ -372,6 +439,24 @@ export function createProductionRouter(): Router {
     } catch (error) {
       if (mapProductionError(res, error)) return;
       res.status(500).json({ code: "INTERNAL_ERROR", message: "创建演播室成片任务失败" });
+    }
+  });
+
+  router.delete("/video/tasks/:taskId", (req: Request<TaskRouteParams>, res) => {
+    const userId = requireUserId(req);
+    if (!userId) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    const scope = scopeFromInterviewReq(req, userId);
+    const taskId = req.params.taskId.trim();
+    try {
+      assertInterviewExists(scope);
+      deleteVideoTask(scope, taskId);
+      res.status(204).send();
+    } catch (error) {
+      if (mapProductionError(res, error)) return;
+      res.status(500).json({ code: "INTERNAL_ERROR", message: "删除成片任务失败" });
     }
   });
 
@@ -512,6 +597,24 @@ export function createProductionRouter(): Router {
     } catch (error) {
       if (mapProductionError(res, error)) return;
       res.status(500).json({ code: "INTERNAL_ERROR", message: "生成文本失败" });
+    }
+  });
+
+  router.delete("/text/tasks/:taskId", (req: Request<TaskRouteParams>, res) => {
+    const userId = requireUserId(req);
+    if (!userId) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    const scope = scopeFromInterviewReq(req, userId);
+    const taskId = req.params.taskId.trim();
+    try {
+      assertInterviewExists(scope);
+      deleteTextTask(scope, taskId);
+      res.status(204).send();
+    } catch (error) {
+      if (mapProductionError(res, error)) return;
+      res.status(500).json({ code: "INTERNAL_ERROR", message: "删除文本任务失败" });
     }
   });
 

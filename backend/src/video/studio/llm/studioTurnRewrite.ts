@@ -5,7 +5,7 @@ import { loadInterviewStudioPromptParts } from "./loadStudioPrompt.js";
 const PROMPT_FILE = "studio-20_interview-studio-turn-rewrite-to-target-duration.md";
 const ERR = "INTERVIEW_STUDIO_DURATION_ALIGN_INVALID";
 
-export const IV_DURATION_ALIGN_MAX_ITERATIONS = 4;
+export const IV_DURATION_ALIGN_MAX_ITERATIONS = 6;
 
 function assertTurnRewriteShape(parsed: unknown): string {
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {

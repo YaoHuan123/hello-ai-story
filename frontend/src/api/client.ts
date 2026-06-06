@@ -41,7 +41,10 @@ export async function apiRequest<T>(url: string, init: RequestInit = {}, useAuth
   }
   const response = await fetch(url, { ...init, headers });
   if (!response.ok) throw await parseApiError(response);
-  return (await response.json()) as T;
+  if (response.status === 204) return undefined as T;
+  const text = await response.text();
+  if (!text.trim()) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export async function fetchAuthenticatedBlob(url: string): Promise<Blob> {

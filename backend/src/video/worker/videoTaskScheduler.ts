@@ -1,5 +1,5 @@
 import type { InterviewScope } from "../../services/interviewWorkspace.service";
-import { assertProductionReady } from "../../services/productionReadiness.service";
+import { assertVideoProductionReady } from "../../services/productionReadiness.service";
 import {
   createBiographyVideoTask,
   createStudioVideoTask,
@@ -16,6 +16,7 @@ import type { BiographyVideoQueuePayload, StudioVideoQueuePayload } from "./vide
 
 export type ScheduleBiographyVideoTaskOptions = {
   taskId?: string;
+  textTaskId?: string;
   ttsVoice: string;
   styleConfigPath?: string;
   styleId?: string;
@@ -25,6 +26,7 @@ export type ScheduleBiographyVideoTaskOptions = {
 
 export type ScheduleStudioVideoTaskOptions = {
   taskId?: string;
+  textTaskId?: string;
   hostVoice: string;
   guestVoice: string;
   qaGranularity?: InterviewQaGranularity;
@@ -61,7 +63,7 @@ export function scheduleBiographyVideoTask(
   const ttsVoice = opts.ttsVoice.trim();
   if (!ttsVoice) throw new Error("VIDEO_SCHEDULE_TTS_REQUIRED: 传记成片须提供 ttsVoice");
 
-  assertProductionReady(scope);
+  assertVideoProductionReady(scope, opts.textTaskId);
 
   const handle = opts.taskId
     ? openVideoTask(scope, opts.taskId)
@@ -69,6 +71,7 @@ export function scheduleBiographyVideoTask(
 
   const payload: BiographyVideoQueuePayload = {
     ttsVoice,
+    ...(opts.textTaskId?.trim() ? { textTaskId: opts.textTaskId.trim() } : {}),
     ...(opts.styleConfigPath?.trim() ? { styleConfigPath: opts.styleConfigPath.trim() } : {}),
     ...(opts.styleId?.trim() ? { styleId: opts.styleId.trim() } : {}),
     ...(opts.polishMode ? { polishMode: opts.polishMode } : {}),
@@ -102,13 +105,14 @@ export function scheduleStudioVideoTask(
     throw new Error("VIDEO_SCHEDULE_VOICES_REQUIRED: 演播室须提供 hostVoice 与 guestVoice");
   }
 
-  assertProductionReady(scope);
+  assertVideoProductionReady(scope, opts.textTaskId);
 
   const handle = opts.taskId ? openVideoTask(scope, opts.taskId) : createStudioVideoTask(scope);
 
   const payload: StudioVideoQueuePayload = {
     hostVoice,
     guestVoice,
+    ...(opts.textTaskId?.trim() ? { textTaskId: opts.textTaskId.trim() } : {}),
     ...(opts.qaGranularity ? { qaGranularity: opts.qaGranularity } : {}),
     ...(opts.polishMode ? { polishMode: opts.polishMode } : {}),
     ...(opts.throughStep?.trim() ? { throughStep: opts.throughStep.trim() } : {}),

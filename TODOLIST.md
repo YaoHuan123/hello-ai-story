@@ -7,7 +7,7 @@
 ## 0. 迁移范围确认
 
 - [ ] 确认本次范围（P0/P1/P2）与验收标准
-- [ ] 明确是否启用阿里云真实短信，或先走开发 mock
+- [x] 明确是否启用阿里云真实短信，或先走开发 mock（实现已就绪，见 [`backend/docs/aliyun-sms.md`](backend/docs/aliyun-sms.md)；默认 mock，配齐密钥后 `ALIYUN_DYPNSAPI_DEV_MOCK=0`）
 
 ### 分层范围
 
@@ -35,7 +35,7 @@
 - [x] 迁移并创建 `sms_send_log` 表（短信限流）
 - [x] 迁移并创建 `audit_auth_log` 表（鉴权审计）
 - [x] 启动阶段完成 DB 初始化并注入到服务层
-- [ ] 暂不迁移 `materials/texts/wallet` 等非用户核心表
+- [ ] 暂不迁移 `materials/texts/wallet` 等非用户核心表（**积分/钱包当前版本不做**，见 [`backend/docs/wallet-credits.md`](backend/docs/wallet-credits.md)）
 
 ---
 
@@ -84,6 +84,7 @@
 - [x] 请求层统一附加 `Authorization: Bearer <token>`
 - [x] 新建最小登录页（手机号 + 验证码）
 - [x] 登录成功后调用 `/api/auth/me` 完成会话验证
+- [x] 账户页：换绑手机号、删号（`AccountPage` + `PATCH /phone` / `DELETE /me`）
 
 ---
 
@@ -143,6 +144,7 @@
 - [x] 采访列表页：继续未完成 / 新建
 - [x] 展示当前 `title`（进行中主题）、简单进度提示
 - [x] 复制 `template-config.v2.json` 到 `public/`（仅展示/对照，后端 catalog 仍以代码为准）
+- [x] 新建采访可填标题；满足生产条件时引导前往生产页
 
 ## 阶段 3：从老项目「借」交互（非移植，进行中）
 
@@ -161,10 +163,11 @@
 
 ## 阶段 5：素材墙与成片增强（进行中）
 
-- [x] **5.1** 采访级地点实景图（最小素材墙）
-  - `采访/{id}/素材/places/` + HTTP `GET|POST|DELETE /assets/place-images`
-  - 前端生产页上传/列表/删除
-- [x] **5.2** step 220 用户地点图风格化（有图时图生图，无图跳过）
+- [ ] **5.1** 采访级地点实景图（**当前版本不做**，见 [`backend/docs/place-images-material-wall.md`](backend/docs/place-images-material-wall.md)）
+  - 后端 HTTP + 落盘已实现，**前端生产页不暴露**
+  - 恢复时：上传/列表/预览 UI + placeKey 规则
+- [x] **5.2** step 220 用户地点图风格化（有磁盘图时图生图，无图跳过；不依赖 5.1 产品 UI）
 - [ ] **5.3** step 220 → 240 文生图参考（**暂缓**，见 [`backend/docs/video-step220-240.md`](backend/docs/video-step220-240.md)）
 - [x] **5.4** E2E 验收：`E2E_VIDEO_RENDER=1` 跑通 240→260（文生图 + ffmpeg）；需 `HTTPS_PROXY` + 启动时 `NODE_USE_ENV_PROXY=1`
-- [ ] 全站 Tab 壳、钱包、故事墙（不移植老 `materialId` 体系）
+- [x] 全站 Tab 壳、故事墙（底部「故事 / 我的」；采访列表即故事墙，访谈/生产为子页）
+- [ ] **积分 / 钱包**（**当前版本不做**，见 [`backend/docs/wallet-credits.md`](backend/docs/wallet-credits.md)）

@@ -84,6 +84,7 @@ export type ScheduleBiographyPayload = {
   ttsVoice: string;
   styleConfigPath?: string;
   styleId?: string;
+  textTaskId?: string;
   polishMode?: PolishMode;
   throughStep?: string;
   taskId?: string;
@@ -93,6 +94,7 @@ export type ScheduleStudioPayload = {
   hostVoice: string;
   guestVoice: string;
   qaGranularity?: "hybrid" | "per_event" | "batch";
+  textTaskId?: string;
   polishMode?: PolishMode;
   throughStep?: string;
   taskId?: string;
@@ -144,11 +146,20 @@ export type TextTaskArtifacts = {
   }>;
 };
 
+export type StoryTextTaskOption = {
+  taskId: string;
+  createdAt: string;
+  articleLength: number;
+};
+
 export type ProductionReadiness = {
   sectionCount: number;
   usableSectionCount: number;
   sectionNames: string[];
   ready: boolean;
+  hasStoryText: boolean;
+  storyTextTasks: StoryTextTaskOption[];
+  latestStoryTextTaskId?: string;
   message: string;
 };
 

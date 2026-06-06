@@ -1,0 +1,11 @@
+/* 主壳 / 故事墙：对齐老项目浅色 Tab + #f2f2f7 分组底 */
+:root {
+  --shell-bg-grouped: #f2f2f7;
+  --shell-label-1: #1d1d1f;
+  --shell-label-2: #636366;
+  --shell-label-3: #8e8e93;
+  --shell-separator: rgba(0, 0, 0, 0.08);
+  --shell-tabbar-reserve: calc(49px + env(safe-area-inset-bottom, 0px));
+  --shell-indigo: #4f46e5;
+  --shell-indigo-soft: rgba(99, 102, 241, 0.12);
+}

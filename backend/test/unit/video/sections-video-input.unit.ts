@@ -94,6 +94,15 @@ async function testPipelineStub() {
   );
 }
 
+async function testStoryArticlePipelineStub() {
+  const { polishStoryArticleForVideoPipeline } = await import("../../../dist/video/shared/input/sectionsVideoInput.js");
+  const article = "1960年，测试用户出生。\n\n小学时期在北京东城某小学就读。";
+  const result = await polishStoryArticleForVideoPipeline(FIXTURE, article, { mode: "stub" });
+  assert.equal(result.sectionCount, 2);
+  assert.ok(result.polishedTemplateInstanceSummaries["基本档案"]?.includes("1960年"));
+  assert.ok(result.polishedTemplateInstanceSummaries["小学"]?.includes("北京东城"));
+}
+
 async function main() {
   testFilter();
   testJoinSource();
@@ -102,6 +111,7 @@ async function main() {
   testDownstreamJsonEmptyTurn();
   testDownstreamJsonWithTurn();
   await testPipelineStub();
+  await testStoryArticlePipelineStub();
   console.log("test:video:input OK");
 }
 

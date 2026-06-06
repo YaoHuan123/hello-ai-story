@@ -92,10 +92,18 @@ async function main(): Promise<void> {
 
     console.log("\n=== 生产就绪 & 配置 ===");
     const readiness = await fetch(`${prodBase}/production/readiness`, { headers: authHeader(token) });
-    const readinessBody = (await readiness.json()) as { ready?: boolean; usableSectionCount?: number };
+    const readinessBody = (await readiness.json()) as {
+      ready?: boolean;
+      usableSectionCount?: number;
+      hasStoryText?: boolean;
+    };
     check(
       "GET /production/readiness → ready",
       readiness.status === 200 && readinessBody.ready === true && (readinessBody.usableSectionCount ?? 0) >= 1,
+    );
+    check(
+      "readiness hasStoryText false before text",
+      readinessBody.hasStoryText === false,
     );
 
     const styles = await fetch(`${base}/api/production/video-styles`, { headers: authHeader(token) });
@@ -137,6 +145,18 @@ async function main(): Promise<void> {
       article.status === 200 && typeof articleBody.article === "string" && articleBody.article.length > 0,
     );
 
+    const readinessAfterText = await fetch(`${prodBase}/production/readiness`, { headers: authHeader(token) });
+    const readinessAfterTextBody = (await readinessAfterText.json()) as {
+      hasStoryText?: boolean;
+      storyTextTasks?: Array<{ taskId: string }>;
+    };
+    check("readiness hasStoryText true after text", readinessAfterTextBody.hasStoryText === true);
+    check(
+      "readiness lists story text task",
+      (readinessAfterTextBody.storyTextTasks?.length ?? 0) >= 1 &&
+        readinessAfterTextBody.storyTextTasks?.some((t) => t.taskId === textTaskId),
+    );
+
     const textArtifacts = await fetch(`${prodBase}/text/tasks/${textTaskId}/artifacts`, {
       headers: authHeader(token),
     });
@@ -158,6 +178,7 @@ async function main(): Promise<void> {
       body: JSON.stringify({
         ttsVoice: "zh_male_M392_conversation_wvae_bigtts",
         styleId: stylesBody.selectedStyleId,
+        textTaskId,
         polishMode: "stub",
       }),
     });
@@ -189,6 +210,30 @@ async function main(): Promise<void> {
       headers: authHeader(token),
     });
     check("POST retry on queued task → 409", retryNotFailed.status === 409);
+
+    const deleteVideo = await fetch(`${prodBase}/video/tasks/${videoTaskId}`, {
+      method: "DELETE",
+      headers: authHeader(token),
+    });
+    check("DELETE /video/tasks/:taskId → 204", deleteVideo.status === 204);
+
+    const listVideoAfterDelete = await fetch(`${prodBase}/video/tasks`, { headers: authHeader(token) });
+    const listVideoAfterDeleteBody = (await listVideoAfterDelete.json()) as { tasks?: Array<{ taskId: string }> };
+    check(
+      "GET /video/tasks after delete",
+      listVideoAfterDelete.status === 200 &&
+        !listVideoAfterDeleteBody.tasks?.some((t) => t.taskId === videoTaskId),
+    );
+
+    const deleteText = await fetch(`${prodBase}/text/tasks/${textTaskId}`, {
+      method: "DELETE",
+      headers: authHeader(token),
+    });
+    check("DELETE /text/tasks/:taskId → 204", deleteText.status === 204);
+
+    const readinessAfterDelete = await fetch(`${prodBase}/production/readiness`, { headers: authHeader(token) });
+    const readinessAfterDeleteBody = (await readinessAfterDelete.json()) as { hasStoryText?: boolean };
+    check("readiness hasStoryText false after text delete", readinessAfterDeleteBody.hasStoryText === false);
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((err) => (err ? reject(err) : resolve()));

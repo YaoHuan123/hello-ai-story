@@ -1,0 +1,111 @@
+/* 创作首页：三卡片入口（对齐老项目 create-home） */
+
+.create-home-page {
+  min-height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  box-sizing: border-box;
+  background: var(--shell-bg-grouped);
+}
+
+.create-home-header {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(44px, auto) 1fr minmax(44px, auto);
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 10px;
+  background: var(--shell-bg-grouped);
+}
+
+.create-home-back {
+  border: none;
+  background: transparent;
+  color: var(--shell-indigo);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+}
+
+.create-home-header-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--shell-label-1);
+  text-align: center;
+}
+
+.create-home-header-spacer {
+  min-width: 44px;
+}
+
+.create-home-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--shell-bg-grouped);
+  padding: 8px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+.create-home-story {
+  margin: 4px 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.create-home-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.create-home-cards__item {
+  margin: 0;
+}
+
+.create-home-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px 20px;
+  border: none;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.create-home-card:active {
+  transform: scale(0.99);
+  background: #fafafa;
+}
+
+.create-home-card__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1d1d1f;
+  letter-spacing: -0.2px;
+}
+
+.create-home-card__desc {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #6e6e73;
+}

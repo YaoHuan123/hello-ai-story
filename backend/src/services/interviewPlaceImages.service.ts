@@ -147,6 +147,15 @@ export function addInterviewPlaceImage(
   return item;
 }
 
+export function getInterviewPlaceImage(scope: InterviewScope, imageId: string): InterviewPlaceImageItem {
+  assertInterviewExists(scope);
+  const id = imageId.trim();
+  if (!id) throw new Error("PLACE_IMAGE_INVALID: 缺少 imageId");
+  const found = readIndex(scope).items.find((x) => x.id === id);
+  if (!found) throw new Error("PLACE_IMAGE_NOT_FOUND: 图片不存在");
+  return found;
+}
+
 export function deleteInterviewPlaceImage(scope: InterviewScope, imageId: string): void {
   assertInterviewExists(scope);
   const id = imageId.trim();

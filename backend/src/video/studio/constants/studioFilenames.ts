@@ -1,4 +1,5 @@
 import path from "node:path";
+import { PIPELINE_SUBDIR } from "../../shared/constants/prepFilenames.js";
 
 export const PIPELINE_INTERVIEW_STUDIO_SUBDIR = "interview-studio";
 
@@ -30,4 +31,13 @@ export const MERGED_VIDEO_REL = `${VIDEO_OUTPUT_DIR}/${MERGED_VIDEO_FILENAME}`;
 
 export function studioPathUnderPipeline(pipelineDir: string, relPosix: string): string {
   return path.join(pipelineDir, relPosix.split("/").join(path.sep));
+}
+
+/** TTS bundle `files[]` 路径相对 `paths.pipelineDir`（非 taskRoot）。 */
+export function studioPipelineRelToAbs(pipelineDir: string, relPosix: string): string {
+  return studioPathUnderPipeline(pipelineDir, relPosix);
+}
+
+export function studioPipelineRelToTaskRootAbs(taskRoot: string, relPosix: string): string {
+  return path.join(taskRoot, PIPELINE_SUBDIR, relPosix.split("/").join(path.sep));
 }

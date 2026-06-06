@@ -9,11 +9,13 @@ import { seedCommittedSections } from "../../../src/services/answeredSections.se
 import { createInterview } from "../../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../../src/services/workspace.service";
 import type { AnsweredSection } from "../../../src/topic/types";
+import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import { createStudioVideoTask, runStudioVideoPipeline } from "../../../dist/video/studio/orchestrator/runStudioVideoPipeline.js";
 import { SECTIONS_SNAPSHOT_FILE } from "../../../dist/video/shared/orchestrator/videoTaskWorkspace.js";
 import { STUDIO_SCRIPT_FILE } from "../../../dist/video/studio/constants/studioFilenames.js";
 
 loadEnv();
+process.env.TEXT_ARTICLE_STUB = "1";
 process.env.STUDIO_SCRIPT_STUB = "1";
 process.env.VIDEO_INPUT_STUB = "1";
 
@@ -48,6 +50,8 @@ async function main() {
   const scope = { userId, interviewId: interview.id };
   seedCommittedSections(scope, FIXTURE);
 
+  await runTextPipeline(scope, { createTask: true, mode: "stub", sections: FIXTURE });
+
   const handle = createStudioVideoTask(scope);
   check("create studio task meta", fs.existsSync(handle.paths.metaPath));
 
@@ -56,7 +60,7 @@ async function main() {
     polishMode: "stub",
     hostVoice: "stub-host",
     guestVoice: "stub-guest",
-    throughStep: "iv_script",
+    throughStep: "iv_duration_align",
   });
 
   check("pipeline success", result.status === "success");
@@ -64,11 +68,15 @@ async function main() {
   check("step-80 in results", result.stepResults.some((r) => r.stepId === "80"));
   check("no era prep steps", !result.stepResults.some((r) => ["20", "30", "40", "50"].includes(r.stepId)));
   check("iv_script in results", result.stepResults.some((r) => r.stepId === "iv_script"));
+  check("iv_tts in results", result.stepResults.some((r) => r.stepId === "iv_tts"));
+  check("iv_duration_align in results", result.stepResults.some((r) => r.stepId === "iv_duration_align"));
 
   const snapshotPath = path.join(handle.paths.inputDir, SECTIONS_SNAPSHOT_FILE);
   const scriptPath = path.join(handle.paths.pipelineDir, "interview-studio", STUDIO_SCRIPT_FILE);
+  const audioPath = path.join(handle.paths.pipelineDir, "interview-studio", "interview-audio", "turn-0000.mp3");
   check("sections snapshot written", fs.existsSync(snapshotPath));
   check("studio script written", fs.existsSync(scriptPath));
+  check("studio turn audio under pipeline/", fs.existsSync(audioPath));
 
   if (failed > 0) {
     console.error(`\ntest:video:studio FAILED (${passed} ok, ${failed} fail)`);

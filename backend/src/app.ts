@@ -8,6 +8,7 @@ import { createAuthRouter } from "./routes/auth.routes";
 import { createInterviewRouter } from "./routes/interview.routes";
 import { createProductionRouter } from "./routes/production.routes";
 import type { AuthService } from "./services/auth/auth.service";
+import { describeAliyunSmsMode } from "./services/auth/aliyunSms.service";
 import { listPublicStyles } from "./video/biography/llm/steps/videoStyles.js";
 
 export function createApp(db: DatabaseSync, authService: AuthService): Express {
@@ -22,10 +23,16 @@ export function createApp(db: DatabaseSync, authService: AuthService): Express {
   app.use("/static/video-styles", express.static(path.join(configDir, "video-styles")));
 
   app.get("/api/health", (_req, res) => {
+    const sms = describeAliyunSmsMode();
     res.json({
       ok: true,
       message: "Backend is running",
       timestamp: new Date().toISOString(),
+      sms: {
+        mode: sms.mode,
+        forcedMock: sms.forcedMock,
+        missingEnvCount: sms.missingEnv.length,
+      },
     });
   });
 

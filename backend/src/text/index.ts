@@ -11,4 +11,14 @@ export { generateFormalArticleFromSections, type TextArticleMode } from "./llm/g
 export { sectionsForTextArticleLlm } from "./input/sectionsTextInput.js";
 export { TEXT_PIPELINE_STEPS, TEXT_PIPELINE_STEP_IDS } from "./constants/textStepIds.js";
 export { listTextTasks, getTextTaskProgress } from "./textTaskQuery.js";
+export { deleteTextTask } from "./deleteTextTask.js";
 export type { TextTaskListItem, TextTaskProgress, TextTaskOutputSnapshot } from "./textTaskQuery.js";
+export {
+  getLatestStoryArticle,
+  getStoryArticleByTaskId,
+  resolveStoryArticle,
+  listStoryTextTaskOptions,
+  assertStoryTextReady,
+  type StoryArticleSource,
+  type StoryTextTaskOption,
+} from "./storyArticleSource.js";

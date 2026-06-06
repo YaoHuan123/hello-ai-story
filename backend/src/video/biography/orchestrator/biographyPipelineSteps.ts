@@ -70,6 +70,7 @@ import {
   parseAudioRelationsFromPipeline,
   parseImageIndexesFromPipeline,
 } from "../render/step250VideoClips.js";
+import { ensurePosterJpegBesideMergedMp4 } from "../../shared/render/mergedVideoPoster.js";
 import { mergeVideoClipsToFullVideo, parseVideoClipIndexesFromPipeline } from "../render/step260MergeVideoClips.js";
 import { runStyleUserPlaceImagesOptional } from "../render/step220StyleUserPlaceImages.js";
 import {
@@ -552,6 +553,12 @@ case "90": {
           fs.unlinkSync(r.concatListPath);
         } catch {
           /* ignore */
+        }
+        try {
+          const mergedAbs = path.join(paths.taskRoot, mergedVideoRel.split("/").join(path.sep));
+          ensurePosterJpegBesideMergedMp4(mergedAbs);
+        } catch {
+          /* 封面失败不阻断成片 */
         }
       }
       const outIdxPath = path.join(paths.taskRoot, VIDEO_OUTPUT_DIR, MERGE_VIDEO_INDEX_FILENAME);

@@ -10,6 +10,7 @@ import {
   type SubmitAnswerParams,
   type SubmittedAnswerMeta,
 } from "./questionEngine.service";
+import { INTERVIEW_SKIP_LABEL, isQuestionSkippable } from "../question/skip";
 import { clearTopicDir, readAnswers, readQuestionSet } from "../question/topicPersist";
 import {
   advanceStage,
@@ -72,9 +73,15 @@ export type InterviewQuestion = {
   fieldType?: InterviewFieldType;
   /** select 时的固定选项 */
   fieldChoices?: string[];
+  /** 选填 / 扩展 / 非 catalog 题可跳过 */
+  skippable?: boolean;
 };
 
-function toNormalQuestion(title: string, question: NextQuestionDisplay): InterviewQuestion {
+function toNormalQuestion(
+  questionSet: QuestionSet | null,
+  title: string,
+  question: NextQuestionDisplay,
+): InterviewQuestion {
   const meta = getTopicFieldMeta(title, question.key);
   return {
     type: "normal",
@@ -84,6 +91,7 @@ function toNormalQuestion(title: string, question: NextQuestionDisplay): Intervi
     options: question.suggestions,
     fieldType: meta?.fieldType ?? "text",
     ...(meta?.fieldChoices ? { fieldChoices: meta.fieldChoices } : {}),
+    ...(questionSet ? { skippable: isQuestionSkippable(questionSet, question.key) } : {}),
   };
 }
 
@@ -92,6 +100,8 @@ export type SubmitInput = {
   key: string;
   text: string;
   value: string;
+  /** 跳过当前题（仅 `skippable` 题为 true 时有效） */
+  skip?: boolean;
 };
 
 /** 对外：带 trace 的 getCurrentQuestion（HTTP 层调用）。 */
@@ -105,11 +115,12 @@ export async function getCurrentQuestionTraced(scope: InterviewScope): Promise<I
  * - 否则 → 选主题题目（type="topic"，options 为候选主题）；待选为空则自动升 tier
  */
 export async function getCurrentQuestion(scope: InterviewScope): Promise<InterviewQuestion> {
-  const title = readQuestionSet(scope)?.title.trim() || null;
+  const questionSet = readQuestionSet(scope);
+  const title = questionSet?.title.trim() || null;
   if (title) {
     const question = await engineGetNextQuestion(scope);
     if (question) {
-      return toNormalQuestion(title, question);
+      return toNormalQuestion(questionSet, title, question);
     }
     // 兜底：取题为 null 但主题未在 submit 时清空。
     // 仅发生在 catalog「最后一道模板题答完、扩展题此刻才懒生成且结果为空」的边界
@@ -127,7 +138,7 @@ export async function getCurrentQuestion(scope: InterviewScope): Promise<Intervi
   if (getSections(scope).length === 0 && !readQuestionSet(scope)) {
     const question = await startBasicProfileColdStart(scope);
     if (question) {
-      return toNormalQuestion(BASIC_PROFILE_TITLE, question);
+      return toNormalQuestion(basicProfileQuestionSet(), BASIC_PROFILE_TITLE, question);
     }
     clearTopicDir(scope);
   }
@@ -159,17 +170,32 @@ export function submit(scope: InterviewScope, input: SubmitInput): void {
     const questionSet = getTopicQuestions(scope, input.value.trim());
     initQuestion(scope, questionSet);
   } else {
-    const topicTitle = readQuestionSet(scope)?.title.trim();
-    const meta = topicTitle ? getTopicFieldMeta(topicTitle, input.key) : undefined;
-    const normalized = normalizeFieldAnswer(meta, input.value);
-    if (!normalized.ok) {
-      throw new Error(`INVALID_FIELD_ANSWER: ${normalized.message}`);
+    const questionSet = readQuestionSet(scope);
+    if (!questionSet) {
+      throw new Error("QUESTION_ENGINE_NO_SESSION: 无进行中主题");
     }
+
+    let answer: string;
+    if (input.skip) {
+      if (!isQuestionSkippable(questionSet, input.key)) {
+        throw new Error("QUESTION_NOT_SKIPPABLE: 当前题目不可跳过");
+      }
+      answer = INTERVIEW_SKIP_LABEL;
+    } else {
+      const topicTitle = questionSet.title.trim();
+      const meta = topicTitle ? getTopicFieldMeta(topicTitle, input.key) : undefined;
+      const normalized = normalizeFieldAnswer(meta, input.value);
+      if (!normalized.ok) {
+        throw new Error(`INVALID_FIELD_ANSWER: ${normalized.message}`);
+      }
+      answer = normalized.value;
+    }
+
     // 答题阶段：追加答案；若本主题题目已全部答完，立即合并进 sections 并清空 `出题/`。
     engineSubmitAnswer(scope, {
       key: input.key,
       questionText: input.text,
-      answer: normalized.value,
+      answer,
     });
     if (isTopicAnswered(scope)) {
       commitTopic(scope);

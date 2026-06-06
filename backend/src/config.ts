@@ -1,6 +1,4 @@
-import { config as loadEnv } from "dotenv";
-
-loadEnv();
+import "./bootstrapEnv.js";
 
 const requireEnv = (name: string): string => {
   const value = process.env[name]?.trim();

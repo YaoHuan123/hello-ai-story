@@ -26,6 +26,7 @@ export type VideoPipelineLane<L extends { stepId: string }> = {
 
 export type RunVideoPipelineOptions<L extends { stepId: string }> = {
   polishMode?: MaterialPolishMode;
+  textTaskId?: string;
   sections?: AnsweredSection[];
   /** 调试：只跑到该步（含）即停。可为 prep（10–80）或后续泳道步。 */
   throughStep?: string;
@@ -96,6 +97,7 @@ export async function runVideoPipelineWithPrep<L extends { stepId: string }>(
         const prepThrough = isPrepStepId(opts.throughStep) ? opts.throughStep : undefined;
         prep = await runSharedPrepPipeline(handle, {
           polishMode: opts.polishMode,
+          textTaskId: opts.textTaskId,
           sections: opts.sections,
           throughStep: prepThrough,
           prepProfile: opts.prepProfile,

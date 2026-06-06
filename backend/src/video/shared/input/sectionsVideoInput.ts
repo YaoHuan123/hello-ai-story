@@ -6,6 +6,7 @@ import {
   runMaterialPolishFromSections,
   type MaterialPolishMode,
 } from "../llm/steps/step10MaterialPolish.js";
+import { runStoryArticlePolishFromSections } from "../llm/steps/step10StoryArticlePolish.js";
 import {
   buildDownstreamPipelineJson,
   filterSectionsForVideo,
@@ -46,6 +47,48 @@ export async function polishSectionsForVideoPipeline(
   const { polishedTemplateInstanceSummaries } = await runMaterialPolishFromSections(filtered, {
     mode: opts?.mode,
   });
+
+  const downstreamPipeline = buildDownstreamPipelineJson({
+    polishedTemplateInstanceSummaries,
+    turnReasonAnswers: opts?.turnReasonAnswers,
+  });
+
+  let polishedInputPath: string | undefined;
+  if (opts?.inputDir) {
+    polishedInputPath = writePolishedInputFile(opts.inputDir, polishedTemplateInstanceSummaries);
+  }
+
+  return {
+    polishedTemplateInstanceSummaries,
+    downstreamPipeline,
+    sectionCount: filtered.length,
+    polishedInputPath,
+  };
+}
+
+/**
+ * 故事正文 → step-10（或 stub）→ 供 step 60 / 20 使用的 pipeline JSON。
+ */
+export async function polishStoryArticleForVideoPipeline(
+  sections: AnsweredSection[],
+  storyArticle: string,
+  opts?: {
+    mode?: MaterialPolishMode;
+    turnReasonAnswers?: TurnReasonItem[];
+    inputDir?: string;
+  },
+): Promise<{
+  polishedTemplateInstanceSummaries: Record<string, string>;
+  downstreamPipeline: ReturnType<typeof buildDownstreamPipelineJson>;
+  sectionCount: number;
+  polishedInputPath?: string;
+}> {
+  const filtered = filterSectionsForVideo(sections);
+  const { polishedTemplateInstanceSummaries } = await runStoryArticlePolishFromSections(
+    filtered,
+    storyArticle,
+    { mode: opts?.mode },
+  );
 
   const downstreamPipeline = buildDownstreamPipelineJson({
     polishedTemplateInstanceSummaries,

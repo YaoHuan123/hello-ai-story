@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import path from "node:path";
 import { synthesizeSingleSpeechMp3 } from "../../biography/render/step180Tts.js";
 import { writeJsonAtomic } from "../../shared/orchestrator/pipelineDisk.js";
 import type { VideoTaskPaths } from "../../shared/orchestrator/videoTaskWorkspace.js";
@@ -7,6 +6,7 @@ import {
   STUDIO_SCRIPT_REL,
   STUDIO_TTS_BUNDLE_REL,
   studioPathUnderPipeline,
+  studioPipelineRelToAbs,
 } from "../constants/studioFilenames.js";
 import {
   IV_DURATION_ALIGN_MAX_ITERATIONS,
@@ -47,7 +47,6 @@ export async function runStudioDurationAlignStep(
   }
 
   ensureVideoPackReady();
-  const taskRoot = paths.taskRoot;
   const { turns: initialTurns, files, scriptRaw } = loadStudioTurnsAndAudioFiles(paths.pipelineDir);
   const turns = [...initialTurns];
   const scriptPath = studioPathUnderPipeline(paths.pipelineDir, STUDIO_SCRIPT_REL);
@@ -55,7 +54,7 @@ export async function runStudioDurationAlignStep(
 
   const probeDurationAtIndex = (i: number): number => {
     const rel = files[i];
-    const abs = path.join(taskRoot, rel.split("/").join(path.sep));
+    const abs = studioPipelineRelToAbs(paths.pipelineDir, rel);
     if (!fs.existsSync(abs)) {
       throw new Error(`${ERR}: 缺少访谈音频 ${rel}`);
     }
@@ -138,8 +137,12 @@ export async function runStudioDurationAlignStep(
       if (rewritesThisTurn >= IV_DURATION_ALIGN_MAX_ITERATIONS) {
         const ratio = d / tStar;
         const dev = Math.abs(1 - ratio);
+        const budget = interviewAudioTempoBudget();
+        if (dev <= budget + 1e-12) {
+          break;
+        }
         throw new Error(
-          `${ERR}: turn=${i + 1} 在 ${IV_DURATION_ALIGN_MAX_ITERATIONS} 次改写后仍未达标：|1−d/T*|=${dev.toFixed(4)} > ${interviewAudioTempoBudget()}。d=${d.toFixed(2)}s T*=${tStar.toFixed(2)}s`,
+          `${ERR}: turn=${i + 1} 在 ${IV_DURATION_ALIGN_MAX_ITERATIONS} 次改写后仍未达标：|1−d/T*|=${dev.toFixed(4)} > ${budget}。d=${d.toFixed(2)}s T*=${tStar.toFixed(2)}s（可在 backend/.env 略增大 INTERVIEW_AUDIO_TEMPO_BUDGET，默认 0.12）`,
         );
       }
 
@@ -157,11 +160,11 @@ export async function runStudioDurationAlignStep(
       turns[i] = { ...turns[i], text: newText };
       const voice = turns[i].speaker === "host" ? host : guest;
       const buf = await synthesizeSingleSpeechMp3(newText, voice);
+      rewritesThisTurn += 1;
       const rel = files[i];
-      const abs = path.join(taskRoot, rel.split("/").join(path.sep));
+      const abs = studioPipelineRelToAbs(paths.pipelineDir, rel);
       fs.writeFileSync(abs, buf);
       clearProbeDurationCache(abs);
-      rewritesThisTurn += 1;
       iterationsUsed += 1;
       writeScriptPartial(turns);
       writeBundleFingerprint();

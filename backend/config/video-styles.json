@@ -2,7 +2,7 @@
   "meta": {
     "usage": "传记视频风格库：修改 selectedStyleId 切换当前使用风格，取值须与 styles[].id 之一一致。"
   },
-  "selectedStyleId": "warm-handdrawn-cartoon-biography",
+  "selectedStyleId": "documentary-warm-biography",
   "styles": [
     {
       "id": "documentary-warm-biography",

@@ -20,17 +20,13 @@ Required keys in `backend/.env`:
 - `OPENAI_API_KEY`（Tier1 选题 LLM，严格必填）
 - `OPENAI_BASE_URL`
 - `OPENAI_MODEL`
-- `ALIYUN_ACCESS_KEY_ID`
-- `ALIYUN_ACCESS_KEY_SECRET`
-- `ALIYUN_DYPNSAPI_SIGN_NAME` (or `ALIYUN_SMS_SIGN_NAME`)
-- `ALIYUN_DYPNSAPI_TEMPLATE_CODE_LOGIN` (or `ALIYUN_SMS_TEMPLATE_CODE_LOGIN`)
-- `ALIYUN_DYPNSAPI_TEMPLATE_CODE_CHANGE_PHONE_OLD` (or `ALIYUN_SMS_TEMPLATE_CODE_CHANGE_PHONE_OLD`)
-- `ALIYUN_DYPNSAPI_TEMPLATE_CODE_CHANGE_PHONE_NEW` (or `ALIYUN_SMS_TEMPLATE_CODE_CHANGE_PHONE_NEW`)
-- `ALIYUN_DYPNSAPI_TEMPLATE_CODE_DELETE_ACCOUNT` (or `ALIYUN_SMS_TEMPLATE_CODE_DELETE_ACCOUNT`)
+**阿里云短信**（启动不强制；未配齐时开发环境自动 mock，验证码 `123456`）：
 
-Optional for local debugging:
+- 配齐密钥 + 4 个模板 + 签名 → 设 `ALIYUN_DYPNSAPI_DEV_MOCK=0` 启用真实短信
+- 自检：`GET /api/health` 看 `sms.mode`（`real` | `mock`）
+- 控制台与变量说明：**[backend/docs/aliyun-sms.md](backend/docs/aliyun-sms.md)**
 
-- `ALIYUN_DYPNSAPI_DEV_MOCK=1` (or `ALIYUN_SMS_DEV_MOCK=1`) to force mock SMS mode
+生产（`NODE_ENV=production`）须配齐全部 `ALIYUN_*`，且**不要**开启 `ALIYUN_DYPNSAPI_DEV_MOCK`。
 
 ## Run in development
 
@@ -119,12 +115,10 @@ npm run pm2:start
 
 The frontend calls APIs via Vite proxy (`/api` -> `http://localhost:3001`).
 
-## Frontend auth debug page
+## Frontend shell
 
-Current `frontend/src/App.tsx` is a minimal auth integration page:
+- 未登录：登录页
+- 已登录：底部 Tab「故事」（故事墙 = 采访列表）/「我的」（账户）
+- 故事卡片 → **访谈** / **生产** 子页（带返回故事墙）
 
-1. send SMS code
-2. login with SMS code
-3. call `/api/auth/me` with stored Bearer token
-
-Token is stored in `localStorage` key `auth_token`.
+Token 存在 `localStorage` 键 `auth_token`。

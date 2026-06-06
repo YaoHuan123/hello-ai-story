@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import type { MergedNarrativeSegmentItem } from "../llm/steps/step150MergeEnvAndEra.js";
+import { postOutbound, ttsBodyTimeoutMs, ttsConnectTimeoutMs } from "../../shared/http/outboundFetch.js";
 import { getVideoLlmEnv } from "../../shared/llm/client.js";
 
 const ERR = "TOTAL_PACK_AUDIO_RELATION_180_INVALID";
@@ -63,7 +64,17 @@ function formatTtsNetworkFetchFailure(e: unknown, requestUrl: string): Error {
       ? ` 底层：${c instanceof Error ? `${c.name}: ${c.message}` : String(c)}`
       : "";
   return new Error(
-    `TTS 网络请求失败（${host || "URL 无效"}）：${base.name}: ${base.message}。${causeTail}请检查网络、代理/VPN、防火墙、DNS，以及 backend/.env 中 TTS_API_URL；若 OPENAI_BASE_URL 指向 302，默认会与同源拼接 tts_hd。`,
+    `TTS 网络请求失败（${host || "URL 无效"}）：${base.name}: ${base.message}。${causeTail}请检查 backend/.env 中 TTS_API_URL，以及访问 302 时是否已配置 HTTP_PROXY/HTTPS_PROXY（TTS 请求会经代理出站）；连接超时可增大 TTS_FETCH_CONNECT_TIMEOUT_MS（当前 ${ttsConnectTimeoutMs()}ms）。`,
+  );
+}
+
+function isTtsNetworkOrRetriable(err: Error): boolean {
+  const status = (err as Error & { httpStatus?: number }).httpStatus;
+  if (status !== undefined && isTtsHttpRetriable(status)) {
+    return true;
+  }
+  return /fetch failed|Connect Timeout|UND_ERR_CONNECT|ECONNRESET|ENOTFOUND|ETIMEDOUT|socket hang up|TTS 请求超时/i.test(
+    err.message,
   );
 }
 
@@ -196,30 +207,29 @@ async function synthesizeSpeechMp3Once(input: string, requestedVoice: string): P
     },
   };
 
-  const ac = new AbortController();
-  const timeoutMs = getVideoLlmEnv().connectTimeoutMs;
-  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  const connectTimeoutMs = ttsConnectTimeoutMs();
+  const bodyTimeoutMs = ttsBodyTimeoutMs();
   let res: Response;
   try {
-    res = await fetch(url, {
-      method: "POST",
+    res = await postOutbound(url, {
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
-      signal: ac.signal,
+      connectTimeoutMs,
+      bodyTimeoutMs,
     });
   } catch (e: unknown) {
     const name = e && typeof e === "object" && "name" in e ? String((e as { name?: unknown }).name) : "";
     if (name === "AbortError") {
-      const err = new Error(`TTS 请求超时（${timeoutMs}ms），请增大 OPENAI_FETCH_CONNECT_TIMEOUT_MS`);
+      const err = new Error(
+        `TTS 请求超时（响应等待 ${bodyTimeoutMs}ms），请增大 TTS_FETCH_BODY_TIMEOUT_MS 或 TTS_FETCH_CONNECT_TIMEOUT_MS（当前连接 ${connectTimeoutMs}ms）`,
+      );
       (err as Error & { httpStatus?: number }).httpStatus = 0;
       throw err;
     }
     throw formatTtsNetworkFetchFailure(e, url);
-  } finally {
-    clearTimeout(timer);
   }
 
   const rawText = await res.text();
@@ -273,8 +283,7 @@ async function synthesizeSpeechMp3(input: string, requestedVoice: string): Promi
       return await synthesizeSpeechMp3Once(input, requestedVoice);
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
-      const status = (err as Error & { httpStatus?: number }).httpStatus;
-      const retriable = status !== undefined && isTtsHttpRetriable(status) && attempt < maxAttempts - 1;
+      const retriable = isTtsNetworkOrRetriable(err) && attempt < maxAttempts - 1;
       lastErr = err;
       if (retriable) {
         const d = baseDelayMs * (attempt + 1);

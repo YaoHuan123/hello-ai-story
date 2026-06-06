@@ -13,7 +13,7 @@
 
 | 步骤 | 当前行为 |
 |------|----------|
-| **220** | 读 `采访/{id}/素材/places/` 上传图；有图则按所选视频风格图生图，写入 `pipeline/styled-place-images/` 与 `experiment-place-styled-images.json`；无图则跳过 |
+| **220** | 读 `采访/{id}/素材/places/`（**产品侧上传 UI 当前不做**，见 [`place-images-material-wall.md`](./place-images-material-wall.md)）；有图则按所选视频风格图生图，写入 `pipeline/styled-place-images/` 与 `experiment-place-styled-images.json`；无图则跳过 |
 | **230** | 从场景包抽路名/地标，**以文字**并入 240 的 prompt |
 | **240** | 对每个 `visualScenes` **纯文生图**（场景描述 + 230 文字参考），**不读取** 220 产物 |
 

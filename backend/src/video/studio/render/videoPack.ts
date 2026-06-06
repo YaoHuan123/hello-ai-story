@@ -221,9 +221,10 @@ export type ScheduleTurnClipSequenceResult = {
   totalVideoDurSec: number;
 };
 
+/** |1 − d/T*| 允许偏差；默认 0.12（TTS 时长难精确命中，成片用 atempo 微调）。 */
 export function interviewAudioTempoBudget(): number {
-  const raw = Number.parseFloat(process.env.INTERVIEW_AUDIO_TEMPO_BUDGET ?? "0.1");
-  if (!Number.isFinite(raw) || raw <= 0 || raw > 0.3) return 0.1;
+  const raw = Number.parseFloat(process.env.INTERVIEW_AUDIO_TEMPO_BUDGET ?? "0.12");
+  if (!Number.isFinite(raw) || raw <= 0 || raw > 0.3) return 0.12;
   return raw;
 }
 

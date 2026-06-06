@@ -9,13 +9,25 @@ import {
   listInterviews,
   type InterviewScope,
 } from "../services/interviewWorkspace.service";
+import { getInterviewChatHistory } from "../services/interviewChatHistory.service";
 import { getCurrentQuestionTraced, submit } from "../services/interviewOrchestrator.service";
 
-const submitSchema = z.object({
-  key: z.string().min(1).max(300),
-  text: z.string().min(1).max(4000),
-  value: z.string().min(1).max(8000),
-});
+const submitSchema = z
+  .object({
+    key: z.string().min(1).max(300),
+    text: z.string().min(1).max(4000),
+    value: z.string().max(8000).optional().default(""),
+    skip: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.skip && !data.value.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "value 不能为空（跳过时请传 skip: true）",
+        path: ["value"],
+      });
+    }
+  });
 
 const createInterviewSchema = z.object({
   title: z.string().max(200).optional(),
@@ -50,6 +62,10 @@ function mapInterviewError(res: Response, error: unknown): boolean {
   if (code === "INVALID_FIELD_ANSWER") {
     const detail = msg.split(":").slice(1).join(":").trim();
     res.status(400).json({ code, message: detail || "答案格式不正确" });
+    return true;
+  }
+  if (code === "QUESTION_NOT_SKIPPABLE") {
+    res.status(400).json({ code, message: "当前题目不可跳过" });
     return true;
   }
   if (code === "TOPIC_PICK_NOT_FOUND") {
@@ -120,6 +136,22 @@ export const createInterviewRouter = (): Router => {
     }
     createUserWorkspace(user.userId);
     res.status(200).json({ interviews: listInterviews(user.userId) });
+  });
+
+  router.get("/:interviewId/messages", (req, res) => {
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    const scope = scopeFromReq(user.userId, req.params.interviewId);
+    try {
+      assertInterviewExists(scope);
+      res.status(200).json({ messages: getInterviewChatHistory(scope) });
+    } catch (error) {
+      if (mapInterviewError(res, error)) return;
+      res.status(500).json({ code: "INTERNAL_ERROR", message: "获取聊天记录失败" });
+    }
   });
 
   router.get("/:interviewId/current", async (req, res) => {

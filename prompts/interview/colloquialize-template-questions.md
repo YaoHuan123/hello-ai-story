@@ -17,8 +17,9 @@
 1. `questions` 输出长度 = 输入长度
 2. 用 `i` 表示索引（0-based）
 3. 每条 `questionText` ≤ 80 字，开放式问句
-4. 不输出 `question`、`skip`、`reason` 等额外字段
-5. 只输出纯 JSON
+4. 字段名含「或」时仍须**单一方向**：不要把两个不相干选项（如室友与社团）并列进同一句
+5. 不输出 `question`、`skip`、`reason` 等额外字段
+6. 只输出纯 JSON
 
 ## 输出格式
 

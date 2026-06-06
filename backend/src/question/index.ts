@@ -33,6 +33,7 @@ export {
 export { refineAndSuggestCurrent } from "./refineAndSuggestCurrent";
 export { mergeSuggestedAnswersForDisplay, MAX_DISPLAY_SUGGESTIONS } from "./mergeSuggestedAnswers";
 export { extendSubCategoryQuestions } from "./extend";
+export { INTERVIEW_SKIP_LABEL, isQuestionSkippable } from "./skip";
 export { parseExtend, MAX_EXTEND_QUESTIONS, EXTEND_QUESTION_MAX_LEN } from "./parseExtend";
 
 export type {

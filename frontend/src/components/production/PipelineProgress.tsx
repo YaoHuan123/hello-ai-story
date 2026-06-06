@@ -53,7 +53,7 @@ export function PipelineProgress({ productionMode, status, completedSteps, compa
       <div className="pipeline-progress__bar" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
         <div className="pipeline-progress__bar-fill" style={{ width: `${percent}%` }} />
       </div>
-      {!compact && (
+      {!compact && import.meta.env.DEV && (
         <div className="pipeline-progress__phases">
           {groups.map((group) => (
             <div key={group.phase} className="pipeline-progress__phase">

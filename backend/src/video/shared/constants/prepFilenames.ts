@@ -32,3 +32,4 @@ export const PIPELINE_SEGMENT_REFINE_FILE = stepPipelineFilename(
 );
 
 export const MATERIAL_COMBINED_POLISHED_FILE = "用户通过模板输入的素材和自述-经过AI润色.json";
+export const STORY_ARTICLE_SOURCE_FILE = "story-article-source.json";

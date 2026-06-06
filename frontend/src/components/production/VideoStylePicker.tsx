@@ -15,44 +15,20 @@ export function VideoStylePicker({ styles, selectedStyleId, onChange, disabled }
   }
 
   return (
-    <div className="video-style-picker">
-      <label className="production-field">
-        画面风格
-        <select
-          value={selectedStyleId}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          className="production-select"
-        >
-          {styles.map((style) => (
-            <option key={style.id} value={style.id}>
-              {style.name}
-              {style.badge ? ` · ${style.badge}` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {selected && (
-        <div className="video-style-picker__card">
-          {selected.coverUrl && (
-            <img
-              src={selected.coverUrl}
-              alt=""
-              className="video-style-picker__cover"
-              loading="lazy"
-            />
-          )}
-          <div className="video-style-picker__meta">
-            <div className="video-style-picker__name">
-              {selected.name}
-              {selected.badge && <span className="video-style-picker__badge">{selected.badge}</span>}
-            </div>
-            <p className="video-style-picker__desc">{selected.detailedDesc || selected.positioning}</p>
-            <p className="video-style-picker__suitable">适合：{selected.suitableFor}</p>
-          </div>
-        </div>
-      )}
-    </div>
+    <label className="production-field video-style-picker">
+      画面风格
+      <select
+        value={selected?.id ?? selectedStyleId}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="production-select"
+      >
+        {styles.map((style) => (
+          <option key={style.id} value={style.id}>
+            {style.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

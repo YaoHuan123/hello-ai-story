@@ -1,6 +1,7 @@
 import { apiRequest } from "./client";
 import type {
   InterviewListResponse,
+  InterviewMessagesResponse,
   InterviewMeta,
   InterviewQuestion,
   SubmitPayload,
@@ -29,6 +30,11 @@ export async function deleteInterview(interviewId: string): Promise<void> {
 export async function getCurrentQuestion(interviewId: string): Promise<InterviewQuestion> {
   const id = encodeURIComponent(interviewId);
   return apiRequest<InterviewQuestion>(`/api/interviews/${id}/current`, { method: "GET" }, true);
+}
+
+export async function getInterviewMessages(interviewId: string): Promise<InterviewMessagesResponse> {
+  const id = encodeURIComponent(interviewId);
+  return apiRequest<InterviewMessagesResponse>(`/api/interviews/${id}/messages`, { method: "GET" }, true);
 }
 
 export async function submitAnswer(interviewId: string, payload: SubmitPayload): Promise<void> {

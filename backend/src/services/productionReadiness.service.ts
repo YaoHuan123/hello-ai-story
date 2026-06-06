@@ -1,5 +1,6 @@
 import type { InterviewScope } from "./interviewWorkspace.service";
 import { getSections } from "./answeredSections.service";
+import { assertStoryTextReady, listStoryTextTaskOptions, type StoryTextTaskOption } from "../text/storyArticleSource.js";
 import { filterSectionsForVideo } from "../video/shared/input/sectionsFilter.js";
 
 export type ProductionReadiness = {
@@ -9,6 +10,11 @@ export type ProductionReadiness = {
   usableSectionCount: number;
   sectionNames: string[];
   ready: boolean;
+  /** 是否存在可用于成片的故事正文 */
+  hasStoryText: boolean;
+  /** 可选用作成片素材的文本任务（按创建时间降序） */
+  storyTextTasks: StoryTextTaskOption[];
+  latestStoryTextTaskId?: string;
   message: string;
 };
 
@@ -17,6 +23,8 @@ export function getProductionReadiness(scope: InterviewScope): ProductionReadine
   const sections = getSections(scope);
   const filtered = filterSectionsForVideo(sections);
   const sectionNames = filtered.map((s) => s.name.trim()).filter(Boolean);
+  const storyTextTasks = listStoryTextTaskOptions(scope);
+  const latestStoryTextTaskId = storyTextTasks[0]?.taskId;
 
   if (filtered.length === 0) {
     return {
@@ -24,6 +32,9 @@ export function getProductionReadiness(scope: InterviewScope): ProductionReadine
       usableSectionCount: 0,
       sectionNames: [],
       ready: false,
+      hasStoryText: storyTextTasks.length > 0,
+      storyTextTasks,
+      ...(latestStoryTextTaskId ? { latestStoryTextTaskId } : {}),
       message: "尚无有效访谈内容。请先在「访谈」页完成至少一个小节的问答，再进入生产。",
     };
   }
@@ -33,6 +44,9 @@ export function getProductionReadiness(scope: InterviewScope): ProductionReadine
     usableSectionCount: filtered.length,
     sectionNames,
     ready: true,
+    hasStoryText: storyTextTasks.length > 0,
+    storyTextTasks,
+    ...(latestStoryTextTaskId ? { latestStoryTextTaskId } : {}),
     message: `已收集 ${filtered.length} 个小节，可以开始生产。`,
   };
 }
@@ -42,4 +56,9 @@ export function assertProductionReady(scope: InterviewScope): void {
   if (!readiness.ready) {
     throw new Error(`VIDEO_PIPELINE_NO_SECTIONS: ${readiness.message}`);
   }
+}
+
+export function assertVideoProductionReady(scope: InterviewScope, textTaskId?: string): void {
+  assertProductionReady(scope);
+  assertStoryTextReady(scope, textTaskId);
 }

@@ -4,7 +4,11 @@ import path from "node:path";
 import type { VideoClipIndexRow } from "../../biography/render/step260MergeVideoClips.js";
 import { writeJsonAtomic } from "../../shared/orchestrator/pipelineDisk.js";
 import type { VideoTaskPaths } from "../../shared/orchestrator/videoTaskWorkspace.js";
-import { studioClipIndexRel, studioClipSubdirRel } from "../constants/studioFilenames.js";
+import {
+  studioClipIndexRel,
+  studioClipSubdirRel,
+  studioPipelineRelToTaskRootAbs,
+} from "../constants/studioFilenames.js";
 import type { InterviewSpeaker } from "../llm/studioScript.js";
 import { loadStudioTurnsAndAudioFiles } from "./studioTts.js";
 import {
@@ -151,7 +155,7 @@ export function renderInterviewStudioTurnClipFromPack(params: {
   ensureInterviewVideoPackClipsReady();
 
   const { taskRoot, segmentIndex, audioRelativePath, subtitleLine, speaker, fromState } = params;
-  const audioAbs = path.join(taskRoot, audioRelativePath.split("/").join(path.sep));
+  const audioAbs = studioPipelineRelToTaskRootAbs(taskRoot, audioRelativePath);
   if (!fs.existsSync(audioAbs)) {
     throw new Error(`${ERR}: 缺少访谈音频 ${audioAbs}`);
   }

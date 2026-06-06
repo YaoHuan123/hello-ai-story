@@ -1,30 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  createInterview,
-  deleteInterview,
-  getCurrentQuestion,
-  listInterviews,
-  submitAnswer,
-} from "../api/interviews";
+import { getCurrentQuestion, getInterviewMessages, submitAnswer } from "../api/interviews";
 import { ApiRequestError } from "../api/client";
 import { YearMonthInput } from "../components/YearMonthInput";
-import type { InterviewMeta, InterviewQuestion } from "../types/interview";
+import type { InterviewChatMessage, InterviewQuestion } from "../types/interview";
 import { normalizeYearMonthInRange } from "../utils/yearMonth";
+import "./InterviewPage.css";
+
+type ChatMessage = InterviewChatMessage;
 
 type Props = {
-  interviewId: string | null;
-  onInterviewIdChange: (id: string | null) => void;
+  interviewId: string;
+  interviewTitle?: string | null;
+  onBack: () => void;
   onNeedLogin: () => void;
 };
 
-export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }: Props) {
-  const [interviews, setInterviews] = useState<InterviewMeta[]>([]);
+export function InterviewPage({
+  interviewId,
+  interviewTitle,
+  onBack,
+  onNeedLogin,
+}: Props) {
   const [question, setQuestion] = useState<InterviewQuestion | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [answer, setAnswer] = useState("");
-  const [submittedCounts, setSubmittedCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submittingRef = useRef(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isStaleProgressError = (err: unknown): boolean => {
     if (err instanceof ApiRequestError) {
@@ -57,72 +60,37 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
     }
   }, [onNeedLogin]);
 
-  const refreshList = useCallback(async () => {
-    const res = await listInterviews();
-    setInterviews(res.interviews);
+  const loadSession = useCallback(async (id: string) => {
+    const [q, historyRes] = await Promise.all([
+      getCurrentQuestion(id),
+      getInterviewMessages(id).catch(() => ({ messages: [] as ChatMessage[] })),
+    ]);
+    setQuestion(q);
+    setMessages(historyRes.messages);
+    setAnswer("");
   }, []);
 
-  const loadQuestion = useCallback(
-    async (id: string) => {
-      const q = await getCurrentQuestion(id);
-      setQuestion(q);
-      setAnswer("");
-    },
-    [],
-  );
+  useEffect(() => {
+    setAnswer("");
+    setError(null);
+    void run(async () => {
+      await loadSession(interviewId);
+    });
+  }, [interviewId, run, loadSession]);
 
   useEffect(() => {
-    void run(refreshList);
-  }, [run, refreshList]);
+    if (!question) return;
+    const meta = question.type === "topic" ? "选主题" : question.title ?? undefined;
+    const id = `q-${question.key}`;
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === id)) return prev;
+      return [...prev, { id, role: "ai", text: question.text, meta }];
+    });
+  }, [question?.key, question?.text, question?.type, question?.title]);
 
   useEffect(() => {
-    if (!interviewId) {
-      setQuestion(null);
-      setAnswer("");
-      return;
-    }
-    void run(async () => {
-      await loadQuestion(interviewId);
-    });
-  }, [interviewId, run, loadQuestion]);
-
-  const handleNewInterview = () => {
-    void run(async () => {
-      const meta = await createInterview();
-      onInterviewIdChange(meta.id);
-      await refreshList();
-      await loadQuestion(meta.id);
-    });
-  };
-
-  const handleContinue = (id: string) => {
-    void run(async () => {
-      onInterviewIdChange(id);
-      await loadQuestion(id);
-    });
-  };
-
-  const handleDeleteInterview = (id: string) => {
-    const item = interviews.find((x) => x.id === id);
-    const label = item?.title || id.slice(0, 8);
-    if (!window.confirm(`确定删除「${label}」吗？删除后素材、答题记录和生产产物都无法恢复。`)) {
-      return;
-    }
-    void run(async () => {
-      await deleteInterview(id);
-      if (id === interviewId) {
-        onInterviewIdChange(null);
-        setQuestion(null);
-        setAnswer("");
-      }
-      setSubmittedCounts((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      await refreshList();
-    });
-  };
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading, error]);
 
   const resolveSubmitValue = (q: InterviewQuestion, raw: string): string | null => {
     const trimmed = raw.trim();
@@ -138,8 +106,25 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
     return trimmed;
   };
 
+  const afterAnswer = async () => {
+    await loadSession(interviewId);
+  };
+
+  const handleSubmitError = async (err: unknown) => {
+    if (isStaleProgressError(err)) {
+      await loadSession(interviewId);
+      setError("当前题目已过期（可能已答过或本节已结束），已为你刷新，请继续作答。");
+      return;
+    }
+    const msg = err instanceof Error ? err.message : "请求失败";
+    if (msg.includes("未登录") || msg.includes("Unauthorized")) {
+      onNeedLogin();
+    }
+    setError(msg);
+  };
+
   const handleSubmit = () => {
-    if (!interviewId || !question) return;
+    if (!question) return;
     if (submittingRef.current) return;
     const value = resolveSubmitValue(question, answer);
     if (!value) {
@@ -160,22 +145,30 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
           text: question.text,
           value,
         });
-        setSubmittedCounts((prev) => ({
-          ...prev,
-          [interviewId]: (prev[interviewId] ?? 0) + 1,
-        }));
-        await loadQuestion(interviewId);
+        await afterAnswer();
       } catch (err) {
-        if (isStaleProgressError(err)) {
-          await loadQuestion(interviewId);
-          setError("当前题目已过期（可能已答过或本节已结束），已为你刷新，请继续作答。");
-          return;
-        }
-        const msg = err instanceof Error ? err.message : "请求失败";
-        if (msg.includes("未登录") || msg.includes("Unauthorized")) {
-          onNeedLogin();
-        }
-        setError(msg);
+        await handleSubmitError(err);
+      } finally {
+        submittingRef.current = false;
+      }
+    });
+  };
+
+  const handleSkip = () => {
+    if (!question?.skippable) return;
+    if (submittingRef.current) return;
+    void run(async () => {
+      submittingRef.current = true;
+      try {
+        await submitAnswer(interviewId, {
+          key: question.key,
+          text: question.text,
+          skip: true,
+        });
+        setAnswer("");
+        await afterAnswer();
+      } catch (err) {
+        await handleSubmitError(err);
       } finally {
         submittingRef.current = false;
       }
@@ -184,10 +177,9 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
 
   const pickOption = (opt: string) => {
     setAnswer(opt);
+    setError(null);
   };
 
-  const currentInterview = interviews.find((item) => item.id === interviewId) ?? null;
-  const currentSubmittedCount = interviewId ? submittedCounts[interviewId] ?? 0 : 0;
   const isTopicQuestion = question?.type === "topic";
   const fieldType = question?.fieldType ?? "text";
   const choiceChips =
@@ -198,226 +190,167 @@ export function InterviewPage({ interviewId, onInterviewIdChange, onNeedLogin }:
     !isTopicQuestion && fieldType !== "select" && (question?.options.length ?? 0) > 0
       ? question!.options
       : [];
-  const topicLabel = question?.type === "topic" ? "选主题" : question?.title ?? "未加载";
-  const progressText = interviewId
-    ? `本次已提交 ${currentSubmittedCount} 轮`
-    : "请选择或新建采访";
+  const headerTitle = interviewTitle?.trim() || "人生故事";
+
+  const showComposer = !!question && !loading;
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <section style={{ border: "1px solid #ddd", borderRadius: 10, padding: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <h2 style={{ margin: 0 }}>采访</h2>
-            <p style={{ margin: "6px 0 0", color: "#666", fontSize: 13 }}>
-              新建一场采访，或从列表继续未完成的采访。
-            </p>
+    <div className="iv-layout">
+      <div className="iv-main">
+        <header className="iv-header">
+          <button type="button" className="iv-back-btn" onClick={onBack} aria-label="返回创作">
+            ← 创作
+          </button>
+          <div className="iv-header-text">
+            <h1>{headerTitle}</h1>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
-            <button type="button" onClick={handleNewInterview} disabled={loading}>
-              新建采访
-            </button>
-            <button
-              type="button"
-              onClick={() => void run(refreshList)}
-              disabled={loading}
-            >
-              刷新列表
-            </button>
-          </div>
-        </div>
-        {interviews.length === 0 && !loading && (
-          <p style={{ margin: "12px 0 0", color: "#666" }}>还没有采访，点击“新建采访”开始。</p>
-        )}
-        {interviews.length > 0 && (
-          <ul style={{ margin: "12px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
-            {interviews.map((item) => (
-              <li
-                key={item.id}
-                style={{
-                  border: item.id === interviewId ? "1px solid #2563eb" : "1px solid #eee",
-                  borderRadius: 8,
-                  padding: 10,
-                  background: item.id === interviewId ? "#eff6ff" : "#fff",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <strong>{item.title || "未命名采访"}</strong>
-                      {item.id === interviewId && (
-                        <span style={{ color: "#2563eb", fontSize: 12 }}>当前</span>
-                      )}
-                    </div>
-                    <div style={{ color: "#666", marginTop: 4, fontSize: 12 }}>
-                      <code>{item.id.slice(0, 8)}…</code>
-                      <span style={{ marginLeft: 8 }}>创建：{new Date(item.createdAt).toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => handleContinue(item.id)}
-                      disabled={loading || item.id === interviewId}
-                    >
-                      {item.id === interviewId ? "已打开" : "继续"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteInterview(item.id)}
-                      disabled={loading}
-                      style={{
-                        borderColor: "#fecaca",
-                        color: "#b91c1c",
-                        background: "#fff",
-                      }}
-                    >
-                      删除
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        {interviewId && (
-          <p style={{ margin: "12px 0 0", fontSize: 13, color: "#444" }}>
-            当前采访：<code>{interviewId}</code>
-            {currentInterview?.title ? ` · ${currentInterview.title}` : ""}
-          </p>
-        )}
-      </section>
+        </header>
 
-      {question && (
-        <section style={{ border: "1px solid #ddd", borderRadius: 10, padding: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <p style={{ margin: "0 0 8px", fontSize: 13, color: "#666" }}>
-              {question.type === "topic" ? "选主题" : `答题 · ${question.title ?? ""}`}
-            </p>
-            <p style={{ margin: "0 0 8px", fontSize: 13, color: "#666" }}>
-              当前主题：{topicLabel} · {progressText}
-            </p>
-          </div>
-          <p style={{ margin: "0 0 12px", fontSize: 18, lineHeight: 1.5 }}>{question.text}</p>
+        <section className="iv-messages" aria-live="polite">
+          {messages.map((m) => (
+            <div key={m.id} className={`iv-msg iv-msg--${m.role}`}>
+              <div className="iv-card">
+                {m.role === "ai" && m.meta ? <div className="iv-meta">{m.meta}</div> : null}
+                <div>{m.text}</div>
+              </div>
+            </div>
+          ))}
+          {!question && loading && <p className="iv-loading">加载题目中…</p>}
+          <div ref={messagesEndRef} />
+        </section>
 
-          {isTopicQuestion && question.options.length > 0 && (
-            <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+        <footer className="iv-composer">
+          {loading && question && <p className="iv-hint">处理中…</p>}
+          {error && <p className="iv-hint iv-hint--err">{error}</p>}
+
+          {showComposer && isTopicQuestion && question.options.length > 0 && (
+            <div className="iv-topic-list" role="list">
               {question.options.map((opt) => (
                 <button
                   key={opt}
                   type="button"
+                  className={`iv-topic-opt${answer === opt ? " iv-topic-opt--on" : ""}`}
                   onClick={() => pickOption(opt)}
                   disabled={loading}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    border: answer === opt ? "2px solid #2563eb" : "1px solid #ddd",
-                    background: answer === opt ? "#eff6ff" : "#fff",
-                    cursor: loading ? "default" : "pointer",
-                  }}
                 >
-                  <strong style={{ display: "block", marginBottom: 4 }}>{opt}</strong>
-                  <span style={{ color: "#666", fontSize: 13 }}>
-                    选择后提交，进入这个主题的追问。
-                  </span>
+                  <strong>{opt}</strong>
+                  <span>选择后发送，进入这个主题的追问。</span>
                 </button>
               ))}
             </div>
           )}
 
-          {!isTopicQuestion && choiceChips.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          {showComposer && choiceChips.length > 0 && (
+            <div className="iv-chips" role="group" aria-label="选项">
               {choiceChips.map((opt) => (
                 <button
                   key={opt}
                   type="button"
+                  className={`iv-chip${answer === opt ? " iv-chip--on" : ""}`}
                   onClick={() => pickOption(opt)}
                   disabled={loading}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: answer === opt ? "2px solid #2563eb" : "1px solid #ccc",
-                    background: answer === opt ? "#eff6ff" : "#fff",
-                    cursor: loading ? "default" : "pointer",
-                  }}
                 >
-                  {answer === opt ? "已选 · " : ""}
                   {opt}
                 </button>
               ))}
             </div>
           )}
 
-          {!isTopicQuestion && suggestionChips.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          {showComposer && suggestionChips.length > 0 && (
+            <div className="iv-chips" role="group" aria-label="建议答案">
               {suggestionChips.map((opt) => (
                 <button
                   key={opt}
                   type="button"
+                  className={`iv-chip${answer === opt ? " iv-chip--on" : ""}`}
                   onClick={() => pickOption(opt)}
                   disabled={loading}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: answer === opt ? "2px solid #2563eb" : "1px solid #ccc",
-                    background: answer === opt ? "#eff6ff" : "#fff",
-                    cursor: loading ? "default" : "pointer",
-                  }}
                 >
-                  {answer === opt ? "已选 · " : ""}
                   {opt}
                 </button>
               ))}
             </div>
           )}
 
-          {!isTopicQuestion && fieldType === "yearMonth" && (
-            <label style={{ display: "block", marginBottom: 12 }}>
-              年月：
-              <div style={{ marginTop: 6 }}>
-                <YearMonthInput value={answer} onChange={setAnswer} disabled={loading} />
+          {showComposer && question.skippable && (
+            <div className="iv-chips" role="group" aria-label="可选操作">
+              <button
+                type="button"
+                className="iv-chip iv-chip--skip"
+                onClick={handleSkip}
+                disabled={loading}
+              >
+                跳过此题
+              </button>
+            </div>
+          )}
+
+          {showComposer && (
+            <div className="iv-composer-row">
+              <div className="iv-panel">
+                {!isTopicQuestion && fieldType === "yearMonth" && (
+                  <div className="iv-ym-wrap">
+                    <YearMonthInput value={answer} onChange={setAnswer} disabled={loading} />
+                  </div>
+                )}
+
+                {!isTopicQuestion && fieldType !== "yearMonth" && fieldType !== "select" && (
+                  <input
+                    className="iv-input"
+                    value={answer}
+                    onChange={(e) => {
+                      setAnswer(e.target.value);
+                      setError(null);
+                    }}
+                    placeholder="输入你的回答…"
+                    disabled={loading}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit();
+                      }
+                    }}
+                  />
+                )}
+
+                {isTopicQuestion && (
+                  <input
+                    className="iv-input"
+                    value={answer}
+                    onChange={(e) => {
+                      setAnswer(e.target.value);
+                      setError(null);
+                    }}
+                    placeholder="或输入主题标题…"
+                    disabled={loading}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSubmit();
+                      }
+                    }}
+                  />
+                )}
+
+                {fieldType === "select" && choiceChips.length > 0 && !answer && (
+                  <p className="iv-hint">请从上方选项中选择</p>
+                )}
               </div>
-            </label>
+
+              <button
+                type="button"
+                className="iv-send"
+                onClick={handleSubmit}
+                disabled={loading || !answer.trim()}
+                aria-label="发送"
+                title="发送"
+              >
+                ↑
+              </button>
+            </div>
           )}
-
-          {!isTopicQuestion && fieldType !== "yearMonth" && fieldType !== "select" && (
-            <label style={{ display: "block", marginBottom: 12 }}>
-              答案：
-              <input
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 480, padding: 8 }}
-                disabled={loading}
-              />
-            </label>
-          )}
-
-          {isTopicQuestion && (
-            <label style={{ display: "block", marginBottom: 12 }}>
-              或输入主题标题：
-              <input
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 480, padding: 8 }}
-                disabled={loading}
-              />
-            </label>
-          )}
-
-          <button type="button" onClick={handleSubmit} disabled={loading}>
-            提交
-          </button>
-        </section>
-      )}
-
-      {!question && interviewId && !loading && (
-        <p style={{ color: "#666" }}>加载题目中…</p>
-      )}
-
-      {loading && <p style={{ margin: 0 }}>处理中…</p>}
-      {error && <p style={{ color: "crimson", margin: 0 }}>{error}</p>}
+        </footer>
+      </div>
     </div>
   );
 }

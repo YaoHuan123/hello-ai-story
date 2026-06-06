@@ -1,0 +1,325 @@
+/* 创作 / 访谈页：对齐老项目 InterviewEditPage.css */
+
+.iv-subpage-shell {
+  min-height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  box-sizing: border-box;
+}
+
+.iv-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  background: #fff;
+  color: #1e293b;
+}
+
+.iv-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: #f5f7ff;
+}
+
+.iv-header {
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iv-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.iv-header h1 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iv-header p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.iv-back-btn {
+  flex-shrink: 0;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.iv-back-btn:active {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.iv-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 14px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.iv-msg {
+  margin-bottom: 14px;
+  animation: iv-fade-in 0.3s ease;
+}
+
+@keyframes iv-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.iv-msg--ai .iv-card {
+  background: #fff;
+  border-radius: 16px 16px 16px 4px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.08);
+  border-left: 4px solid #6366f1;
+  max-width: 92%;
+}
+
+.iv-msg--user {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.iv-msg--user .iv-card {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border-radius: 16px 16px 4px 16px;
+  padding: 12px 14px;
+  max-width: 88%;
+}
+
+.iv-meta {
+  font-size: 11px;
+  color: #6366f1;
+  margin-bottom: 4px;
+}
+
+.iv-composer {
+  background: #fff;
+  padding: 10px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #eef0f8;
+  flex-shrink: 0;
+}
+
+.iv-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0 0 8px;
+}
+
+.iv-hint--warn {
+  color: #b45309;
+}
+
+.iv-hint--err {
+  color: #b91c1c;
+}
+
+.iv-composer-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.iv-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+.iv-input,
+.iv-textarea {
+  width: 100%;
+  border: 2px solid #eef0f8;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.iv-input:focus,
+.iv-textarea:focus {
+  border-color: #6366f1;
+}
+
+.iv-ym-wrap input {
+  width: 100%;
+  border: 2px solid #eef0f8;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 15px;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.iv-ym-wrap input:focus {
+  border-color: #6366f1;
+}
+
+.iv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.iv-chip {
+  border: 1px solid #c7d2fe;
+  background: #f8fafc;
+  color: #4338ca;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.iv-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.iv-chip--on {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+}
+
+.iv-chip--skip {
+  color: #64748b;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.iv-chip--skip:hover:not(:disabled) {
+  color: #475569;
+  border-color: #94a3b8;
+}
+
+.iv-topic-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.iv-topic-opt {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid #eef0f8;
+  background: #fff;
+  color: #1e293b;
+  cursor: pointer;
+  font: inherit;
+}
+
+.iv-topic-opt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.iv-topic-opt--on {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.iv-topic-opt strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #4338ca;
+}
+
+.iv-topic-opt span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.iv-send {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.iv-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.iv-status-banner {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #4338ca;
+  background: #eef2ff;
+  border-bottom: 1px solid #c7d2fe;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.iv-btn {
+  border: 1px solid #c7d2fe;
+  background: #fff;
+  color: #4338ca;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.iv-btn--primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border: none;
+}
+
+.iv-loading {
+  padding: 24px 16px;
+  text-align: center;
+  color: #6366f1;
+  font-size: 14px;
+}
