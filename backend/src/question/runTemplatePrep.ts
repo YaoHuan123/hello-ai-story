@@ -1,3 +1,4 @@
+import { getCatalogFieldDisplayText } from "../topic/catalog";
 import { colloquializeQuestions } from "./colloquialize";
 import { dedupeQuestions } from "./dedupe";
 import { suggestBatchAnswers } from "./suggestBatch";
@@ -5,10 +6,10 @@ import type { TemplatePrepParams, TemplatePrepResult } from "./types";
 import { isCatalogPrepNotApplicable, isCatalogPrepSkipped } from "./types";
 import { traceQuestionStep, runWithLlmTraceLabel } from "./questionTrace";
 
-function passthroughQuestionTexts(questions: string[]): Record<string, string> {
+function passthroughQuestionTexts(questions: string[], title: string): Record<string, string> {
   const questionTexts: Record<string, string> = {};
   for (const q of questions) {
-    questionTexts[q] = q;
+    questionTexts[q] = getCatalogFieldDisplayText(title, q);
   }
   return questionTexts;
 }
@@ -34,7 +35,7 @@ export async function runTemplatePrep(params: TemplatePrepParams): Promise<Templ
       skipped: true,
       askQuestions: allQuestions,
       skippedQuestions: [],
-      questionTexts: passthroughQuestionTexts(allQuestions),
+      questionTexts: passthroughQuestionTexts(allQuestions, questionSet.title),
       answerSuggestions: {},
     };
   }

@@ -1,6 +1,5 @@
+import { QUESTION_TEXT_MAX_CHARS } from "../content/displayLocale";
 import type { RefineCurrentQuestionResult } from "./types";
-
-const QUESTION_TEXT_MAX = 80;
 const REASON_MAX_LEN = 60;
 
 /**
@@ -31,13 +30,14 @@ export function parseRefine(parsed: unknown): RefineCurrentQuestionResult {
   if (!questionText) {
     throw new Error("REFINE_INVALID: questionText 缺失");
   }
-  if (questionText.length > QUESTION_TEXT_MAX) {
-    throw new Error("REFINE_INVALID: questionText 超过 80 字");
+  const maxLen = QUESTION_TEXT_MAX_CHARS;
+  if (questionText.length > maxLen) {
+    throw new Error(`REFINE_INVALID: questionText 超过 ${maxLen} 字`);
   }
-  if (/请填写|^\[|fieldKey/i.test(questionText)) {
+  if (/请填写|^\[|fieldKey|please fill|fill in\b|enter your/i.test(questionText)) {
     throw new Error("REFINE_INVALID: questionText 不得为填表指令或字段名复述");
   }
-  if (/吧？\s*$|对吗\s*$|应该是/.test(questionText)) {
+  if (/\b(right|correct)\?\s*$|isn't it\?\s*$|i guess\b/i.test(questionText)) {
     throw new Error("REFINE_INVALID: questionText 不得为判断句结尾");
   }
   if (reason.length > REASON_MAX_LEN) {

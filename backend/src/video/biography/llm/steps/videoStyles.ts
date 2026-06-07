@@ -1,5 +1,10 @@
 import fs from "fs";
 import path from "path";
+import {
+  getDisplayVideoStyleFields,
+  type VideoStyleDisplayFields,
+} from "../../../../content/displayCatalog.js";
+import type { DisplayLocale } from "../../../../content/displayLocale.js";
 
 export type VideoStyleRow = {
   id: string;
@@ -23,7 +28,30 @@ export type VideoStylesFile = {
   styles: VideoStyleRow[];
 };
 
-export function loadVideoStyles(configPath: string): VideoStylesFile {
+type VideoStyleOverridesFile = {
+  styles: Record<string, Partial<VideoStyleRow>>;
+};
+
+function overridesPathFor(configPath: string): string {
+  const dir = path.dirname(configPath);
+  const base = path.basename(configPath, ".json");
+  return path.join(dir, `${base}.en.overrides.json`);
+}
+
+function mergeVideoStyleOverrides(file: VideoStylesFile, configPath: string): VideoStylesFile {
+  const overridesPath = overridesPathFor(configPath);
+  if (!fs.existsSync(overridesPath)) return file;
+  const raw = fs.readFileSync(overridesPath, "utf-8");
+  const overrides = JSON.parse(raw) as VideoStyleOverridesFile;
+  if (!overrides?.styles || typeof overrides.styles !== "object") return file;
+  const styles = file.styles.map((row) => {
+    const patch = overrides.styles[row.id];
+    return patch ? { ...row, ...patch } : row;
+  });
+  return { ...file, styles };
+}
+
+function loadVideoStylesBase(configPath: string): VideoStylesFile {
   if (!fs.existsSync(configPath)) {
     throw new Error(`缺少视频风格配置：${configPath}`);
   }
@@ -33,6 +61,11 @@ export function loadVideoStyles(configPath: string): VideoStylesFile {
     throw new Error(`视频风格配置格式错误：${configPath}`);
   }
   return parsed;
+}
+
+/** 管线用 canonical 英文（`video-styles.json` + `video-styles.en.overrides.json`）。 */
+export function loadVideoStyles(configPath: string): VideoStylesFile {
+  return mergeVideoStyleOverrides(loadVideoStylesBase(configPath), configPath);
 }
 
 /** 读取配置并按任务所选 `styleId` 覆盖 `selectedStyleId`（默认读 config/video-styles.json）。 */
@@ -67,28 +100,28 @@ export function styleToPromptPrefix(s: VideoStyleRow): string {
   const transitions = s.transitions?.trim();
   const atmosphere = s.atmosphere?.trim();
 
-  if (name) parts.push(`【${name}${badge ? `｜${badge}` : ""}】`);
+  if (name) parts.push(`[${name}${badge ? ` | ${badge}` : ""}]`);
   if (artStyle) parts.push(artStyle);
   if (detailedDesc) parts.push(detailedDesc);
   if (technical) parts.push(technical);
-  if (positioning) parts.push(`定位：${positioning}`);
-  if (colorTone) parts.push(`色调：${colorTone}`);
-  if (camera) parts.push(`镜头：${camera}`);
-  if (transitions) parts.push(`转场：${transitions}`);
-  if (atmosphere) parts.push(`氛围：${atmosphere}`);
+  if (positioning) parts.push(`Positioning: ${positioning}`);
+  if (colorTone) parts.push(`Color: ${colorTone}`);
+  if (camera) parts.push(`Camera: ${camera}`);
+  if (transitions) parts.push(`Transitions: ${transitions}`);
+  if (atmosphere) parts.push(`Mood: ${atmosphere}`);
 
-  return parts.length > 0 ? `${parts.join("，")}。` : "";
+  return parts.length > 0 ? `${parts.join(", ")}.` : "";
 }
 
 export function styleToImageRestylePrompt(s: VideoStyleRow): string {
   const base = styleToPromptPrefix(s);
   return [
-    "你将收到一张用户上传的真实照片，请做图生图风格统一。",
-    "要求：保留原始场景主体、构图、地点特征和主要建筑，不要改变事件语义。",
-    "只在画风、色调、镜头质感、氛围上向目标风格靠拢，整体与传记视频风格保持统一。",
-    "禁止新增人物、禁止新增文字、禁止logo与水印、禁止夸张变形。",
-    "输出单帧高质量图片。",
-    base || "风格要求：纪实传记风格，真实自然光影，高细节。",
+    "You will receive a real photo uploaded by the user. Restyle it for visual consistency.",
+    "Keep the original subject, composition, location cues, and main buildings; do not change event meaning.",
+    "Adjust only art direction, color, camera feel, and mood toward the target style; stay consistent with the biography video look.",
+    "Do not add people, text, logos, watermarks, or exaggerated distortion.",
+    "Output a single high-quality frame.",
+    base || "Style: documentary biography, natural light, high detail.",
   ].join("\n");
 }
 
@@ -126,7 +159,32 @@ function detectCoverFile(styleDir: string): string | null {
  * `configDir` 为 backend 的 `config` 目录绝对或相对 `process.cwd()` 的路径。
  * `coverUrl` 为以 `/` 开头的前端可用路径，需与 `app.use("/static/video-styles", static(...))` 配合。
  */
-export function listPublicStyles(configDir: string): { selectedStyleId: string; styles: PublicVideoStyle[] } {
+function overlayVideoStyleDisplay(
+  row: PublicVideoStyle,
+  locale: DisplayLocale,
+): PublicVideoStyle {
+  const zh = getDisplayVideoStyleFields(row.id, locale);
+  if (!zh) return row;
+  const apply = (key: keyof VideoStyleDisplayFields, fallback: string): string => {
+    const v = zh[key];
+    return typeof v === "string" && v.trim() ? v.trim() : fallback;
+  };
+  return {
+    ...row,
+    name: apply("name", row.name),
+    badge: apply("badge", row.badge),
+    positioning: apply("positioning", row.positioning),
+    atmosphere: apply("atmosphere", row.atmosphere),
+    suitableFor: apply("suitableFor", row.suitableFor),
+    detailedDesc: apply("detailedDesc", row.detailedDesc),
+  };
+}
+
+/** 公开 API：canonical 英文 + `catalog.zh.json` 展示覆盖（`locale=zh` 时）。 */
+export function listPublicStyles(
+  configDir: string,
+  locale: DisplayLocale = "en",
+): { selectedStyleId: string; styles: PublicVideoStyle[] } {
   const configPath = path.join(configDir, "video-styles.json");
   const file = loadVideoStyles(configPath);
   const stylesBase = path.join(configDir, "video-styles");
@@ -143,7 +201,7 @@ export function listPublicStyles(configDir: string): { selectedStyleId: string; 
     const coverFile = fs.existsSync(dir) && fs.statSync(dir).isDirectory() ? detectCoverFile(dir) : null;
     const coverUrl = coverFile != null ? `/static/video-styles/${s.id}/${coverFile}` : null;
 
-    return {
+    const canonical: PublicVideoStyle = {
       id: s.id,
       order: ord,
       name: s.name,
@@ -154,6 +212,7 @@ export function listPublicStyles(configDir: string): { selectedStyleId: string; 
       detailedDesc: s.detailedDesc,
       coverUrl,
     };
+    return overlayVideoStyleDisplay(canonical, locale);
   });
 
   return { selectedStyleId: file.selectedStyleId, styles };

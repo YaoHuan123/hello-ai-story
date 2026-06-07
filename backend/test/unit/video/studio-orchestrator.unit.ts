@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
+import { resolveVideoTestLocale } from "../../fixtures/interviewScope";
 import { createInterview } from "../../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../../src/services/workspace.service";
 import type { AnsweredSection } from "../../../src/topic/types";
@@ -46,11 +47,18 @@ function check(label: string, cond: boolean, detail?: unknown): void {
 async function main() {
   const userId = `video-studio-test-${Date.now()}`;
   createUserWorkspace(userId);
-  const interview = createInterview(userId, { title: "演播室测试" });
+  const interview = createInterview(userId, { title: "演播室测试", locale: resolveVideoTestLocale() });
   const scope = { userId, interviewId: interview.id };
   seedCommittedSections(scope, FIXTURE);
 
   await runTextPipeline(scope, { createTask: true, mode: "stub", sections: FIXTURE });
+
+  const hostVoice = (process.env.VIDEO_DEMO_HOST_VOICE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
+  const guestVoice = (process.env.VIDEO_DEMO_GUEST_VOICE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
+  if (!hostVoice || !guestVoice) {
+    console.warn("[SKIP] 未配置 VIDEO_DEMO_TTS_VOICE（或 HOST/GUEST），iv_tts 需合法 zh_/en_ 音色。");
+    process.exit(0);
+  }
 
   const handle = createStudioVideoTask(scope);
   check("create studio task meta", fs.existsSync(handle.paths.metaPath));
@@ -58,8 +66,8 @@ async function main() {
   const result = await runStudioVideoPipeline(scope, {
     taskId: handle.taskId,
     polishMode: "stub",
-    hostVoice: "stub-host",
-    guestVoice: "stub-guest",
+    hostVoice,
+    guestVoice,
     throughStep: "iv_duration_align",
   });
 

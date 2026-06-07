@@ -52,6 +52,7 @@ async function main(): Promise<void> {
     commitTopic,
     getPendingTopics,
     getCurrentQuestion,
+    getCurrentStage,
     submit,
   } = await import("../../../src/services/interviewOrchestrator.service");
   const { stubSections } = await import("../../fixtures/sections.stub");
@@ -69,7 +70,7 @@ async function main(): Promise<void> {
   const qCold0 = await getCurrentQuestion(coldScope);
   check(
     "冷启动首读=基本档案普通问答",
-    qCold0.type === "normal" && qCold0.title === "基本档案" && (qCold0.text?.length ?? 0) > 0,
+    qCold0.type === "normal" && qCold0.title === "Basic profile" && (qCold0.text?.length ?? 0) > 0,
     qCold0,
   );
   check("冷启动首题 fieldType=text", qCold0.fieldType === "text", qCold0);
@@ -87,7 +88,7 @@ async function main(): Promise<void> {
   }
   check("冷启动答完后回到选主题", qCold.type === "topic", qCold);
   const coldSections = getSections(coldScope);
-  const coldBasic = coldSections.find((s) => s.name === "基本档案");
+  const coldBasic = coldSections.find((s) => s.name === "Basic profile");
   check("冷启动 commit 后 sections 含基本档案 8 问", coldBasic?.qa.length === 8, coldBasic);
   check(
     "冷启动答完后清空出题器",
@@ -132,11 +133,11 @@ async function main(): Promise<void> {
   if (q8.type === "normal") {
     submit(scope8, { key: q8.key, text: q8.text, value: "浙江省杭州市余杭区" });
     check("第 8 题 submit 后出题器已清空", readQuestionSet(scope8) === null);
-    const basic8 = getSections(scope8).find((s) => s.name === "基本档案");
+    const basic8 = getSections(scope8).find((s) => s.name === "Basic profile");
     check("第 8 题 submit 后 sections 含 8 问", basic8?.qa.length === 8, basic8);
   }
 
-  const title = "基本档案";
+  const title = "Basic profile";
   const questionSet = {
     title,
     tier: 1 as const,
@@ -265,13 +266,14 @@ async function main(): Promise<void> {
   );
 
   submit(scope2, { key: q2.key, text: q2.text, value: "考了第一名" });
-  const q3 = await getCurrentQuestion(scope2);
-  check("交(答完唯一题)后读=回到选主题", q3.type === "topic", q3);
   check(
     "答完自动 commit 进 sections",
     getSections(scope2).some((s) => s.name === "童年趣事" && s.qa.length === 1),
     getSections(scope2),
   );
+  check("答完升档 tier3→tier4", getCurrentStage(scope2).tier === 4);
+  const q3 = await getCurrentQuestion(scope2);
+  check("交(答完唯一题)后读=回到选主题", q3.type === "topic", q3);
 
   console.log("\n=== 空主题（prep 去重为空）跳过而非卡死 ===");
   const scopeEmpty = setupUserWithInterview(`${TEST_USER}-empty`);

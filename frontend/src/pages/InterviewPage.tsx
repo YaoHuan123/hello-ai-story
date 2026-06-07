@@ -3,9 +3,10 @@ import { getCurrentQuestion, getInterviewMessages, submitAnswer } from "../api/i
 import { ApiRequestError } from "../api/client";
 import { SubpageHeader } from "../components/SubpageHeader";
 import { YearMonthInput } from "../components/YearMonthInput";
+import { useInterviewQuestionTts } from "../hooks/useInterviewQuestionTts";
 import { displayError, isUnauthorizedError, t } from "../i18n";
 import type { InterviewChatMessage, InterviewQuestion } from "../types/interview";
-import { INTERVIEW_SKIP_LABEL } from "../types/interview";
+import { INTERVIEW_SKIP_LABEL, INTERVIEW_SKIP_LABEL_EN } from "../types/interview";
 import { normalizeYearMonthInRange } from "../utils/yearMonth";
 import "./InterviewPage.css";
 
@@ -19,8 +20,20 @@ type Props = {
 };
 
 function formatChatText(text: string): string {
-  if (text === INTERVIEW_SKIP_LABEL) return t("interview.skipped");
+  if (text === INTERVIEW_SKIP_LABEL || text === INTERVIEW_SKIP_LABEL_EN) return t("interview.skipped");
   return text;
+}
+
+/** 把当前待答题补进时间线（历史接口只含已答记录，不含未答的当前题）。 */
+function messagesWithCurrentQuestion(
+  history: ChatMessage[],
+  q: InterviewQuestion | null,
+): ChatMessage[] {
+  if (!q) return history;
+  const meta = q.type === "topic" ? t("interview.pickTopic") : q.title ?? undefined;
+  const id = `q-${q.key}`;
+  if (history.some((m) => m.id === id)) return history;
+  return [...history, { id, role: "ai", text: q.text, meta }];
 }
 
 export function InterviewPage({
@@ -36,6 +49,11 @@ export function InterviewPage({
   const [error, setError] = useState<string | null>(null);
   const submittingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { play: playQuestionTts, stop: stopQuestionTts, speaking, loadingTts } = useInterviewQuestionTts(
+    interviewId,
+    question,
+    { paused: loading },
+  );
 
   const isStaleProgressError = (err: unknown): boolean => {
     if (err instanceof ApiRequestError) {
@@ -72,7 +90,7 @@ export function InterviewPage({
       getInterviewMessages(id).catch(() => ({ messages: [] as ChatMessage[] })),
     ]);
     setQuestion(q);
-    setMessages(historyRes.messages);
+    setMessages(messagesWithCurrentQuestion(historyRes.messages, q));
     setAnswer("");
   }, []);
 
@@ -83,16 +101,6 @@ export function InterviewPage({
       await loadSession(interviewId);
     });
   }, [interviewId, run, loadSession]);
-
-  useEffect(() => {
-    if (!question) return;
-    const meta = question.type === "topic" ? t("interview.pickTopic") : question.title ?? undefined;
-    const id = `q-${question.key}`;
-    setMessages((prev) => {
-      if (prev.some((m) => m.id === id)) return prev;
-      return [...prev, { id, role: "ai", text: question.text, meta }];
-    });
-  }, [question?.key, question?.text, question?.type, question?.title]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -220,7 +228,7 @@ export function InterviewPage({
 
           {showComposer && isTopicQuestion && question.options.length > 0 && (
             <div className="iv-topic-list" role="list">
-              {question.options.map((opt) => (
+              {question.options.map((opt, i) => (
                 <button
                   key={opt}
                   type="button"
@@ -229,7 +237,9 @@ export function InterviewPage({
                   disabled={loading}
                 >
                   <strong>{opt}</strong>
-                  <span>{t("interview.topicHint")}</span>
+                  <span>
+                    {question.optionReasons?.[i]?.trim() || t("interview.topicHint")}
+                  </span>
                 </button>
               ))}
             </div>
@@ -331,6 +341,25 @@ export function InterviewPage({
                   <p className="iv-hint">{t("interview.pickAbove")}</p>
                 )}
               </div>
+
+              <button
+                type="button"
+                className={`iv-speak${speaking ? " iv-speak--on" : ""}`}
+                onClick={() => {
+                  if (speaking || loadingTts) {
+                    stopQuestionTts();
+                  } else {
+                    void playQuestionTts().catch(() => {
+                      /* 无 TTS 配置或浏览器拦截播放时静默 */
+                    });
+                  }
+                }}
+                disabled={loading && !speaking}
+                aria-label={speaking ? t("interview.stopListen") : t("interview.listenQuestionAria")}
+                title={speaking ? t("interview.stopListen") : t("interview.listenQuestion")}
+              >
+                {speaking || loadingTts ? "■" : "♪"}
+              </button>
 
               <button
                 type="button"

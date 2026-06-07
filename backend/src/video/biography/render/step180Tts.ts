@@ -167,6 +167,9 @@ function ttsFailureMessage(httpStatus: number, rawText: string): string {
   if (httpStatus === 429) {
     return `${base}\n提示：可能触发并发/额度限制，可增大 TTS_REQUEST_DELAY_MS、降低 TTS_CONCURRENCY 后重试。`;
   }
+  if (code === 3011 || /unsupported language|TTSInvalidText/i.test(msg)) {
+    return `${base}\n提示：旁白文本语种与 TTS 音色不匹配（如 en_ 音色须送英文）。请确认 meta.locale 与音色一致，或重跑 step180（系统会将中文旁白译为英文后再合成）。`;
+  }
   if (!j && rawText.trim()) {
     return `${base}\n原始响应：${rawText.slice(0, 500)}`;
   }

@@ -1,22 +1,22 @@
-本步骤不调用 LLM，仅做字符串替换与落盘。
+This step does **not** call an LLM — string replacement and disk write only.
 
-## 输入
+## Input
 
-- `pipeline/audio-110_包含旁白的场景包.json`：读取 `mergedNarrativeSegments`
-- `pipeline/visual-190_人物阶段的视觉效果.json`：读取 `visualEntries`
+- `pipeline/step-170_包含旁白连贯优化后的场景包.json`: read `mergedNarrativeSegments`
+- `pipeline/step-190_人物阶段的视觉效果.json`: read `visualEntries`
 
-## 处理规则
+## Processing
 
-- 在 `mergedNarrativeSegments` 的字符串字段中，将命中的 `label`（如 `张三[青年]`）替换为：
-  - `张三["<description>"]`
-- `name` 部分取 `label` 中 `[` 之前的文本。
-- `description` 内的反斜杠和双引号会做转义，避免破坏 JSON 文本。
-- `visualEntries` 为空或缺失时，不替换，仅对 `mergedNarrativeSegments` 做浅拷贝输出。
+- In string fields of `mergedNarrativeSegments`, replace each matched `label` (e.g. `Zhang San[young_adult]`) with:
+  - `Zhang San["<description>"]`
+- `name` is text before `[` in `label`.
+- Backslashes and double quotes inside `description` are escaped so JSON stays valid.
+- If `visualEntries` is empty or missing, skip replacement and shallow-copy `mergedNarrativeSegments` only.
 
-## 输出
+## Output
 
-- 写入 `pipeline/visual-200_包含人物视觉效果的场景包.json`
-- 根字段：
+- Write `pipeline/step-200_包含人物视觉效果的场景包.json`
+- Root fields:
   - `savedAt`
   - `inputSceneFile`
   - `inputVisualFile`

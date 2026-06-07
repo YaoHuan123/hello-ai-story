@@ -1,22 +1,14 @@
 import fs from "node:fs";
-import path from "node:path";
+import { resolvePromptFilePath } from "../content/promptPath";
 
-const PROMPT_FILE = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "prompts",
-  "preprocess",
-  "contradiction.md",
-);
-
-let cache: { system: string; userTemplate: string } | null = null;
+let cached: { system: string; userTemplate: string } | null = null;
 
 /** 加载矛盾检测提示词（`## User` 分隔，含 `{{PIPELINE_JSON}}`）。 */
 export function loadContradictionPrompt(): { system: string; userTemplate: string } {
-  if (cache) return cache;
-  const raw = fs.readFileSync(PROMPT_FILE, "utf-8").replace(/\r\n/g, "\n");
+  if (cached) return cached;
+
+  const filePath = resolvePromptFilePath("preprocess", "contradiction.md");
+  const raw = fs.readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n");
   const marker = "\n## User\n";
   const i = raw.indexOf(marker);
   if (i < 0) {
@@ -27,6 +19,6 @@ export function loadContradictionPrompt(): { system: string; userTemplate: strin
   if (!userTemplate.includes("{{PIPELINE_JSON}}")) {
     throw new Error("PROMPT_INVALID: contradiction.md 缺少 {{PIPELINE_JSON}}");
   }
-  cache = { system, userTemplate };
-  return cache;
+  cached = { system, userTemplate };
+  return cached;
 }

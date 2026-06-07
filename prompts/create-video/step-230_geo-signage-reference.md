@@ -1,26 +1,26 @@
-本步在**文生图（230）之前**运行，依据「`pipeline/visual-220_包含视频风格的展开后的场景包.json`」里每条 `visualScenes` 的 `sceneDescription`，为画面里可能出现的路牌、站牌、店招等**整理一批真实可查的中国地名/路名/园区名**参考。下游会把参考并入文生图 API 的 prompt。
+This step runs **before text-to-image (step 240)**. From each `visualScenes[].sceneDescription` in `pipeline/step-220_包含视频风格的展开后的场景包.json`, compile **verifiable China place/road/campus names** that may appear on signs — merged into the text-to-image API prompt downstream.
 
-**重要**：本步**不接外网搜索**，仅靠模型知识；**禁止**为凑数编造你不确定是否存在的具体路名或机构名。不确定时对应数组留空，并在 `uncertaintyNote` 中简短说明。维护者应对关键场景抽查；若需强核验，应另走「带检索」的产品路径。
+**Important**: **no live web search** — model knowledge only; **do not** invent specific road or institution names you are unsure exist. When uncertain, leave arrays empty and note briefly in `uncertaintyNote`. Maintainers should spot-check; for hard verification use a separate retrieval product path.
 
 ## User
 
-你将收到 JSON：`inputScenes` 为数组，每项含 `segmentIndex`、`sceneIndex`、`sceneDescription`（字符串）。你必须为**每一项各输出一条** `geoDetails` 记录，**数组顺序与 inputScenes 一一对应**（第 i 项对应 `inputScenes[i]`）。
+You receive JSON: `inputScenes` is an array; each item has `segmentIndex`, `sceneIndex`, `sceneDescription` (string). Output **one** `geoDetails` record per input item; **array order matches `inputScenes` 1:1** (item i ↔ `inputScenes[i]`).
 
-**不要**回吐 `segmentIndex` / `sceneIndex`（服务端按数组下标合并）。
+**Do not** echo `segmentIndex` / `sceneIndex` (server merges by array index).
 
-对每条场景，结合描述中的地域、时代、职业与活动场景，给出：
+Per scene, from region, era, occupation, and activity:
 
-- `primaryLocation`：本条场景最相关的地点概括（市/区/镇或园区层级，可为空字符串）。
-- `roadNames`：你**有把握为真实存在**的当地道路名称（如县级以下真实路名）；无把握则 `[]`。
-- `landmarks`：真实地标、商圈、景区、火车站等；无把握则 `[]`。
-- `workplaceOrCampus`：真实写字楼园区、软件园、大学校区、大厂园区名等（如叙事为杭州程序员且场景合适，可含「天堂软件园」「阿里巴巴西溪园区」等**仅在你确信与场景一致时**）；无把握则 `[]`。
-- `signageLines`：1～5 条适合直接画在路牌/站牌上的**短中文**短语（每条建议不超过 12 字），内容应可从上一类字段中选出或合理组合；若无任何可信名称则 `[]`。
-- `uncertaintyNote`：可选；当多数字段为空时说明原因（如「描述过泛」「地域不明」）。
+- `primaryLocation`: most relevant place summary (city/district/town or park level; may be `""`).
+- `roadNames`: local road names you **confidently believe are real**; else `[]`.
+- `landmarks`: real landmarks, districts, scenic spots, stations; else `[]`.
+- `workplaceOrCampus`: real office parks, software parks, university campuses, major company campuses (e.g. Hangzhou developer scene → "Paradise Software Park", "Alibaba Xixi Campus" **only when confident and scene-consistent**); else `[]`.
+- `signageLines`: 1–5 **short Chinese phrases** (≤12 chars each) suitable for road/station signs — pick from fields above or reasonable combinations; if no credible names, `[]`. *(On-image signage in China stays Chinese for text-to-image readability.)*
+- `uncertaintyNote`: optional; when most fields empty, explain (e.g. "description too generic", "region unclear").
 
-**不要**输出与 `sceneDescription` 叙事明显冲突的地名；**不要**虚构细到门牌号级的假地址。
+**Do not** output place names that conflict with `sceneDescription`; **do not** invent door-number-level fake addresses.
 
-输出**仅**一个 JSON 对象，顶层键名必须为 **`geoDetails`**，值为数组；数组长度与 `inputScenes` 相同。
+Output **only** one JSON object; top-level key **`geoDetails`**, array value; length equals `inputScenes`.
 
-输入 JSON：
+Input JSON:
 
 {{PIPELINE_JSON}}

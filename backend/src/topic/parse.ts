@@ -4,7 +4,7 @@ import { allowedHotTopicDomainIds, hotTopicDomainNameById } from "./hotTopicMap"
 
 const TIER3_MIN_QUESTIONS = 1;
 const TIER3_MAX_QUESTIONS = 3;
-const TIER4_Q_MAX_LEN = 80;
+const TIER4_Q_MAX_LEN = 120;
 const TIER4_MAX_SUGGESTIONS = 4;
 const TIER4_SUGGESTION_MAX_LEN = 40;
 

@@ -194,20 +194,30 @@ function slimSubsceneForVisualScenes(items: EraSubsceneSplitItem[]) {
   }));
 }
 
+function coerceEraSubsceneSplitRoot(parsed: unknown, errPrefix: string): Record<string, unknown> {
+  if (Array.isArray(parsed)) {
+    return { eraSubsceneSplitTimelineSegments: parsed };
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`${errPrefix}: 模型输出须为对象`);
+  }
+  const root = parsed as Record<string, unknown>;
+  if (Array.isArray(root.eraSubsceneSplitTimelineSegments)) {
+    return root;
+  }
+  if (typeof root.segmentIndex !== "undefined" && Array.isArray(root.visualScenes)) {
+    return { eraSubsceneSplitTimelineSegments: [root] };
+  }
+  throw new Error(`${errPrefix}: 缺少 eraSubsceneSplitTimelineSegments`);
+}
+
 /** 解析模型仅返回的 visualScenes（按下标对齐输入段；缺省回退到该段 narrative）。 */
 function parseVisualScenesOnly(
   parsed: unknown,
   inputItems: EraSubsceneSplitItem[],
   errPrefix: string,
 ): EraSubsceneSplitItem[] {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`${errPrefix}: 模型输出须为对象`);
-  }
-  const root = parsed as Record<string, unknown>;
-  const keys = Object.keys(root);
-  if (keys.length !== 1 || !Object.prototype.hasOwnProperty.call(root, "eraSubsceneSplitTimelineSegments")) {
-    throw new Error(`${errPrefix}: 顶层须仅含 eraSubsceneSplitTimelineSegments，当前键: ${keys.join(",")}`);
-  }
+  const root = coerceEraSubsceneSplitRoot(parsed, errPrefix);
   const arr = root.eraSubsceneSplitTimelineSegments;
   if (!Array.isArray(arr)) {
     throw new Error(`${errPrefix}: eraSubsceneSplitTimelineSegments 须为数组`);

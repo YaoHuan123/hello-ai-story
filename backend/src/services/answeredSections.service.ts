@@ -1,8 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
+import {
+  normalizeSectionName,
+  normalizeSections,
+  sectionsNeedNormalization,
+} from "../content/canonicalSections";
 import type { AnsweredSection } from "../topic/types";
 import type { InterviewScope } from "./interviewWorkspace.service";
-import { getInterviewRootDir } from "./interviewWorkspace.service";
+import { getInterviewRootDir, markInterviewSchemaMigrated } from "./interviewWorkspace.service";
 
 const ANSWERED_DIR = "已答";
 const SECTIONS_FILE = "sections.json";
@@ -29,9 +34,14 @@ function readSectionsFile(scope: InterviewScope): AnsweredSection[] {
   }
 }
 
-/** 读取本场采访已答小节（`已答/sections.json`）。 */
+/** 读取本场采访已答小节（`已答/sections.json`）；懒迁移节名为 canonical。 */
 export function getSections(scope: InterviewScope): AnsweredSection[] {
-  return readSectionsFile(scope);
+  const raw = readSectionsFile(scope);
+  if (!sectionsNeedNormalization(raw)) return raw;
+  const normalized = normalizeSections(raw);
+  writeJsonAtomic(sectionsPath(scope), normalized);
+  markInterviewSchemaMigrated(scope);
+  return normalized;
 }
 
 /**
@@ -39,7 +49,7 @@ export function getSections(scope: InterviewScope): AnsweredSection[] {
  * 由调度层在本节结束时根据出题器状态组装 `AnsweredSection` 后调用。
  */
 export function commitSection(scope: InterviewScope, section: AnsweredSection): void {
-  const name = section.name.trim();
+  const name = normalizeSectionName(section.name.trim());
   if (!name) {
     throw new Error("ANSWERED_SECTIONS_MISSING_INPUT: section.name 为空");
   }

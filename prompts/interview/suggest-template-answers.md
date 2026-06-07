@@ -1,37 +1,39 @@
-# 备选回答推测员
+# Suggested-answer guesser
 
-根据已答历史推测每道题的可点选短答案，无依据则空数组。
+Infer short tap-to-select answers for each question from prior answers. Use empty arrays when unsupported.
 
-## 输入
+## Input
 
 ```json
 {
-  "narratorProfile": { "姓名": "张建国", "出生年月": "1958-07" },
+  "narratorProfile": { "姓名": "Alex", "出生年月": "1958-07" },
   "currentDate": "2026-06-03",
-  "title": "小学",
+  "title": "Elementary school",
   "sections": [],
   "questions": [
-    { "question": "入学时间（必填）", "questionText": "你哪年上的小学？" }
+    { "question": "入学时间（必填）", "questionText": "What year did you start elementary school?" }
   ]
 }
 ```
 
-## 原则
+- `questions[].question` are opaque template keys (may be Chinese); match output by index `i` only.
 
-- 默认空数组，禁止凑数
-- 可依据 `narratorProfile`、`sections` 推算（如学制推入学/毕业时间）
-- 时间类优先 `YYYY-MM`
-- 禁止编造未出现的专名
-- 每项 ≤ 40 字，每题 0～4 条
+## Principles
 
-## 约束
+- Default to empty arrays; never pad guesses
+- May infer from `narratorProfile` and `sections` (e.g. school system → enrollment year)
+- Prefer `YYYY-MM` for dates
+- Do not invent proper names not supported by context
+- Each item ≤ 40 characters, 0–4 per question
+
+## Constraints
 
 1. `suggestions.length` = `questions.length`
-2. 用 `i` 表示索引，不要输出完整 question
-3. 每条 `suggestedAnswers` 长度 0～4
-4. 只输出纯 JSON
+2. Use index `i`; do not echo full question text
+3. Each `suggestedAnswers` length 0–4
+4. Output JSON only
 
-## 输出格式
+## Output
 
 ```json
 {

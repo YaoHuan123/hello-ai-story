@@ -3,6 +3,11 @@ import path from "node:path";
 import type { InterviewScope } from "./interviewWorkspace.service";
 import { getInterviewRootDir } from "./interviewWorkspace.service";
 import { getTopicFieldKeys } from "../topic/catalog";
+import {
+  contradictionQuestionFallback,
+  gapQuestionText,
+  MATERIAL_INNER_SUGGESTIONS,
+} from "../topic/materialCopy";
 import { pendingRowsToPicks } from "../topic/pendingPickRow";
 import { selectTopics } from "../topic/selectTopics";
 import { deletePending, readPending, writePending } from "../topic/tierPending";
@@ -118,7 +123,7 @@ function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
         questions:
           row.questions && row.questions.length > 0
             ? row.questions
-            : [`需要您确认的不一致表述：${pick.title}`],
+            : [contradictionQuestionFallback(pick.title)],
         suggestedAnswers:
           row.suggestedAnswers && row.suggestedAnswers.length > 0
             ? row.suggestedAnswers
@@ -129,7 +134,7 @@ function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
         title: pick.title,
         tier: pick.tier,
         kind: pick.kind,
-        questions: [`可以补充的细节：${pick.title}`],
+        questions: [gapQuestionText(pick.title)],
       };
     case "material_turn":
       return {
@@ -145,7 +150,7 @@ function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
         tier: pick.tier,
         kind: pick.kind,
         questions: [pick.title],
-        suggestedAnswers: ["是", "否"],
+        suggestedAnswers: [...MATERIAL_INNER_SUGGESTIONS],
       };
     default:
       throw new Error(`TOPIC_INVALID_KIND: ${(pick as TopicPick).kind}`);

@@ -11,8 +11,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
-import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { resolveVideoTestLocale, setupUserWithInterview } from "../../fixtures/interviewScope";
 import { videoDemoSections } from "../../fixtures/sections.videoDemo";
+import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import {
   createBiographyVideoTask,
   runBiographyVideoPipeline,
@@ -108,11 +109,27 @@ async function main(): Promise<void> {
   const fromStep = resolveFromStep(useSeed);
 
   const userId = `video-bio-230-${Date.now()}`;
-  const scope = setupUserWithInterview(userId, { title: "传记230集成测试" });
+  const scope = setupUserWithInterview(userId, {
+    title: "传记230集成测试",
+    locale: resolveVideoTestLocale(),
+  });
   seedCommittedSections(scope, videoDemoSections());
 
   console.log("\n=== 假素材（5 节）===");
   console.log(JSON.stringify(videoDemoSections().map((s) => s.name), null, 2));
+
+  if (!useSeed) {
+    console.log("\n=== 生成故事文本（文本流水线）===");
+    const textResult = await runTextPipeline(scope, {
+      createTask: true,
+      mode: "llm",
+      sections: videoDemoSections(),
+    });
+    if (textResult.status !== "success") {
+      throw new Error(`TEXT_PIPELINE_FAILED: ${textResult.status}`);
+    }
+    console.log(`  textTaskId=${textResult.taskId}`);
+  }
 
   const handle = createBiographyVideoTask(scope);
   console.log(`\n=== 任务 taskId=${handle.taskId} ===`);

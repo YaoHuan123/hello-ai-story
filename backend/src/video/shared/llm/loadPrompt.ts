@@ -1,13 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
-
-/** 仓库根 `prompts/create-video`（dist 下 __dirname 为 backend/dist/video/shared/llm，向上 5 级到 repo 根）。 */
-const DEFAULT_PROMPT_ROOT = path.join(__dirname, "..", "..", "..", "..", "..", "prompts", "create-video");
-
-function promptRoot(): string {
-  const override = (process.env.VIDEO_PROMPT_ROOT ?? "").trim();
-  return override || DEFAULT_PROMPT_ROOT;
-}
+import { resolvePromptFilePath } from "../../../content/promptPath.js";
 
 const cache = new Map<string, { systemText: string; userSuffix: string }>();
 
@@ -17,6 +9,9 @@ export function stripUserSuffixSchemaAppendix(userSuffix: string): string {
     "\n---\n\n## 输出 JSON Schema",
     "\n---\n## 输出 JSON Schema",
     "\n## 输出 JSON Schema",
+    "\n---\n\n## Output JSON Schema",
+    "\n---\n## Output JSON Schema",
+    "\n## Output JSON Schema",
   ];
   for (const marker of markers) {
     const i = userSuffix.indexOf(marker);
@@ -34,7 +29,7 @@ export function stripUserSuffixSchemaAppendix(userSuffix: string): string {
 export function resolveVideoPromptPath(basename: string): string {
   const segments = basename.split("/").filter(Boolean);
   const file = segments[segments.length - 1] ?? basename;
-  return path.join(promptRoot(), file);
+  return resolvePromptFilePath("create-video", file);
 }
 
 /**

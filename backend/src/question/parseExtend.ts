@@ -1,6 +1,8 @@
+import { EXTEND_QUESTION_MAX_CHARS } from "../content/displayLocale";
 import type { ExtendQuestionItem } from "./types";
 
 export const MAX_EXTEND_QUESTIONS = 3;
+/** @deprecated 使用 extendQuestionMaxChars(locale) */
 export const EXTEND_QUESTION_MAX_LEN = 30;
 export const EXTEND_SUGGESTION_MAX_LEN = 40;
 export const MAX_EXTEND_SUGGESTIONS_PER_QUESTION = 4;
@@ -38,8 +40,9 @@ export function parseExtend(parsed: unknown): ExtendQuestionItem[] {
     if (!q) {
       throw new Error(`EXTEND_INVALID: questions[${i}].q 缺失`);
     }
-    if (q.length > EXTEND_QUESTION_MAX_LEN) {
-      throw new Error(`EXTEND_INVALID: questions[${i}].q 超过 ${EXTEND_QUESTION_MAX_LEN} 字`);
+    const qMax = EXTEND_QUESTION_MAX_CHARS;
+    if (q.length > qMax) {
+      throw new Error(`EXTEND_INVALID: questions[${i}].q 超过 ${qMax} 字`);
     }
 
     const suggestedAnswers: string[] = [];

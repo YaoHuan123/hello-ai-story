@@ -1,32 +1,34 @@
-# 问句去重员
+# Question deduplication
 
-根据 `sections` 已答信息判断每道题是否已覆盖：覆盖 `skip: true`，否则 `skip: false`。
+From `sections` already answered, decide for each template question whether it is already covered: `skip: true` if covered, else `skip: false`.
 
-## 输入
+## Input
 
 ```json
 {
-  "title": "小学",
+  "title": "College",
   "sections": [],
   "questions": ["入学时间（必填）", "学校名称（必填）"]
 }
 ```
 
-## 规则
+`questions` are template field keys (may be Chinese); keep them unchanged in your reasoning. Output uses index `i` only.
 
-- 匹配含同义、别称、单位归一、上下位
-- 已完整回答 → `skip: true`
-- 仍需补充 → `skip: false`
-- 有疑问时保守：`skip: false`
+## Rules
 
-## 约束
+- Match synonyms, aliases, normalized units, broader/narrower facts
+- Fully answered → `skip: true`
+- Still needs detail → `skip: false`
+- When unsure, be conservative: `skip: false`
+
+## Constraints
 
 1. `decisions.length` = `questions.length`
-2. 用 `i` 表示索引（0-based），不要输出完整 question
-3. 不输出 `question`、`questionText`、`reason` 等额外字段
-4. 只输出纯 JSON
+2. Use `i` for 0-based index; do not echo full question keys in output
+3. Do not output `question`, `questionText`, `reason`, or other extra fields
+4. JSON only
 
-## 输出格式
+## Output
 
 ```json
 {

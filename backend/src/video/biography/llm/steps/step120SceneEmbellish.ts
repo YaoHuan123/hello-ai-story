@@ -223,6 +223,23 @@ export type SceneEmbellishOutput = {
  * 单 chunk 调用模型并校验输出：对一个 segment 切片产出对齐的 `CrossValidatedTimelineItem[]`。
  * 提示词内容只要求"每条独立修饰 sceneDescription、保持其它字段结构"，所以切片处理在语义上等价于整体处理。
  */
+function coerceSceneEmbellish120Root(parsed: unknown): Record<string, unknown> {
+  if (Array.isArray(parsed)) {
+    return { crossValidatedTimelineSegments: parsed };
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("ENV_SCENE_EMBELLISH_120_INVALID: 模型输出须为对象");
+  }
+  const root = parsed as Record<string, unknown>;
+  if (Array.isArray(root.crossValidatedTimelineSegments)) {
+    return root;
+  }
+  if (typeof root.segmentIndex !== "undefined" && Array.isArray(root.visualScenes)) {
+    return { crossValidatedTimelineSegments: [root] };
+  }
+  throw new Error("ENV_SCENE_EMBELLISH_120_INVALID: 缺少 crossValidatedTimelineSegments");
+}
+
 /** 仅向模型提供修饰 visualScenes 所需字段（去掉 originalNarrative 溯源原文）。 */
 function slimSliceForEmbellish(slice: CrossValidatedTimelineItem[]) {
   return slice.map((it) => ({
@@ -259,16 +276,7 @@ async function runSceneEmbellishForSlice(
     throw new Error(`ENV_SCENE_EMBELLISH_120_INVALID: 模型调用或 JSON 解析失败。${msg}`);
   }
 
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("ENV_SCENE_EMBELLISH_120_INVALID: 模型输出须为对象");
-  }
-  const root = parsed as Record<string, unknown>;
-  const keys = Object.keys(root);
-  if (keys.length !== 1 || !Object.prototype.hasOwnProperty.call(root, "crossValidatedTimelineSegments")) {
-    throw new Error(
-      `ENV_SCENE_EMBELLISH_120_INVALID: 顶层须仅含 crossValidatedTimelineSegments，当前键: ${keys.join(",")}`,
-    );
-  }
+  const root = coerceSceneEmbellish120Root(parsed);
   const arr = root.crossValidatedTimelineSegments;
   if (!Array.isArray(arr)) {
     throw new Error("ENV_SCENE_EMBELLISH_120_INVALID: crossValidatedTimelineSegments 须为数组");

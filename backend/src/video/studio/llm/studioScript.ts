@@ -131,12 +131,12 @@ export function loadSegmentRefineEvents(pipelineDir: string): PolishedEventSumma
 
 function stubTurns(): InterviewTurn[] {
   const lines: Array<[InterviewSpeaker, string]> = [
-    ["host", "今天我们聊聊您人生里印象最深的几段经历，先从早年说起好吗？"],
-    ["guest", "好啊。我小时候家里条件一般，但父母特别重视读书。"],
-    ["host", "后来求学或工作阶段，有没有哪件事让您觉得转折特别大？"],
-    ["guest", "有。我第一次离开家乡去外地，心里既紧张又兴奋。"],
-    ["host", "再往后，家庭或事业上还有什么让您至今难忘的时刻？"],
-    ["guest", "成家之后责任重了，也更懂得珍惜身边人的陪伴。"],
+    ["host", "Today let's talk about a few chapters that shaped your life. Shall we start with your early years?"],
+    ["guest", "Sure. We weren't wealthy, but my parents really valued education."],
+    ["host", "Later in school or work, was there a moment that felt like a big turning point?"],
+    ["guest", "Yes. The first time I left home for another city, I was nervous and excited."],
+    ["host", "After that, what family or career moment still stays with you?"],
+    ["guest", "After I started my own family, responsibility grew, and I learned to cherish people close to me."],
   ];
   return lines.map(([speaker, text]) => ({ speaker, text }));
 }

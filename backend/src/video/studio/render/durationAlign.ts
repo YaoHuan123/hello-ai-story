@@ -1,4 +1,7 @@
 import fs from "node:fs";
+import { getInterviewDisplayLocale } from "../../../content/displayLocale.js";
+import { singleTextForDisplayTts } from "../../../content/voiceoverDisplayTts.js";
+import type { InterviewScope } from "../../../services/interviewWorkspace.service.js";
 import { synthesizeSingleSpeechMp3 } from "../../biography/render/step180Tts.js";
 import { writeJsonAtomic } from "../../shared/orchestrator/pipelineDisk.js";
 import type { VideoTaskPaths } from "../../shared/orchestrator/videoTaskWorkspace.js";
@@ -36,6 +39,7 @@ function fromStateForTurnIndex(turns: InterviewTurn[], i: number): InterviewPosi
 }
 
 export async function runStudioDurationAlignStep(
+  scope: InterviewScope,
   paths: VideoTaskPaths,
   hostVoice: string | undefined,
   guestVoice: string | undefined,
@@ -45,6 +49,7 @@ export async function runStudioDurationAlignStep(
   if (!host || !guest) {
     throw new Error(`${ERR}: interview_studio 须同时提供 hostVoice 与 guestVoice`);
   }
+  const locale = getInterviewDisplayLocale(scope);
 
   ensureVideoPackReady();
   const { turns: initialTurns, files, scriptRaw } = loadStudioTurnsAndAudioFiles(paths.pipelineDir);
@@ -159,7 +164,8 @@ export async function runStudioDurationAlignStep(
       });
       turns[i] = { ...turns[i], text: newText };
       const voice = turns[i].speaker === "host" ? host : guest;
-      const buf = await synthesizeSingleSpeechMp3(newText, voice);
+      const speakText = await singleTextForDisplayTts(scope, newText, locale, voice);
+      const buf = await synthesizeSingleSpeechMp3(speakText, voice);
       rewritesThisTurn += 1;
       const rel = files[i];
       const abs = studioPipelineRelToAbs(paths.pipelineDir, rel);

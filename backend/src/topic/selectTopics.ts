@@ -53,7 +53,7 @@ function fromHotTopic(pick: HotTopicPick): PendingPickRow {
       tier: 4,
       kind: "hot_topic",
       title: pick.q,
-      reason: `生活记忆：${pick.domainName}`,
+      reason: `Life memory: ${pick.domainName}`,
     },
     {
       suggestedAnswers:

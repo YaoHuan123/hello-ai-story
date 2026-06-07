@@ -1,4 +1,5 @@
 import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
+import { VOICEOVER_LINE_MAX_CHARS } from "../../../shared/constants/voiceoverLimits.js";
 import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
 import type { MergedNarrativeSegmentItem } from "./step150MergeEnvAndEra.js";
 import { rowHasRenderableEnvScene } from "../../../shared/llm/envSegmentSceneText.js";
@@ -304,8 +305,8 @@ function parseVoiceoverLines(item: unknown, label: string): string[] {
     if (typeof v !== "string" || !v.trim()) {
       throw new Error(`${ERR}: ${label} voiceover 数组中每项须为非空字符串`);
     }
-    if (v.length > 36) {
-      throw new Error(`${ERR}: ${label} voiceover 每条不超过 36 字`);
+    if (v.length > VOICEOVER_LINE_MAX_CHARS) {
+      throw new Error(`${ERR}: ${label} voiceover 每条不超过 ${VOICEOVER_LINE_MAX_CHARS} 字符`);
     }
     out.push(v);
   }
@@ -538,7 +539,7 @@ export async function runTotalPackVoiceoverFromMergedSegments(
     if (!(firstErr instanceof Error) || !firstErr.message.startsWith(`${ERR}:`)) {
       throw firstErr;
     }
-    const guidance = `【服务端校验未通过，请修正后重新输出完整 JSON】\n${firstErr.message}\n\n硬性约束：envVoiceovers/eraVoiceovers 为字符串数组的数组（与输入下标一一对应）；每条 voiceover 不超过 36 字；每项条数须与对应画面数一致；不要 segmentIndex/eraIndex。`;
+    const guidance = `【服务端校验未通过，请修正后重新输出完整 JSON】\n${firstErr.message}\n\n硬性约束：envVoiceovers/eraVoiceovers 为字符串数组的数组（与输入下标一一对应）；每条 voiceover 不超过 ${VOICEOVER_LINE_MAX_CHARS} 字符；每项条数须与对应画面数一致；不要 segmentIndex/eraIndex。`;
     ({ envVoiceovers, eraVoiceovers } = await callAndAssert("total_pack_voiceover_160_repair", guidance));
   }
 

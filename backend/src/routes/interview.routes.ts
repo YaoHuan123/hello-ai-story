@@ -9,8 +9,10 @@ import {
   listInterviews,
   type InterviewScope,
 } from "../services/interviewWorkspace.service";
-import { getInterviewChatHistory } from "../services/interviewChatHistory.service";
+import { getInterviewDisplayLocale, runWithDisplayLocaleSync } from "../content/displayLocale";
+import { getInterviewChatHistoryForDisplay } from "../services/interviewChatHistory.service";
 import { getCurrentQuestionTraced, submit } from "../services/interviewOrchestrator.service";
+import { synthesizeCurrentQuestionTts } from "../services/interviewQuestionTts.service";
 
 const submitSchema = z
   .object({
@@ -83,11 +85,21 @@ function mapInterviewError(res: Response, error: unknown): boolean {
   }
   if (
     code.startsWith("LLM_") ||
+    code === "DISPLAY_TRANSLATE_INVALID" ||
     code === "EXTEND_INVALID" ||
     code === "TOPIC_LLM_INVALID" ||
+    code === "DEDUPE_INVALID" ||
+    code === "COLLOQUIALIZE_INVALID" ||
+    code === "SUGGEST_BATCH_INVALID" ||
+    code === "REFINE_INVALID" ||
+    code === "SUGGEST_CURRENT_INVALID" ||
     error.name === "AbortError"
   ) {
     res.status(502).json({ code: "AI_SERVICE_UNAVAILABLE", message: "AI 服务暂不可用，请稍后再试" });
+    return true;
+  }
+  if (code === "INTERVIEW_TTS_EMPTY" || code === "INTERVIEW_TTS_FAILED") {
+    res.status(502).json({ code: "TTS_UNAVAILABLE", message: "语音播报暂不可用，请稍后再试" });
     return true;
   }
   return false;
@@ -98,8 +110,9 @@ function mapInterviewError(res: Response, error: unknown): boolean {
  * - POST /api/interviews              创建采访
  * - GET  /api/interviews              列出采访
  * - DELETE /api/interviews/:id        删除采访
- * - GET  /api/interviews/:id/current  读当前题
- * - POST /api/interviews/:id/submit   交（主题 / 答案）
+ * - GET  /api/interviews/:id/current      读当前题
+ * - GET  /api/interviews/:id/current/tts  当前展示题 TTS（audio/mpeg）
+ * - POST /api/interviews/:id/submit       交（主题 / 答案）
  */
 export const createInterviewRouter = (): Router => {
   const router = Router();
@@ -138,7 +151,7 @@ export const createInterviewRouter = (): Router => {
     res.status(200).json({ interviews: listInterviews(user.userId) });
   });
 
-  router.get("/:interviewId/messages", (req, res) => {
+  router.get("/:interviewId/messages", async (req, res) => {
     const user = req.user;
     if (!user) {
       res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
@@ -147,10 +160,31 @@ export const createInterviewRouter = (): Router => {
     const scope = scopeFromReq(user.userId, req.params.interviewId);
     try {
       assertInterviewExists(scope);
-      res.status(200).json({ messages: getInterviewChatHistory(scope) });
+      const messages = await getInterviewChatHistoryForDisplay(scope);
+      res.status(200).json({ messages });
     } catch (error) {
       if (mapInterviewError(res, error)) return;
       res.status(500).json({ code: "INTERNAL_ERROR", message: "获取聊天记录失败" });
+    }
+  });
+
+  router.get("/:interviewId/current/tts", async (req, res) => {
+    const user = req.user;
+    if (!user) {
+      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
+      return;
+    }
+    const scope = scopeFromReq(user.userId, req.params.interviewId);
+    try {
+      assertInterviewExists(scope);
+      const { audio, locale } = await synthesizeCurrentQuestionTts(scope);
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("X-Interview-Locale", locale);
+      res.status(200).send(audio);
+    } catch (error) {
+      if (mapInterviewError(res, error)) return;
+      res.status(500).json({ code: "INTERVIEW_TTS_FAILED", message: "语音合成失败" });
     }
   });
 
@@ -167,7 +201,7 @@ export const createInterviewRouter = (): Router => {
       res.status(200).json(question);
     } catch (error) {
       if (mapInterviewError(res, error)) return;
-      res.status(500).json({ code: "INTERNAL_ERROR", message: "获取当前题目失败" });
+      res.status(500).json({ code: "CURRENT_QUESTION_FAILED", message: "获取当前题目失败" });
     }
   });
 
@@ -202,7 +236,8 @@ export const createInterviewRouter = (): Router => {
     const scope = scopeFromReq(user.userId, req.params.interviewId);
     try {
       assertInterviewExists(scope);
-      submit(scope, parsed.data);
+      const locale = getInterviewDisplayLocale(scope);
+      runWithDisplayLocaleSync(locale, () => submit(scope, parsed.data));
       res.status(200).json({ ok: true as const });
     } catch (error) {
       if (mapInterviewError(res, error)) return;

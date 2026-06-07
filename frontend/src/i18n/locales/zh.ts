@@ -76,6 +76,9 @@ export const zh: MessageTree = {
     answerPlaceholder: "输入你的回答…",
     topicPlaceholder: "或输入主题标题…",
     pickAbove: "请从上方选项中选择",
+    listenQuestion: "朗读",
+    listenQuestionAria: "朗读当前题目",
+    stopListen: "停止朗读",
     send: "发送",
     yearMonthAria: "年月",
     yearMonthMask: "YYYY年MM月",
@@ -224,5 +227,8 @@ export const zh: MessageTree = {
     QUESTION_ENGINE_COMPLETE: "本节已答完，页面已刷新",
     QUESTION_ENGINE_NO_SESSION: "暂无进行中的题目，页面已刷新",
     INTERVIEW_TOPIC_IN_PROGRESS: "已有进行中的主题，请继续作答",
+    AI_SERVICE_UNAVAILABLE: "AI 服务暂不可用，请稍后再试",
+    TTS_UNAVAILABLE: "语音播报暂不可用，请稍后再试",
+    CURRENT_QUESTION_FAILED: "获取当前题目失败，请刷新后重试",
   },
 };

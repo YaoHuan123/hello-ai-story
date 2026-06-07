@@ -1,0 +1,1902 @@
+{
+  "version": "2.0.0-canonical-en",
+  "source": {
+    "project": "hello story2",
+    "notes": "English canonical template; display strings in backend/config/display/"
+  },
+  "fieldOptions": {
+    "gender": [
+      "Male",
+      "Female"
+    ],
+    "children": [
+      "None",
+      "Yes"
+    ],
+    "married": [
+      "No",
+      "Yes"
+    ],
+    "education": [
+      "Elementary",
+      "Middle school",
+      "High school",
+      "Vocational",
+      "Associate",
+      "Bachelor",
+      "Master",
+      "Doctorate",
+      "Other"
+    ],
+    "firstJobNature": [
+      "Corporate",
+      "Non-corporate"
+    ],
+    "partnerMeetRelation": [
+      "Classmate",
+      "Colleague",
+      "Friend",
+      "Blind date",
+      "Childhood friend"
+    ],
+    "meetChannel": [
+      "Matchmaking",
+      "Friend or family intro",
+      "Work",
+      "Online"
+    ],
+    "firstDateBreakReason": [
+      "Personality mismatch",
+      "Long distance",
+      "Family or practical reasons",
+      "School or job change",
+      "Feelings faded",
+      "Not a good fit",
+      "Moved on to someone else",
+      "Other"
+    ],
+    "friendAgeGap": [
+      "Friend is 50 years older",
+      "Friend is 40 years older",
+      "Friend is 30 years older",
+      "Friend is 20 years older",
+      "Friend is 10 years older",
+      "Friend is 10 years younger",
+      "Friend is 20 years younger",
+      "Friend is 30 years younger",
+      "Friend is 40 years younger",
+      "Friend is 50 years younger"
+    ],
+    "familyOverallFeeling": [
+      "Warm",
+      "Strict",
+      "Noisy",
+      "Harmonious",
+      "Suppressed",
+      "Democratic",
+      "Traditional",
+      "Lively",
+      "Quiet",
+      "Relaxed",
+      "Tense",
+      "Distant",
+      "Hands-off",
+      "Other"
+    ],
+    "personality": [
+      "Outgoing",
+      "Introverted",
+      "Lively",
+      "Steady",
+      "Gentle",
+      "Optimistic",
+      "Sensitive",
+      "Independent",
+      "Other"
+    ],
+    "directRelationTitleSiblings": [
+      "Older brother",
+      "Older sister",
+      "Younger brother",
+      "Younger sister"
+    ],
+    "directRelationTitleGrandparents": [
+      "Paternal grandfather",
+      "Paternal grandmother",
+      "Maternal grandfather",
+      "Maternal grandmother",
+      "Other"
+    ],
+    "familyIncomeChangeDirection": [
+      "Increased",
+      "Decreased"
+    ],
+    "homePurchaseHouseType": [
+      "New commercial home",
+      "Resale commercial home",
+      "Apartment / mixed-use",
+      "Villa / townhouse",
+      "Self-built home",
+      "Rural homestead / courtyard",
+      "Affordable / subsidized housing",
+      "Other"
+    ]
+  },
+  "categories": [
+    {
+      "id": "basic",
+      "name": "Basic info",
+      "primarySubCategoryId": "basic_profile",
+      "subCategories": [
+        {
+          "id": "basic_profile",
+          "name": "Basic profile",
+          "isPrimary": true,
+          "v1TemplateId": "p_0_0",
+          "singleton": true,
+          "required": [
+            {
+              "key": "Full name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "Gender",
+              "control": "gender",
+              "required": true
+            },
+            {
+              "key": "Date of birth",
+              "control": "partnerBirthMonth",
+              "required": true,
+              "factId": "author_birth_ym"
+            },
+            {
+              "key": "Married",
+              "control": "married",
+              "required": true,
+              "factId": "marital_status"
+            },
+            {
+              "key": "Children",
+              "control": "children",
+              "required": true,
+              "factId": "has_children"
+            },
+            {
+              "key": "Education",
+              "control": "education",
+              "required": true,
+              "factId": "education"
+            },
+            {
+              "key": "Place of birth",
+              "control": "address",
+              "required": true,
+              "factId": "birth_place"
+            },
+            {
+              "key": "Current residence",
+              "control": "address",
+              "required": true,
+              "factId": "current_residence"
+            }
+          ],
+          "optional": []
+        }
+      ]
+    },
+    {
+      "id": "edu",
+      "name": "Education",
+      "subCategories": [
+        {
+          "id": "p_1_8",
+          "name": "Preschool",
+          "v1TemplateId": "p_1_8",
+          "required": [
+            {
+              "key": "Enrollment date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "School name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "School location (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Graduation date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Friends (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Why sent to preschool (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_2",
+          "name": "Elementary school",
+          "v1TemplateId": "p_1_2",
+          "required": [
+            {
+              "key": "Enrollment date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "School name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "School location (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Graduation date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Academic performance (optional, poor/average/excellent)",
+              "control": "text"
+            },
+            {
+              "key": "Playmates or friends (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Homeroom or most memorable teacher (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_0",
+          "name": "Middle school",
+          "v1TemplateId": "p_1_0",
+          "required": [
+            {
+              "key": "Enrollment date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "School name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "School location (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Graduation date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Academic performance (optional, poor/average/excellent)",
+              "control": "text"
+            },
+            {
+              "key": "Classmates or friends (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Boarding or day student (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_3",
+          "name": "High school",
+          "v1TemplateId": "p_1_3",
+          "required": [
+            {
+              "key": "Enrollment date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "School name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "School location (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Graduation date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Academic performance (optional, poor/average/excellent)",
+              "control": "text"
+            },
+            {
+              "key": "Classmates or friends (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Arts/science track or division (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_1",
+          "name": "College",
+          "v1TemplateId": "p_1_1",
+          "required": [
+            {
+              "key": "Enrollment date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "School name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "School location (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Graduation date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Major",
+              "control": "text"
+            },
+            {
+              "key": "Roommate or club (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_7",
+          "name": "Graduate school",
+          "v1TemplateId": "p_1_7",
+          "required": [
+            {
+              "key": "Enrollment date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "School name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "School location (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Graduation date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Major or research area (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_9",
+          "name": "Doctorate",
+          "v1TemplateId": "p_1_9",
+          "required": [
+            {
+              "key": "Enrollment date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "School name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "School location (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Graduation date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Major or research area (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_4",
+          "name": "Other schooling",
+          "v1TemplateId": "p_1_4",
+          "required": [
+            {
+              "key": "Start date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "School or institution name (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Institution location (optional)",
+              "control": "address"
+            }
+          ]
+        },
+        {
+          "id": "p_1_5",
+          "name": "Training",
+          "v1TemplateId": "p_1_5",
+          "required": [
+            {
+              "key": "Start date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "Training or course name (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "End date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Institution name (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Institution location (optional)",
+              "control": "address"
+            },
+            {
+              "key": "Gains or certificate (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_1_6",
+          "name": "Academic honors",
+          "v1TemplateId": "p_1_6",
+          "required": [
+            {
+              "key": "Honor name (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "When received (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Issuing organization (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Brief description (optional)",
+              "control": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "family",
+      "name": "家庭",
+      "subCategories": [
+        {
+          "id": "p_2_0",
+          "name": "Partner",
+          "v1TemplateId": "p_2_0",
+          "singleton": true,
+          "required": [
+            {
+              "key": "Full name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "Place of birth (required)",
+              "control": "address",
+              "required": true
+            },
+            {
+              "key": "Partner date of birth (required)",
+              "control": "partnerBirthMonth",
+              "required": true
+            },
+            {
+              "key": "When you first met (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "Wedding date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "How you knew each other (required)",
+              "control": "partnerMeetRelation",
+              "required": true
+            },
+            {
+              "key": "How you met (required)",
+              "control": "meetChannelSelect",
+              "required": true
+            }
+          ],
+          "optional": []
+        },
+        {
+          "id": "p_2_1_f",
+          "name": "Father",
+          "v1TemplateId": "p_2_1_f",
+          "required": [
+            {
+              "key": "Full name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "Date of birth (required)",
+              "control": "partnerBirthMonth",
+              "required": true
+            },
+            {
+              "key": "Occupation (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Current age (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Brief impression or story (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_1_m",
+          "name": "Mother",
+          "v1TemplateId": "p_2_1_m",
+          "required": [],
+          "optional": [
+            {
+              "key": "Name (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Date of birth (optional)",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "Current age (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Occupation (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Brief impression or story (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_7",
+          "name": "Siblings",
+          "v1TemplateId": "p_2_7",
+          "required": [
+            {
+              "key": "Title or relation (required)",
+              "control": "directRelationTitleSelect",
+              "optionsKey": "directRelationTitleSiblings",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Name (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Date of birth (optional)",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "Current age (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Occupation (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Brief impression or story (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_8",
+          "name": "Grandparents",
+          "v1TemplateId": "p_2_8",
+          "required": [
+            {
+              "key": "Title or relation (required)",
+              "control": "directRelationTitleSelect",
+              "optionsKey": "directRelationTitleGrandparents",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Name or nickname (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Date of birth (optional)",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "Occupation (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Brief impression or story (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_5",
+          "name": "Children",
+          "v1TemplateId": "p_2_5",
+          "required": [
+            {
+              "key": "Full name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "Gender (required)",
+              "control": "gender",
+              "required": true
+            },
+            {
+              "key": "Personality (required)",
+              "control": "personalitySelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Nickname (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Date of birth (optional)",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "Current age (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Sub-events (optional)",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_2_6",
+          "name": "Grandchildren",
+          "v1TemplateId": "p_2_6",
+          "required": [
+            {
+              "key": "Full name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "Gender (required)",
+              "control": "gender",
+              "required": true
+            },
+            {
+              "key": "Personality (required)",
+              "control": "personalitySelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Nickname (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Date of birth (optional)",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "Current age (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Sub-events (optional)",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_2_2",
+          "name": "Other relatives",
+          "v1TemplateId": "p_2_2",
+          "required": [
+            {
+              "key": "Title or relation (required, e.g. uncle, cousin)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Brief impression or story (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_3",
+          "name": "Family atmosphere",
+          "v1TemplateId": "p_2_3",
+          "required": [
+            {
+              "key": "Overall feeling (required)",
+              "control": "familyFeelingSelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Typical daily routine or habits (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Biggest impact on you (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_4",
+          "name": "Other family events",
+          "v1TemplateId": "p_2_4",
+          "required": [
+            {
+              "key": "When it happened (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "Location (required)",
+              "control": "address",
+              "required": true
+            },
+            {
+              "key": "Event summary (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Impact on you (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_11",
+          "name": "Family income changes",
+          "v1TemplateId": "p_2_11",
+          "required": [
+            {
+              "key": "Income increased or decreased (required)",
+              "control": "familyIncomeChangeDirectionSelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "When it happened (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Reason or background (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_9",
+          "name": "Children's marriage",
+          "v1TemplateId": "p_2_9",
+          "required": [
+            {
+              "key": "Child name or nickname (required)",
+              "control": "linkedChildNameSelect",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Spouse name or nickname (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Wedding date (optional)",
+              "control": "partnerBirthMonth"
+            },
+            {
+              "key": "My age at the time (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Child age at the time (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Wedding location (optional)",
+              "control": "address"
+            },
+            {
+              "key": "What happened and feelings (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_2_10",
+          "name": "Children's education",
+          "v1TemplateId": "p_2_10",
+          "required": [
+            {
+              "key": "Child name or nickname (required)",
+              "control": "linkedChildNameSelect",
+              "required": true
+            },
+            {
+              "key": "Year and month at the time (required)",
+              "control": "partnerBirthMonth",
+              "required": true
+            },
+            {
+              "key": "My age at the time (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "Child age at the time (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "School or stage (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": []
+        },
+        {
+          "id": "p_6_12",
+          "name": "Buying a home",
+          "v1TemplateId": "p_6_12",
+          "required": [
+            {
+              "key": "Home purchase date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "Place or neighborhood (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "House type (optional)",
+              "control": "homePurchaseHouseTypeSelect"
+            },
+            {
+              "key": "Layout or size (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_13",
+          "name": "Buying a car",
+          "v1TemplateId": "p_6_13",
+          "required": [
+            {
+              "key": "Car purchase date (required)",
+              "control": "timeAgePair",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Brand or model (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Delivery or registration place (optional)",
+              "control": "address"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "career",
+      "name": "工作",
+      "subCategories": [
+        {
+          "id": "p_3_1",
+          "name": "First job",
+          "v1TemplateId": "p_3_1",
+          "singleton": true,
+          "required": [
+            {
+              "key": "Start date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "End date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "Job type (required)",
+              "control": "firstJobNature",
+              "required": true
+            },
+            {
+              "key": "Location (required)",
+              "control": "address",
+              "required": true
+            },
+            {
+              "key": "Job duties (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Company name (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Position (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Reason for working here (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Income or pay (optional, work points, grain, wages, etc.)",
+              "control": "text"
+            },
+            {
+              "key": "Impression of this experience (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_2",
+          "name": "Later jobs",
+          "v1TemplateId": "p_3_2",
+          "required": [
+            {
+              "key": "Start date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "End date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "Job type (required)",
+              "control": "firstJobNature",
+              "required": true
+            },
+            {
+              "key": "Location (required)",
+              "control": "address",
+              "required": true
+            },
+            {
+              "key": "Company name (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "Position (required)",
+              "control": "text",
+              "required": true
+            },
+            {
+              "key": "Job duties (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Reason for working here (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Income or pay (optional, work points, grain, wages, etc.)",
+              "control": "text"
+            },
+            {
+              "key": "Impression of this experience (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_3",
+          "name": "Entrepreneurship",
+          "v1TemplateId": "p_3_3",
+          "required": [
+            {
+              "key": "Start date (required)",
+              "control": "timeAgePair",
+              "required": true
+            },
+            {
+              "key": "Project or company name (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "End date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Place or city (optional)",
+              "control": "address"
+            },
+            {
+              "key": "Motivation and process summary (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Outcome or gains (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_4",
+          "name": "Unemployment",
+          "v1TemplateId": "p_3_4",
+          "required": [],
+          "optional": [
+            {
+              "key": "Start date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "End date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Main reason (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Mood or state during period (optional)",
+              "control": "text"
+            },
+            {
+              "key": "How spent or turning point (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_0",
+          "name": "Internship",
+          "v1TemplateId": "p_3_0",
+          "required": [
+            {
+              "key": "Start date (required)",
+              "control": "timeAgePair",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "End date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Company name (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Position (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Reason for internship here (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Income or pay (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_3_5",
+          "name": "Work honors",
+          "v1TemplateId": "p_3_5",
+          "required": [
+            {
+              "key": "Honor name (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "When received (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Issuer (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Brief description (optional)",
+              "control": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "love",
+      "name": "情感",
+      "subCategories": [
+        {
+          "id": "p_4_0",
+          "name": "First relationship",
+          "v1TemplateId": "p_4_0",
+          "singleton": true,
+          "required": [],
+          "optional": [
+            {
+              "key": "Their name or relation (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Start date",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "End date",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Where you met",
+              "control": "address"
+            },
+            {
+              "key": "How you met",
+              "control": "meetChannelSelect"
+            },
+            {
+              "key": "Reason for breakup (optional)",
+              "control": "firstDateBreakReasonSelect"
+            },
+            {
+              "key": "Other breakup reason notes (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_4_1",
+          "name": "Other relationships",
+          "v1TemplateId": "p_4_1",
+          "required": [],
+          "optional": [
+            {
+              "key": "Their name or relation (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Start date",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "End date",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Where you met",
+              "control": "address"
+            },
+            {
+              "key": "How you met",
+              "control": "meetChannelSelect"
+            },
+            {
+              "key": "Reason for breakup (optional)",
+              "control": "firstDateBreakReasonSelect"
+            },
+            {
+              "key": "Other breakup reason notes (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_4_2",
+          "name": "Friends",
+          "v1TemplateId": "p_4_2",
+          "required": [],
+          "optional": [
+            {
+              "key": "Address as or nickname (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Age gap with me (optional)",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "Sub-events (optional)",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_4_7",
+          "name": "Childhood friends",
+          "v1TemplateId": "p_4_7",
+          "required": [],
+          "optional": [
+            {
+              "key": "Address as or nickname (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Age gap with me (optional)",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "Sub-events (optional)",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_4_5",
+          "name": "Colleagues",
+          "v1TemplateId": "p_4_5",
+          "required": [],
+          "optional": [
+            {
+              "key": "Address as or nickname (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Age gap with me (optional)",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "Sub-events (optional)",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_4_6",
+          "name": "Teachers",
+          "v1TemplateId": "p_4_6",
+          "required": [],
+          "optional": [
+            {
+              "key": "Address as or nickname (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Age gap with me (optional)",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "Sub-events (optional)",
+              "control": "childSubEvents"
+            }
+          ]
+        },
+        {
+          "id": "p_4_4",
+          "name": "Military comrades",
+          "v1TemplateId": "p_4_4",
+          "required": [],
+          "optional": [
+            {
+              "key": "Address as or nickname (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Age gap with me (optional)",
+              "control": "friendAgeGapSelect"
+            },
+            {
+              "key": "Sub-events (optional)",
+              "control": "childSubEvents"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "geo",
+      "name": "地域",
+      "subCategories": [
+        {
+          "id": "p_5_0",
+          "name": "Where I was born",
+          "v1TemplateId": "p_5_0",
+          "singleton": true,
+          "required": [],
+          "optional": [
+            {
+              "key": "When left birthplace (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Childhood memories or feelings (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_1",
+          "name": "Where I worked",
+          "v1TemplateId": "p_5_1",
+          "required": [],
+          "optional": [
+            {
+              "key": "Place name",
+              "control": "address"
+            },
+            {
+              "key": "Start date",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "When left",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Impression of city or job period (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_2",
+          "name": "Where I studied",
+          "v1TemplateId": "p_5_2",
+          "required": [
+            {
+              "key": "Place name (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Start date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "When left (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Study-related memories (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_3",
+          "name": "Places I lived",
+          "v1TemplateId": "p_5_3",
+          "required": [
+            {
+              "key": "Place name (required, other than current residence)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Start date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "When left (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Life snippet or feelings (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_4",
+          "name": "Places I traveled",
+          "v1TemplateId": "p_5_4",
+          "required": [
+            {
+              "key": "Place name (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Travel time (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Companions (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Most memorable scene (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_5_5",
+          "name": "Moves and migration",
+          "v1TemplateId": "p_5_5",
+          "required": [
+            {
+              "key": "Moved to where (required)",
+              "control": "address",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Moving date (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Reason or feelings (optional)",
+              "control": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "life",
+      "name": "人生其它",
+      "subCategories": [
+        {
+          "id": "p_6_10",
+          "name": "Life lessons",
+          "v1TemplateId": "p_6_10",
+          "required": [
+            {
+              "key": "Insight or reflection (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Theme (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Summarized from what experience (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_0",
+          "name": "Awards",
+          "v1TemplateId": "p_6_0",
+          "required": [
+            {
+              "key": "Award name (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "When received (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Issuer (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_1",
+          "name": "Windfalls",
+          "v1TemplateId": "p_6_1",
+          "required": [
+            {
+              "key": "What windfall (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Time (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Location (optional)",
+              "control": "address"
+            }
+          ]
+        },
+        {
+          "id": "p_6_2",
+          "name": "Illness",
+          "v1TemplateId": "p_6_2",
+          "required": [
+            {
+              "key": "What illness (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Time (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Location (optional)",
+              "control": "address"
+            }
+          ]
+        },
+        {
+          "id": "p_6_5",
+          "name": "Memorable accidents",
+          "v1TemplateId": "p_6_5",
+          "required": [
+            {
+              "key": "What happened (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Time (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Location (optional)",
+              "control": "address"
+            },
+            {
+              "key": "Feelings or changes afterward (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_8",
+          "name": "Memorable gifts",
+          "v1TemplateId": "p_6_8",
+          "required": [
+            {
+              "key": "What the gift was (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Time (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Location (optional)",
+              "control": "address"
+            },
+            {
+              "key": "Who gave it (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Why memorable (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_14",
+          "name": "Acts of courage",
+          "v1TemplateId": "p_6_14",
+          "required": [
+            {
+              "key": "Event (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Time (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Location (optional)",
+              "control": "address"
+            },
+            {
+              "key": "Feelings afterward (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_3",
+          "name": "Hobbies",
+          "v1TemplateId": "p_6_3",
+          "required": [
+            {
+              "key": "Hobby name (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "When started or kept at it (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Why you like it (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_4",
+          "name": "Skills",
+          "v1TemplateId": "p_6_4",
+          "required": [
+            {
+              "key": "Skill or specialty name (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Proficiency level (optional)",
+              "control": "text"
+            },
+            {
+              "key": "How learned (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Brought opportunities or honors (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_11",
+          "name": "Collecting",
+          "v1TemplateId": "p_6_11",
+          "required": [
+            {
+              "key": "Collection category (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Start or persistence time (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Most memorable item (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Meaning of collection to you (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_6",
+          "name": "Health",
+          "v1TemplateId": "p_6_6",
+          "required": [],
+          "optional": [
+            {
+              "key": "Current or past health focus (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Brief description (optional)",
+              "control": "text"
+            },
+            {
+              "key": "Impact on your life (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_7",
+          "name": "Faith",
+          "v1TemplateId": "p_6_7",
+          "required": [],
+          "optional": [
+            {
+              "key": "Religious faith and name (optional)",
+              "control": "text"
+            },
+            {
+              "key": "When started or persisted (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Impact on your views or habits (optional)",
+              "control": "text"
+            }
+          ]
+        },
+        {
+          "id": "p_6_9",
+          "name": "Unusual experiences",
+          "v1TemplateId": "p_6_9",
+          "required": [
+            {
+              "key": "Event (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Time (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Location (optional)",
+              "control": "address"
+            }
+          ]
+        },
+        {
+          "id": "narrative_template",
+          "name": "Self narrative",
+          "v1TemplateId": "narrative_template",
+          "required": [
+            {
+              "key": "Event (required)",
+              "control": "text",
+              "required": true
+            }
+          ],
+          "optional": [
+            {
+              "key": "Time (optional)",
+              "control": "timeAgePair"
+            },
+            {
+              "key": "Location (optional)",
+              "control": "address"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

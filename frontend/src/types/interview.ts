@@ -8,6 +8,8 @@ export type InterviewQuestion = {
   text: string;
   /** 选主题=候选主题；普通问答=LLM 备选答案 */
   options: string[];
+  /** 选主题时与 options 等长的推荐理由 */
+  optionReasons?: string[];
   fieldType?: InterviewFieldType;
   fieldChoices?: string[];
   /** 选填 / 扩展 / 非 catalog 题可跳过 */
@@ -15,6 +17,7 @@ export type InterviewQuestion = {
 };
 
 export const INTERVIEW_SKIP_LABEL = "（跳过）";
+export const INTERVIEW_SKIP_LABEL_EN = "(skipped)";
 
 export type SubmitPayload = {
   key: string;
@@ -39,6 +42,8 @@ export type InterviewMeta = {
   createdAt: string;
   updatedAt: string;
   title?: string;
+  /** 内容语言，创建时由后端 APP_LOCALE 写入 */
+  locale?: "zh" | "en";
 };
 
 export type InterviewListResponse = {

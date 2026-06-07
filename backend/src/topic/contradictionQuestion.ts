@@ -9,7 +9,7 @@ function truncateExcerpt(text: string): string {
 }
 
 /**
- * 将矛盾涉及的各节正文拼成一道完整确认题（开放作答「说明」）。
+ * 将矛盾涉及的各节正文拼成一道完整确认题（开放作答）。
  * `involvedIds` 为节名，正文来自 `polishedEventSummaries`。
  */
 export function buildContradictionQuestion(
@@ -17,16 +17,18 @@ export function buildContradictionQuestion(
   summaries: Record<string, string>,
 ): string {
   const lines: string[] = [
-    `以下材料存在不一致，请说明实际情况：${item.summary}`,
+    `The following materials appear inconsistent. Please explain what actually happened: ${item.summary}`,
     "",
   ];
 
   for (const sectionName of item.involvedIds) {
     const body = summaries[sectionName]?.trim();
     if (!body) continue;
-    lines.push(`【${sectionName}】`, truncateExcerpt(body), "");
+    lines.push(`[${sectionName}]`, truncateExcerpt(body), "");
   }
 
-  lines.push("请简要说明哪一处有误，或二者如何同时成立。");
+  lines.push(
+    "Briefly explain which part is wrong, or how both statements can be true at once.",
+  );
   return lines.join("\n").trim();
 }

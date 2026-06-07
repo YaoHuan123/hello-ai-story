@@ -1,26 +1,28 @@
-在 **110 生成旁白** 与 **3 TTS** 之间，对**已按时间顺序编号的**旁白片段做一次性连贯性润色：消除突兀跳转、统一指代与语气，**不改变事实**，**不合并或拆分条数**。
+## System
 
-本步**不接外网**；输出仅供成片旁白，维护者应对关键段落抽查。
+Between **step 160 voiceover generation** and downstream render, perform a **one-pass coherence polish** on voiceover lines already numbered in playback order: remove jarring jumps, unify references and tone, **do not change facts**, **do not merge or split line count**.
+
+This step has **no external web access**; output is for final subtitles — maintainers should spot-check key passages.
 
 ## User
 
-输入 JSON 字段说明：
+Input JSON fields:
 
-- `items`：数组，每项为一条旁白，已按成片顺序编号。
-  - `voiceoverOrder`：从 1 开始的整数，**必须**与下列顺序一致且连续。
-  - `segmentIndex`：所属 `mergedNarrativeSegments` 段下标。
-  - `sceneIndex`：有分镜时为该镜的 `sceneIndex`；无分镜（整段一条旁白）时为 `null`。
-  - `text`：当前旁白正文（非空字符串）。
-- `fullScript`：将所有 `text` 按顺序用换行拼接的只读全文，便于你把握上下文（**勿**仅据此解析编号，回写必须以 `items` 结构为准）。
+- `items`: array; each entry is one voiceover line in final playback order.
+  - `voiceoverOrder`: integer from 1, **must** match order below and be contiguous.
+  - `segmentIndex`: owning `mergedNarrativeSegments` segment index.
+  - `sceneIndex`: shot `sceneIndex` when split; `null` when one line per whole segment.
+  - `text`: current voiceover body (non-empty string).
+- `fullScript`: all `text` joined by newlines for context (**read-only** — write back using `items` structure, not by parsing this string).
 
-你必须输出**唯一**一个 JSON 对象，顶层键名为 **`optimizedTexts`**，值为字符串数组：
+Output **one** JSON object; sole top-level key **`optimizedTexts`**, string array:
 
-- 长度与输入 `items` **完全相同**，第 `i` 项对应 `items[i]` 的优化后正文。
-- **不要**回吐 `voiceoverOrder` / `segmentIndex` / `sceneIndex`（服务端按数组顺序合并）。
-- 每项为非空 string，**每条不超过 36 个字符**（与步骤 160 一致，含标点不含首尾空格，以 Unicode 码点计）。
+- Same length as input `items`; item `i` is the optimized body for `items[i]`.
+- **Do not** echo `voiceoverOrder` / `segmentIndex` / `sceneIndex` (server merges by array order).
+- Each item non-empty string; **max 80 characters per line** (same as step 160; punctuation included; trim not applied to length count; Unicode code points).
 
-禁止引入新角色或新事件；禁止将两条合成一条（条数不变）。
+Do not introduce new characters or events; do not combine two lines into one (count unchanged).
 
-输入：
+Input:
 
 {{PIPELINE_JSON}}

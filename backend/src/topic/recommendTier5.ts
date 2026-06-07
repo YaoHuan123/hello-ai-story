@@ -1,5 +1,6 @@
 import { chatJson } from "./llm";
 import { buildContradictionQuestion } from "./contradictionQuestion";
+import { materialContradictionPickReason } from "./materialCopy";
 import { toPendingRow } from "./pendingPickRow";
 import { parseFactContradictions } from "./parseContradiction";
 import { loadContradictionPrompt } from "./loadContradictionPrompt";
@@ -47,7 +48,7 @@ export async function recommendTier5(params: RecommendTier5Params): Promise<Pend
           tier: 5,
           kind: "material_contradiction",
           title: c.summary,
-          reason: `涉及 ${c.involvedIds.length} 个已填节，待您说明`,
+          reason: materialContradictionPickReason(c.involvedIds.length),
         },
         {
           questions: [buildContradictionQuestion(c, polishedEventSummaries)],

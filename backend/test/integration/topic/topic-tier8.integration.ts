@@ -62,7 +62,7 @@ async function main(): Promise<void> {
     const qs = getTopicQuestions(scope, first.title);
     console.log("  questions:", JSON.stringify(qs, null, 2));
     check("questions 为 [title]", qs.questions[0] === first.title, qs);
-    check("suggestedAnswers 为 是/否", qs.suggestedAnswers?.join(",") === "是,否", qs);
+    check("suggestedAnswers 为 Yes/No", qs.suggestedAnswers?.join(",") === "Yes,No", qs);
     check("tier 为 8", qs.tier === 8, qs);
   } else {
     console.warn("  [warn] 模型未列出内心题，跳过取题断言");

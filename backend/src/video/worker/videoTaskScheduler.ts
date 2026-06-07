@@ -1,3 +1,4 @@
+import { resolveBiographyTtsVoice, resolveStudioTtsVoices } from "../../content/interviewTtsVoices";
 import type { InterviewScope } from "../../services/interviewWorkspace.service";
 import { assertVideoProductionReady } from "../../services/productionReadiness.service";
 import {
@@ -60,8 +61,7 @@ export function scheduleBiographyVideoTask(
   scope: InterviewScope,
   opts: ScheduleBiographyVideoTaskOptions,
 ): ScheduledVideoTask {
-  const ttsVoice = opts.ttsVoice.trim();
-  if (!ttsVoice) throw new Error("VIDEO_SCHEDULE_TTS_REQUIRED: 传记成片须提供 ttsVoice");
+  const ttsVoice = resolveBiographyTtsVoice(scope, opts.ttsVoice);
 
   assertVideoProductionReady(scope, opts.textTaskId);
 
@@ -99,11 +99,7 @@ export function scheduleStudioVideoTask(
   scope: InterviewScope,
   opts: ScheduleStudioVideoTaskOptions,
 ): ScheduledVideoTask {
-  const hostVoice = opts.hostVoice.trim();
-  const guestVoice = opts.guestVoice.trim();
-  if (!hostVoice || !guestVoice) {
-    throw new Error("VIDEO_SCHEDULE_VOICES_REQUIRED: 演播室须提供 hostVoice 与 guestVoice");
-  }
+  const { hostVoice, guestVoice } = resolveStudioTtsVoices(scope, opts.hostVoice, opts.guestVoice);
 
   assertVideoProductionReady(scope, opts.textTaskId);
 

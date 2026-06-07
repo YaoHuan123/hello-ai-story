@@ -255,19 +255,33 @@ function slimSubsceneForEmbellish(items: EraSubsceneSplitItem[]) {
   }));
 }
 
+/** 模型偶发返回单段对象或沿用其它键名；归一为 `{ eraSubsceneSplitTimelineSegments }`。 */
+function coerceEraSubsceneSplit50Root(parsed: unknown): Record<string, unknown> {
+  if (Array.isArray(parsed)) {
+    return { eraSubsceneSplitTimelineSegments: parsed };
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`${DEFAULT_ERA_PACK_ERR}: 模型输出须为对象`);
+  }
+  const root = parsed as Record<string, unknown>;
+  if (Array.isArray(root.eraSubsceneSplitTimelineSegments)) {
+    return root;
+  }
+  if (Array.isArray(root.subsceneSplitTimelineSegments)) {
+    return { eraSubsceneSplitTimelineSegments: root.subsceneSplitTimelineSegments };
+  }
+  if (typeof root.segmentIndex !== "undefined" && Array.isArray(root.visualScenes)) {
+    return { eraSubsceneSplitTimelineSegments: [root] };
+  }
+  throw new Error(`${DEFAULT_ERA_PACK_ERR}: 缺少 eraSubsceneSplitTimelineSegments`);
+}
+
 /** 解析模型仅返回的（修饰后）visualScenes，按下标对齐输入并合并其余字段。 */
 function parseEmbellishedVisualScenesOnly(
   parsed: unknown,
   inputItems: EraSubsceneSplitItem[],
 ): EraSubsceneSplitItem[] {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`${DEFAULT_ERA_PACK_ERR}: 模型输出须为对象`);
-  }
-  const root = parsed as Record<string, unknown>;
-  const keys = Object.keys(root);
-  if (keys.length !== 1 || !Object.prototype.hasOwnProperty.call(root, "eraSubsceneSplitTimelineSegments")) {
-    throw new Error(`${DEFAULT_ERA_PACK_ERR}: 顶层须仅含 eraSubsceneSplitTimelineSegments，当前键: ${keys.join(",")}`);
-  }
+  const root = coerceEraSubsceneSplit50Root(parsed);
   const arr = root.eraSubsceneSplitTimelineSegments;
   if (!Array.isArray(arr)) {
     throw new Error(`${DEFAULT_ERA_PACK_ERR}: eraSubsceneSplitTimelineSegments 须为数组`);

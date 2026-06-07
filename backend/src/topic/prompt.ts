@@ -1,7 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
-
-const PROMPT_DIR = path.join(__dirname, "..", "..", "..", "prompts", "interview");
+import { resolvePromptFilePath } from "../content/promptPath";
 
 const TIER1_FILE = "sub-category-gating.md";
 const TIER2_FILE = "topic-pick-tier2.md";
@@ -17,12 +15,12 @@ const cache = new Map<string, { system: string; userTemplate: string }>();
  * @throws PROMPT_INVALID 缺少 `## User` 段或 `{{INPUT_JSON}}` 占位
  */
 export function loadTopicPrompt(filename: string): { system: string; userTemplate: string } {
-  const hit = cache.get(filename);
+  const cacheKey = filename;
+  const hit = cache.get(cacheKey);
   if (hit) return hit;
 
-  const raw = fs
-    .readFileSync(path.join(PROMPT_DIR, filename), "utf-8")
-    .replace(/\r\n/g, "\n");
+  const filePath = resolvePromptFilePath("interview", filename);
+  const raw = fs.readFileSync(filePath, "utf-8").replace(/\r\n/g, "\n");
   const marker = "\n## User\n";
   const i = raw.indexOf(marker);
   if (i < 0) {
@@ -34,7 +32,7 @@ export function loadTopicPrompt(filename: string): { system: string; userTemplat
     throw new Error(`PROMPT_INVALID: ${filename} 的 User 段缺少 {{INPUT_JSON}}`);
   }
   const parsed = { system, userTemplate };
-  cache.set(filename, parsed);
+  cache.set(cacheKey, parsed);
   return parsed;
 }
 

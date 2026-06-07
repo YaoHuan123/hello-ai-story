@@ -23,8 +23,12 @@ export function parseTurningPointReasons(parsed: unknown): TurningPointReasonRow
     const order =
       typeof o.order === "number" && Number.isInteger(o.order) && o.order >= 1 ? o.order : null;
     if (order === null) throw new Error("TURN_INVALID: order 须为 >=1 的整数");
-    if (typeof o.question !== "string" || !o.question.trim()) {
+    const question = typeof o.question === "string" ? o.question.trim() : "";
+    if (!question) {
       throw new Error("TURN_INVALID: question 须为非空字符串");
+    }
+    if (/^(is there|are there|did you (ever )?have)\b/i.test(question)) {
+      throw new Error("TURN_INVALID: question 不得为筛查句式");
     }
     if (typeof o.reason !== "string" || !o.reason.trim()) {
       throw new Error("TURN_INVALID: reason 须为非空字符串");
@@ -33,7 +37,7 @@ export function parseTurningPointReasons(parsed: unknown): TurningPointReasonRow
     if (ps < 1 || ps > 10) throw new Error("TURN_INVALID: presentScore 须为 1–10 的整数");
     out.push({
       order,
-      question: o.question.trim(),
+      question,
       reason: o.reason.trim(),
       presentScore: ps,
     });

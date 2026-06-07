@@ -1,5 +1,6 @@
 import { chatJson } from "./llm";
 import { loadInnerPrompt } from "./loadInnerPrompt";
+import { MATERIAL_INNER_REASON } from "./materialCopy";
 import { parseEmotionalInnerQuestions } from "./parseInner";
 import {
   assertSectionsForTier5,
@@ -36,6 +37,6 @@ export async function recommendTier8(params: RecommendTier8Params): Promise<Topi
     tier: 8 as const,
     kind: "material_inner" as const,
     title: row.question,
-    reason: "内心深挖，请用是或否作答",
+    reason: MATERIAL_INNER_REASON,
   }));
 }

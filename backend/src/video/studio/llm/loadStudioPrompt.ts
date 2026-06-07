@@ -1,19 +1,8 @@
 import fs from "node:fs";
-import path from "node:path";
+import { resolvePromptFilePath } from "../../../content/promptPath.js";
 import { stripUserSuffixSchemaAppendix } from "../../shared/llm/loadPrompt.js";
 
 const cache = new Map<string, { systemText: string; userSuffix: string }>();
-
-function interviewStudioPromptRoot(): string {
-  const override = (process.env.VIDEO_STUDIO_PROMPT_ROOT ?? "").trim();
-  if (override) return override;
-  return path.join(__dirname, "..", "..", "..", "..", "..", "prompts", "interview-studio");
-}
-
-function resolveInterviewStudioPromptPath(basename: string): string {
-  const file = basename.split("/").filter(Boolean).pop() ?? basename;
-  return path.join(interviewStudioPromptRoot(), file);
-}
 
 /**
  * 加载 `prompts/interview-studio/` 提示词：`## System` / `## User` 分段，User 段须含占位符；Schema 附录不发给模型。
@@ -26,7 +15,8 @@ export function loadInterviewStudioPromptParts(
   const hit = cache.get(cacheKey);
   if (hit) return hit;
 
-  const filePath = resolveInterviewStudioPromptPath(basename);
+  const file = basename.split("/").filter(Boolean).pop() ?? basename;
+  const filePath = resolvePromptFilePath("interview-studio", file);
   if (!fs.existsSync(filePath)) {
     throw new Error(`STUDIO_PROMPT_NOT_FOUND: ${basename}（期望路径 ${filePath}）`);
   }

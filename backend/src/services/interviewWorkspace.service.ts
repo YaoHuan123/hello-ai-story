@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { APP_LOCALE } from "../config";
+import { INTERVIEW_SCHEMA_VERSION } from "../content/canonicalSections";
+import type { ContentLocale } from "../content/locale";
+import { normalizeContentLocale } from "../content/locale";
 import { getUserRootDir } from "./workspace.service";
 
 const INTERVIEWS_DIR = "采访";
@@ -16,6 +20,10 @@ export type InterviewMeta = {
   createdAt: string;
   updatedAt: string;
   title?: string;
+  /** 用户界面展示语言（聊天/选题）；创建时写入，默认 zh */
+  locale?: ContentLocale;
+  /** 落盘格式版本；2 = canonical 英文节名 + 字段 key */
+  schemaVersion?: number;
 };
 
 function interviewsDir(userId: string): string {
@@ -45,21 +53,29 @@ export function ensureInterviewsDir(userId: string): void {
  */
 export function createInterview(
   userId: string,
-  opts?: { title?: string },
+  opts?: { title?: string; locale?: ContentLocale },
 ): InterviewMeta {
   ensureInterviewsDir(userId);
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
+  const locale = normalizeContentLocale(opts?.locale ?? APP_LOCALE);
   const meta: InterviewMeta = {
     id,
     createdAt: now,
     updatedAt: now,
+    locale,
+    schemaVersion: INTERVIEW_SCHEMA_VERSION,
     ...(opts?.title?.trim() ? { title: opts.title.trim() } : {}),
   };
   const root = path.join(interviewsDir(userId), id);
   fs.mkdirSync(root, { recursive: true });
   writeJsonAtomic(path.join(root, META_FILE), meta);
   return meta;
+}
+
+/** 读取采访 meta（不存在或损坏返回 null）。 */
+export function readInterviewMeta(scope: InterviewScope): InterviewMeta | null {
+  return readMeta(scope.userId, scope.interviewId);
 }
 
 function readMeta(userId: string, interviewId: string): InterviewMeta | null {
@@ -94,6 +110,19 @@ export function assertInterviewExists(scope: InterviewScope): void {
   if (!fs.existsSync(root) || !readMeta(scope.userId, scope.interviewId)) {
     throw new Error(`INTERVIEW_NOT_FOUND: 采访「${scope.interviewId}」不存在`);
   }
+}
+
+/** sections 懒迁移后标记 schemaVersion（幂等）。 */
+export function markInterviewSchemaMigrated(scope: InterviewScope): void {
+  const meta = readInterviewMeta(scope);
+  if (!meta) return;
+  if ((meta.schemaVersion ?? 1) >= INTERVIEW_SCHEMA_VERSION) return;
+  const updated: InterviewMeta = {
+    ...meta,
+    schemaVersion: INTERVIEW_SCHEMA_VERSION,
+    updatedAt: new Date().toISOString(),
+  };
+  writeJsonAtomic(path.join(getInterviewRootDir(scope), META_FILE), updated);
 }
 
 /** 删除一场采访及其素材/生产产物目录。 */

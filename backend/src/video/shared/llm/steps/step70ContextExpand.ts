@@ -151,19 +151,27 @@ export function derivePolishedSummariesFromClassifyRaw(raw: Record<string, unkno
   return { polishedEventSummaries, polishedContextSummaries };
 }
 
-function assertPolishedEventSummariesContextExpandedShape(
-  parsed: unknown,
-): PolishedEventSummariesContextExpandedItem[] {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+function coerceContextExpand70Root(parsed: unknown): Record<string, unknown> {
+  if (Array.isArray(parsed)) {
+    return { polishedEventSummariesContextExpanded: parsed };
+  }
+  if (!parsed || typeof parsed !== "object") {
     throw new Error("CONTEXT_EXPAND_70_INVALID: 模型输出须为对象");
   }
   const root = parsed as Record<string, unknown>;
-  const keys = Object.keys(root);
-  if (keys.length !== 1 || !Object.prototype.hasOwnProperty.call(root, "polishedEventSummariesContextExpanded")) {
-    throw new Error(
-      `CONTEXT_EXPAND_70_INVALID: 顶层须仅含 polishedEventSummariesContextExpanded，当前键: ${keys.join(",")}`,
-    );
+  if (Array.isArray(root.polishedEventSummariesContextExpanded)) {
+    return root;
   }
+  if (typeof root.narrative === "string" && typeof root.timeLabel === "string") {
+    return { polishedEventSummariesContextExpanded: [root] };
+  }
+  throw new Error("CONTEXT_EXPAND_70_INVALID: 缺少 polishedEventSummariesContextExpanded");
+}
+
+function assertPolishedEventSummariesContextExpandedShape(
+  parsed: unknown,
+): PolishedEventSummariesContextExpandedItem[] {
+  const root = coerceContextExpand70Root(parsed);
   const arr = root.polishedEventSummariesContextExpanded;
   if (!Array.isArray(arr)) {
     throw new Error("CONTEXT_EXPAND_70_INVALID: polishedEventSummariesContextExpanded 须为数组");

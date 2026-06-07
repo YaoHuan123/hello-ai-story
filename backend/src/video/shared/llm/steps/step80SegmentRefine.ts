@@ -41,8 +41,12 @@ export function buildSegmentRefinePipelineFromFiles(
   };
 }
 
+const EN_POINT_TIME_LABEL_RE = /^(\d{4})-(\d{1,2})$/;
+const EN_RANGE_TIME_LABEL_RE = /^(\d{4})-(\d{1,2})\s+to\s+(\d{4})-(\d{1,2})$/i;
 const POINT_TIME_LABEL_RE = /^(\d{4})年(\d{1,2})月$/;
 const RANGE_TIME_LABEL_RE = /^(\d{4})年(\d{1,2})月-(\d{4})年(\d{1,2})月$/;
+const YEAR_ONLY_TIME_LABEL_RE = /^(\d{4})年$/;
+const YEAR_RANGE_TIME_LABEL_RE = /^(\d{4})年-(\d{4})年$/;
 
 type ParsedTimelineTimeLabel =
   | { kind: "point"; start: number }
@@ -58,6 +62,22 @@ function toYearMonthIndex(yearText: string, monthText: string): number | null {
 }
 
 function parseStrictTimelineTimeLabel(timeLabel: string): ParsedTimelineTimeLabel | null {
+  const enPoint = timeLabel.match(EN_POINT_TIME_LABEL_RE);
+  if (enPoint) {
+    const start = toYearMonthIndex(enPoint[1], enPoint[2]);
+    return start === null ? null : { kind: "point", start };
+  }
+
+  const enRange = timeLabel.match(EN_RANGE_TIME_LABEL_RE);
+  if (enRange) {
+    const start = toYearMonthIndex(enRange[1], enRange[2]);
+    const end = toYearMonthIndex(enRange[3], enRange[4]);
+    if (start === null || end === null) {
+      return null;
+    }
+    return { kind: "range", start, end };
+  }
+
   const point = timeLabel.match(POINT_TIME_LABEL_RE);
   if (point) {
     const start = toYearMonthIndex(point[1], point[2]);
@@ -74,7 +94,41 @@ function parseStrictTimelineTimeLabel(timeLabel: string): ParsedTimelineTimeLabe
     return { kind: "range", start, end };
   }
 
+  const yearOnly = timeLabel.match(YEAR_ONLY_TIME_LABEL_RE);
+  if (yearOnly) {
+    const start = toYearMonthIndex(yearOnly[1], "1");
+    return start === null ? null : { kind: "point", start };
+  }
+
+  const yearRange = timeLabel.match(YEAR_RANGE_TIME_LABEL_RE);
+  if (yearRange) {
+    const start = toYearMonthIndex(yearRange[1], "1");
+    const end = toYearMonthIndex(yearRange[2], "12");
+    if (start === null || end === null) {
+      return null;
+    }
+    return { kind: "range", start, end };
+  }
+
   return null;
+}
+
+/** 模型偶发直接返回数组或单段对象；归一为 `{ splitDedupedTimelineSegments }`。 */
+function coerceSegmentRefine80Root(parsed: unknown): Record<string, unknown> {
+  if (Array.isArray(parsed)) {
+    return { splitDedupedTimelineSegments: parsed };
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("SEGMENT_REFINE_80_INVALID: 模型输出须为对象");
+  }
+  const root = parsed as Record<string, unknown>;
+  if (Array.isArray(root.splitDedupedTimelineSegments)) {
+    return root;
+  }
+  if (typeof root.narrative === "string" && typeof root.timeLabel === "string") {
+    return { splitDedupedTimelineSegments: [root] };
+  }
+  throw new Error("SEGMENT_REFINE_80_INVALID: 缺少 splitDedupedTimelineSegments");
 }
 
 export function assertNoTimelineInterleave(items: PolishedEventSummariesContextExpandedItem[]): void {
@@ -105,16 +159,7 @@ export function assertNoTimelineInterleave(items: PolishedEventSummariesContextE
 function assertSplitDedupedTimelineSegmentsShape(
   parsed: unknown,
 ): PolishedEventSummariesContextExpandedItem[] {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("SEGMENT_REFINE_80_INVALID: 模型输出须为对象");
-  }
-  const root = parsed as Record<string, unknown>;
-  const keys = Object.keys(root);
-  if (keys.length !== 1 || keys[0] !== "splitDedupedTimelineSegments") {
-    throw new Error(
-      `SEGMENT_REFINE_80_INVALID: 顶层须仅含 splitDedupedTimelineSegments，当前键: ${keys.join(",")}`,
-    );
-  }
+  const root = coerceSegmentRefine80Root(parsed);
   const arr = root.splitDedupedTimelineSegments;
   if (!Array.isArray(arr)) {
     throw new Error("SEGMENT_REFINE_80_INVALID: splitDedupedTimelineSegments 须为数组");

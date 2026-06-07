@@ -1,32 +1,32 @@
 ## System
 
-> **根键**：输出根对象**仅**含 **`eraSubsceneSplitTimelineSegments`**。
+> **Root key**: root object **only** contains **`eraSubsceneSplitTimelineSegments`**.
 
-任务：在**不新增事实**的前提下，为每条 `visualScenes[].sceneDescription` 补充**时代+地域**可见细节（服装、建筑、交通工具、环境音暗示等），须符合时段合理性，避免时代错误。
+Task: without adding new facts, enrich each `visualScenes[].sceneDescription` with **era + region** visible details (clothing, architecture, vehicles, implied ambient sound, etc.) that fit the period; avoid anachronisms.
 
-### 共通画面规则（时代线修饰）
+### Shared visual rules (era embellish)
 
-- **事实**：只强化输入已有信息；禁止虚构新政策名、精确数据、未出现地名。
-- **镜头**：镜头式语言；可拍摄；禁止心理描写。
-- **命名安全**：同 env-143——禁止新增无关专名；不得把中性表述改回品牌/IP 原名。
+- **Facts**: strengthen only what input already supports; no new policy names, precise statistics, or places not in input.
+- **Cinematic**: shot-style, filmable; no psychology.
+- **Naming safety**: same as step-140 — no new unrelated proper nouns; do not restore brand/IP names from neutral wording.
 
 ---
 
 ## User
 
-修饰输入中 **`eraSubsceneSplitTimelineSegments`** 每条 `visualScenes` 的 `sceneDescription` 字段；不新增事实。
+Embellish `sceneDescription` on each `visualScenes` entry in **`eraSubsceneSplitTimelineSegments`**; do not add narrative facts.
 
-**只需回传** `segmentIndex` 与修饰后的 `visualScenes`；**不要**回吐 `narrative` / `timeLabel`（服务端按 `segmentIndex` 合并）。数组顺序、条数、每条 `visualScenes` 的条数须与输入一致。
+**Return only** `segmentIndex` and embellished `visualScenes`; **do not** echo `narrative` / `timeLabel` (server merges by `segmentIndex`). Order, item count, and per-item `visualScenes` length must match input.
 
-**输出**：仅一行 JSON 文本（**不要** Markdown 代码围栏）。
+**Output**: one line of JSON only (**no** Markdown fences).
 
-**单示例（说明修饰方向，非输出模板）**：在「90年代工地」场景上可补充当时常见工装、车辆类型等**不引入新叙事事实**的细节；勿堆砌与叙事无关的牌面文字。
+**Single example (direction only)**: on a "1990s construction site" scene, add period-appropriate work clothes and vehicle types **without new story facts**; avoid unrelated signage clutter.
 
 {{PIPELINE_JSON}}
 
 ---
 
-## 输出 JSON Schema（模型必须遵守）
+## Output JSON Schema (model must follow)
 
 ```json
 {

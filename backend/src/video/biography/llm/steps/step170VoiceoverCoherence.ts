@@ -1,9 +1,10 @@
+import { VOICEOVER_LINE_MAX_CHARS } from "../../../shared/constants/voiceoverLimits.js";
 import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
 import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
 import type { MergedNarrativeSegmentItem } from "./step150MergeEnvAndEra.js";
 const PROMPT_FILE = "step-170_voiceover-coherence.md";
 const ERR = "VOICEOVER_COHERENCE_170_INVALID";
-const MAX_CHARS_PER_LINE = 36;
+const MAX_CHARS_PER_LINE = VOICEOVER_LINE_MAX_CHARS;
 
 export type VoiceoverFlatItem = {
   voiceoverOrder: number;

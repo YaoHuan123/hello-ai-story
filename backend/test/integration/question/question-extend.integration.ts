@@ -81,9 +81,12 @@ async function main(): Promise<void> {
   console.log("  ", JSON.stringify(result, null, 2));
 
   check("questions ≤3", result.questions.length <= 3, result);
+  const { EXTEND_QUESTION_MAX_CHARS } = await import("../../../src/content/displayLocale");
   check(
-    "每条 q 非空且 ≤30 字",
-    result.questions.every((item) => item.q.length > 0 && item.q.length <= 30),
+    `每条 q 非空且 ≤${EXTEND_QUESTION_MAX_CHARS} 字`,
+    result.questions.every(
+      (item) => item.q.length > 0 && item.q.length <= EXTEND_QUESTION_MAX_CHARS,
+    ),
     result,
   );
   check(

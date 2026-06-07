@@ -32,6 +32,7 @@ import {
 } from "./questionGeneration.service";
 import { traceQuestionStep } from "../question/questionTrace";
 import type { InterviewScope } from "./interviewWorkspace.service";
+import { getCatalogFieldDisplayText, isBasicProfileTopicName } from "../topic/catalog";
 import type { AnsweredSection, QuestionSet } from "../topic/types";
 
 function isCatalog(questionSet: QuestionSet): boolean {
@@ -88,14 +89,22 @@ async function ensureExtend(
   }
 
   const sections = sectionsForPrompt(scope);
-  const extended = await traceQuestionStep("engine.extend", () =>
-    extendSubCategoryQuestions({
-      sections,
-      questionSet,
-      templateAnswered,
-    }),
-  );
-  writeExtend(scope, { questions: extended.questions });
+  try {
+    const extended = await traceQuestionStep("engine.extend", () =>
+      extendSubCategoryQuestions({
+        sections,
+        questionSet,
+        templateAnswered,
+      }),
+    );
+    writeExtend(scope, { questions: extended.questions });
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith("EXTEND_INVALID")) {
+      writeExtend(scope, { questions: [] });
+      return;
+    }
+    throw err;
+  }
 }
 
 async function buildCatalogTemplateDisplay(
@@ -106,7 +115,9 @@ async function buildCatalogTemplateDisplay(
 ): Promise<NextQuestionDisplay> {
   const template = templateAnswers(answers);
   const key = prep.askQuestions[template.length]!;
-  const batchText = prep.questionTexts[key] ?? key;
+  const batchText = isBasicProfileTopicName(questionSet.title)
+    ? getCatalogFieldDisplayText(questionSet.title, key)
+    : (prep.questionTexts[key] ?? key);
   const batchSuggested = prep.answerSuggestions[key] ?? [];
 
   let questionText = batchText;
@@ -114,18 +125,24 @@ async function buildCatalogTemplateDisplay(
 
   if (!isRefineSkipped(questionSet) && template.length > 0) {
     const sections = sectionsForPrompt(scope);
-    const display = await traceQuestionStep("engine.refineAndSuggest", () =>
-      refineAndSuggestCurrent({
-        sections,
-        questionSet,
-        currentQuestion: key,
-        batchQuestionText: batchText,
-        batchSuggestedAnswers: batchSuggested,
-        answeredInTopic: toAnsweredInTopic(answers),
-      }),
-    );
-    questionText = display.questionText;
-    suggestions = display.suggestedAnswers;
+    try {
+      const display = await traceQuestionStep("engine.refineAndSuggest", () =>
+        refineAndSuggestCurrent({
+          sections,
+          questionSet,
+          currentQuestion: key,
+          batchQuestionText: batchText,
+          batchSuggestedAnswers: batchSuggested,
+          answeredInTopic: toAnsweredInTopic(answers),
+        }),
+      );
+      questionText = display.questionText;
+      suggestions = display.suggestedAnswers;
+    } catch (err) {
+      if (!(err instanceof Error && err.message.startsWith("REFINE_INVALID"))) {
+        throw err;
+      }
+    }
   }
 
   return {

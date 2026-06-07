@@ -1,5 +1,6 @@
 import { chatJson } from "./llm";
 import { loadGapPrompt } from "./loadGapPrompt";
+import { MATERIAL_GAP_REASON } from "./materialCopy";
 import { parseGapAudit } from "./parseGap";
 import {
   assertSectionsForTier5,
@@ -34,6 +35,6 @@ export async function recommendTier6(params: RecommendTier6Params): Promise<Topi
     tier: 6 as const,
     kind: "material_gap" as const,
     title: text,
-    reason: "素材缺口，建议补充关键时间或地点等信息",
+    reason: MATERIAL_GAP_REASON,
   }));
 }

@@ -78,6 +78,9 @@ export const en: MessageTree = {
     answerPlaceholder: "Type your answer…",
     topicPlaceholder: "Or enter a topic title…",
     pickAbove: "Choose an option above",
+    listenQuestion: "Listen",
+    listenQuestionAria: "Read current question aloud",
+    stopListen: "Stop",
     send: "Send",
     yearMonthAria: "Year and month",
     yearMonthMask: "YYYY-MM",
@@ -227,5 +230,8 @@ export const en: MessageTree = {
     QUESTION_ENGINE_COMPLETE: "This section is complete — refreshed.",
     QUESTION_ENGINE_NO_SESSION: "No question in progress — refreshed.",
     INTERVIEW_TOPIC_IN_PROGRESS: "A topic is already in progress — continue answering.",
+    AI_SERVICE_UNAVAILABLE: "AI service is temporarily unavailable — try again shortly.",
+    TTS_UNAVAILABLE: "Read-aloud is temporarily unavailable — try again shortly.",
+    CURRENT_QUESTION_FAILED: "Could not load the current question — refresh and try again.",
   },
 };

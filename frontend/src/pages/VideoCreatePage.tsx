@@ -25,11 +25,6 @@ import type {
   VideoTaskListItem,
   VideoTaskProgress,
 } from "../types/production";
-import {
-  DEFAULT_BIOGRAPHY_TTS_VOICE,
-  DEFAULT_STUDIO_GUEST_VOICE,
-  DEFAULT_STUDIO_HOST_VOICE,
-} from "../constants/ttsVoices";
 import "./production/ProductionSubpage.css";
 import "./production/production-components.css";
 import { defaultPolishMode, videoTaskStatusLabel } from "./production/productCopy";
@@ -203,17 +198,23 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
   const handleScheduleVideo = () => {
     if (!canProduce) return;
     void run(async () => {
+      const ttsVoice = readiness?.biographyTtsVoice;
+      const hostVoice = readiness?.studioHostVoice;
+      const guestVoice = readiness?.studioGuestVoice;
+      if (!ttsVoice || !hostVoice || !guestVoice) {
+        throw new Error("TTS voice hints missing");
+      }
       const scheduled =
         videoKind === "biography"
           ? await scheduleBiographyVideo(interviewId, {
-              ttsVoice: DEFAULT_BIOGRAPHY_TTS_VOICE,
+              ttsVoice,
               styleId: styleId || undefined,
               textTaskId,
               polishMode,
             })
           : await scheduleStudioVideo(interviewId, {
-              hostVoice: DEFAULT_STUDIO_HOST_VOICE,
-              guestVoice: DEFAULT_STUDIO_GUEST_VOICE,
+              hostVoice,
+              guestVoice,
               textTaskId,
               polishMode,
               qaGranularity: "hybrid",

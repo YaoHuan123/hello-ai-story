@@ -1,7 +1,5 @@
 import fs from "node:fs";
-import path from "node:path";
-
-const PROMPT_DIR = path.join(__dirname, "..", "..", "..", "prompts", "interview");
+import { resolvePromptFilePath } from "../content/promptPath";
 
 /** 出题管道提示词文件名（逐步实现时从老项目精简复制到 `prompts/interview/`）。 */
 export const QUESTION_PROMPT_FILES = {
@@ -19,9 +17,6 @@ const cache = new Map<string, { system: string; userTemplate: string }>();
 
 /**
  * 加载出题提示词：以 `## User` 分隔 system 与 user 模板。
- *
- * @param filename `prompts/interview/` 下的文件名
- * @param placeholder user 段须包含的占位符，默认 `{{INPUT_JSON}}`
  */
 export function loadQuestionPrompt(
   filename: string,
@@ -31,7 +26,7 @@ export function loadQuestionPrompt(
   const hit = cache.get(cacheKey);
   if (hit) return hit;
 
-  const filePath = path.join(PROMPT_DIR, filename);
+  const filePath = resolvePromptFilePath("interview", filename);
   if (!fs.existsSync(filePath)) {
     throw new Error(
       `PROMPT_NOT_FOUND: ${filename}（请先按 docs/question-generation-module.md 精简复制提示词）`,

@@ -84,6 +84,12 @@ import {
   VIDEO_PIPELINE_STEPS,
 } from "../constants/stepIds.js";
 import { isoNow, readJsonObjectFile, sortTimelineBySegmentIndex, writeJsonAtomic } from "../../shared/orchestrator/pipelineDisk.js";
+import { getInterviewDisplayLocale } from "../../../content/displayLocale";
+import { resolveBiographyTtsVoice } from "../../../content/interviewTtsVoices";
+import {
+  mergedSegmentsForDisplayTts,
+  translateSubtitleBySegment,
+} from "../../../content/voiceoverDisplayTts";
 import type { InterviewScope } from "../../../services/interviewWorkspace.service";
 import type { VideoTaskPaths } from "../../shared/orchestrator/videoTaskWorkspace.js";
 
@@ -325,13 +331,15 @@ case "90": {
         ReturnType<typeof synthesizeAudioRelationsFromMergedSegments>
       >["relations"] = [];
       if (!skipped) {
-        const voice = ctx.ttsVoice?.trim();
-        if (!voice) {
-          throw new Error(
-            "TOTAL_PACK_AUDIO_RELATION_180_INVALID: 步骤 180 须提供非空 ttsVoice（runBiographyVideoPipeline 选项）",
-          );
-        }
-        const r = await synthesizeAudioRelationsFromMergedSegments(mergedNarrativeSegments, AUDIO_OUTPUT_DIR, {
+        const locale = getInterviewDisplayLocale(ctx.scope);
+        const voice = resolveBiographyTtsVoice(ctx.scope, ctx.ttsVoice);
+        const segmentsForTts = await mergedSegmentsForDisplayTts(
+          ctx.scope,
+          mergedNarrativeSegments,
+          locale,
+          voice,
+        );
+        const r = await synthesizeAudioRelationsFromMergedSegments(segmentsForTts, AUDIO_OUTPUT_DIR, {
           ttsVoice: voice,
         });
         sceneAudioRelations = r.relations;
@@ -508,7 +516,14 @@ case "90": {
       let subtitleBySegment = new Map<number, string[]>();
       if (Object.keys(rawVo).length > 0) {
         try {
-          subtitleBySegment = buildSubtitleBySegmentFromVoiceoverPackRaw(rawVo);
+          const base = buildSubtitleBySegmentFromVoiceoverPackRaw(rawVo);
+          const subtitleLocale = getInterviewDisplayLocale(ctx.scope);
+          subtitleBySegment = await translateSubtitleBySegment(
+            ctx.scope,
+            base,
+            subtitleLocale,
+            resolveBiographyTtsVoice(ctx.scope, ctx.ttsVoice),
+          );
         } catch {
           subtitleBySegment = new Map();
         }

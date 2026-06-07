@@ -47,17 +47,29 @@ function parseSegIdx(v: unknown): number | null {
   return null;
 }
 
-function assertSubsceneSplitShape(parsed: unknown): SubsceneSplitItem[] {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+/** 模型偶发沿用步骤 80 键名或直接返回数组；归一为 `{ subsceneSplitTimelineSegments }`。 */
+function coerceSubsceneSplit90Root(parsed: unknown): Record<string, unknown> {
+  if (Array.isArray(parsed)) {
+    return { subsceneSplitTimelineSegments: parsed };
+  }
+  if (!parsed || typeof parsed !== "object") {
     throw new Error("SUBSCENE_SPLIT_90_INVALID: 模型输出须为对象");
   }
   const root = parsed as Record<string, unknown>;
-  const keys = Object.keys(root);
-  if (keys.length !== 1 || keys[0] !== "subsceneSplitTimelineSegments") {
-    throw new Error(
-      `SUBSCENE_SPLIT_90_INVALID: 顶层须仅含 subsceneSplitTimelineSegments，当前键: ${keys.join(",")}`,
-    );
+  if (Array.isArray(root.subsceneSplitTimelineSegments)) {
+    return root;
   }
+  if (Array.isArray(root.splitDedupedTimelineSegments)) {
+    return { subsceneSplitTimelineSegments: root.splitDedupedTimelineSegments };
+  }
+  if (typeof root.narrative === "string" || Array.isArray(root.narrative)) {
+    return { subsceneSplitTimelineSegments: [root] };
+  }
+  throw new Error("SUBSCENE_SPLIT_90_INVALID: 缺少 subsceneSplitTimelineSegments");
+}
+
+function assertSubsceneSplitShape(parsed: unknown): SubsceneSplitItem[] {
+  const root = coerceSubsceneSplit90Root(parsed);
   const arr = root.subsceneSplitTimelineSegments;
   if (!Array.isArray(arr)) {
     throw new Error("SUBSCENE_SPLIT_90_INVALID: subsceneSplitTimelineSegments 须为数组");
@@ -69,10 +81,7 @@ function assertSubsceneSplitShape(parsed: unknown): SubsceneSplitItem[] {
       throw new Error("SUBSCENE_SPLIT_90_INVALID: 数组项须为对象");
     }
     const o = item as Record<string, unknown>;
-    const si = parseSegIdx(o.segmentIndex);
-    if (si === null) {
-      throw new Error("SUBSCENE_SPLIT_90_INVALID: segmentIndex 无效");
-    }
+    const si = parseSegIdx(o.segmentIndex) ?? out.length + 1;
     let narrative: string[] = [];
     if (typeof o.narrative === "string" && o.narrative.trim()) {
       narrative = [o.narrative.trim()];

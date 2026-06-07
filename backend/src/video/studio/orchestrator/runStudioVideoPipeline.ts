@@ -1,3 +1,4 @@
+import { resolveStudioTtsVoices } from "../../../content/interviewTtsVoices";
 import type { InterviewScope } from "../../../services/interviewWorkspace.service";
 import type { Step10Result } from "../../shared/orchestrator/runSharedPrepPipeline.js";
 import { VIDEO_PREP_STEPS } from "../../shared/constants/prepStepIds.js";
@@ -49,11 +50,7 @@ export async function runStudioVideoPipeline(
   scope: InterviewScope,
   opts: RunStudioVideoPipelineOptions,
 ): Promise<StudioVideoPipelineResult> {
-  const hostVoice = String(opts.hostVoice ?? "").trim();
-  const guestVoice = String(opts.guestVoice ?? "").trim();
-  if (!hostVoice || !guestVoice) {
-    throw new Error("STUDIO_PIPELINE_VOICES_REQUIRED: interview_studio 须同时提供 hostVoice 与 guestVoice");
-  }
+  const { hostVoice, guestVoice } = resolveStudioTtsVoices(scope, opts.hostVoice, opts.guestVoice);
 
   const handle = opts.createTask
     ? createStudioVideoTask(scope)
@@ -68,7 +65,7 @@ export async function runStudioVideoPipeline(
     prepProfile: "studio",
     onStepComplete: opts.onStepComplete,
     buildLanes: () => {
-      const ctx = { paths: handle.paths, hostVoice, guestVoice, qaGranularity: opts.qaGranularity };
+      const ctx = { scope, paths: handle.paths, hostVoice, guestVoice, qaGranularity: opts.qaGranularity };
       return [
         {
           stepIds: STUDIO_PIPELINE_STEP_IDS,

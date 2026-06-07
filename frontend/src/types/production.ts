@@ -161,6 +161,11 @@ export type ProductionReadiness = {
   storyTextTasks: StoryTextTaskOption[];
   latestStoryTextTaskId?: string;
   message: string;
+  /** 采访展示语言（meta.locale） */
+  locale: "zh" | "en";
+  biographyTtsVoice: string;
+  studioHostVoice: string;
+  studioGuestVoice: string;
 };
 
 export type PublicVideoStyle = {

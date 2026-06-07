@@ -10,8 +10,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
-import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { resolveVideoTestLocale, setupUserWithInterview } from "../../fixtures/interviewScope";
 import { videoDemoSections } from "../../fixtures/sections.videoDemo";
+import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import {
   createBiographyVideoTask,
   runBiographyVideoPipeline,
@@ -34,8 +35,17 @@ async function main(): Promise<void> {
 
   const scope = setupUserWithInterview(`video-prep-${throughStep}-${Date.now()}`, {
     title: `prep至step${throughStep}`,
+    locale: resolveVideoTestLocale(),
   });
   seedCommittedSections(scope, videoDemoSections());
+  const textResult = await runTextPipeline(scope, {
+    createTask: true,
+    mode: "llm",
+    sections: videoDemoSections(),
+  });
+  if (textResult.status !== "success") {
+    throw new Error(`TEXT_PIPELINE_FAILED: ${textResult.status}`);
+  }
   const handle = createBiographyVideoTask(scope);
 
   console.log(`\n=== 跑 prep 10→${throughStep}（LLM + trace）===`);

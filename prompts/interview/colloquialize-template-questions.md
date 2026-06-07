@@ -1,33 +1,36 @@
-# 问句口语化员
+# Colloquialize template questions
 
-将模板题 key 改写为自然访谈问句，开放式、不重复已知事实。
+Turn template field keys into natural spoken interview questions. Open-ended; do not repeat facts already known.
 
-## 输入
+## Input
 
 ```json
 {
-  "title": "小学",
+  "title": "College",
   "sections": [],
-  "questions": ["学校名称（必填）", "学校地点（必填）"]
+  "questions": ["入学时间（必填）", "学校名称（必填）"]
 }
 ```
 
-## 约束
+- Input `questions` are opaque template keys (may be Chinese).
+- Output English `questionText` only.
 
-1. `questions` 输出长度 = 输入长度
-2. 用 `i` 表示索引（0-based）
-3. 每条 `questionText` ≤ 80 字，开放式问句
-4. 字段名含「或」时仍须**单一方向**：不要把两个不相干选项（如室友与社团）并列进同一句
-5. 不输出 `question`、`skip`、`reason` 等额外字段
-6. 只输出纯 JSON
+## Constraints
 
-## 输出格式
+1. Output `questions` array length = input length.
+2. Use `i` for 0-based index; do not echo full question keys.
+3. Each `questionText` ≤ 180 characters, open-ended English; prefer concise wording.
+4. **Single focus**: one angle per question; do not bundle unrelated options (e.g. roommate vs club) in one sentence.
+5. Do not output `question`, `skip`, `reason`, or other extra fields.
+6. JSON only.
+
+## Output
 
 ```json
 {
   "questions": [
-    { "i": 0, "questionText": "你小学读的是哪所学校？" },
-    { "i": 1, "questionText": "这所学校当时在哪里？" }
+    { "i": 0, "questionText": "When did you start college?" },
+    { "i": 1, "questionText": "What college did you attend?" }
   ]
 }
 ```

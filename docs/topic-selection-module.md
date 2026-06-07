@@ -49,7 +49,7 @@ tier N+1：getPendingTopics（无 tier{N+1}.json，用**最新** sections 重新
 因此：
 
 - **不需要**「同档 `sections` 变更 → 输入 hash 失效 → 重调 LLM」；同档内复用 `pending.json` 是预期行为。
-- 同档内若 pending 含多条候选、用户只答完其中一条，编排层在内存中过滤已在 `sections` 里的 `title`（见 [`interviewOrchestrator.service.ts`](../backend/src/services/interviewOrchestrator.service.ts) `pendingWithAutoPromote`），**不**改写磁盘 pending。
+- 答完一个主题后 `commitTopic` 会 `advanceStage` 并删除 `pending.json`；`pendingWithAutoPromote` 对已在 `sections` 中的 `title` 做内存过滤，仅用于 `picks: []` 升档或**旧数据** pending 未删时的兜底。
 - 下一档选题始终基于升档后的最新 `sections`（上一档 pending 已在 `advanceStage` 时删除）。
 
 若未来产品改为「同档停留期间持续答题并刷新整批候选」，再单独设计 hash 失效或强制刷新；**当前产品路径下不必实现**。

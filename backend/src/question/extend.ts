@@ -1,10 +1,21 @@
-import { chatJson } from "../topic/llm";
+import { EXTEND_QUESTION_MAX_CHARS } from "../content/displayLocale";
+import { chatJson, type ChatMessage } from "../topic/llm";
 import { loadExtendPrompt } from "./loadPrompt";
 import { narratorProfileFromSections } from "./narratorProfile";
 import { parseExtend } from "./parseExtend";
 import { traceQuestionStep, runWithLlmTraceLabel } from "./questionTrace";
 import type { ExtendSubCategoryParams, ExtendSubCategoryResult } from "./types";
 import { isExtendNotApplicable, isExtendSkipped } from "./types";
+
+function isExtendQuestionTooLongError(err: unknown): boolean {
+  return err instanceof Error && err.message.includes("EXTEND_INVALID") && err.message.includes(".q 超过");
+}
+
+async function callExtendLlm(messages: ChatMessage[]): Promise<unknown> {
+  return traceQuestionStep("extend.subCategory", () =>
+    runWithLlmTraceLabel("extend.subCategory", () => chatJson<unknown>(messages)),
+  );
+}
 
 function filterAnsweredRecord(raw: Record<string, string>): Record<string, string> {
   return Object.fromEntries(
@@ -47,16 +58,26 @@ export async function extendSubCategoryQuestions(
 
   const { system, userTemplate } = loadExtendPrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
+  const messages: ChatMessage[] = [
+    { role: "system", content: system },
+    { role: "user", content: userContent },
+  ];
 
-  const parsed = await traceQuestionStep("extend.subCategory", () =>
-    runWithLlmTraceLabel("extend.subCategory", () =>
-      chatJson<unknown>([
-        { role: "system", content: system },
-        { role: "user", content: userContent },
-      ]),
-    ),
-  );
-
-  const questions = parseExtend(parsed);
-  return { questions };
+  let parsed = await callExtendLlm(messages);
+  try {
+    return { questions: parseExtend(parsed) };
+  } catch (err) {
+    if (!isExtendQuestionTooLongError(err)) throw err;
+    parsed = await callExtendLlm([
+      ...messages,
+      {
+        role: "user",
+        content:
+          `Your previous JSON violated the length limit. Regenerate JSON only. ` +
+          `Each questions[].q must be ≤ ${EXTEND_QUESTION_MAX_CHARS} characters. ` +
+          `Shorten wording; keep one focus per question.`,
+      },
+    ]);
+    return { questions: parseExtend(parsed) };
+  }
 }

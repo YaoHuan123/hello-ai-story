@@ -8,8 +8,8 @@ import { getProductionReadiness } from "../services/productionReadiness.service"
 import { runTextPipeline } from "../text/orchestrator/runTextPipeline";
 import { deleteTextTask } from "../text/deleteTextTask";
 import { getTextTaskProgress, listTextTasks } from "../text/textTaskQuery";
-import { openTextTask } from "../text/orchestrator/textTaskWorkspace";
 import { listTextTaskArtifacts, openTextArtifactFile } from "../text/textTaskArtifacts";
+import { getTextArticleForDisplay } from "../text/textArticleDisplay";
 import {
   addInterviewPlaceImage,
   deleteInterviewPlaceImage,
@@ -36,7 +36,7 @@ const ttsVoiceSchema = z
   .string()
   .min(8)
   .max(200)
-  .regex(/^zh_[a-z0-9_]+$/i, "须为火山 voice_type，如 zh_male_M392_conversation_wvae_bigtts");
+  .regex(/^(zh|en)_[a-z0-9_]+$/i, "须为火山 voice_type，如 zh_male_M392_conversation_wvae_bigtts 或 en_male_adam_mars_bigtts");
 
 const scheduleBiographySchema = z.object({
   ttsVoice: ttsVoiceSchema,
@@ -194,7 +194,12 @@ function mapProductionError(res: Response, error: unknown): boolean {
     res.status(400).json({ code, message: friendly });
     return true;
   }
-  if (code.startsWith("LLM_") || code.startsWith("OPENAI_") || code.includes("_LLM_")) {
+  if (
+    code.startsWith("LLM_") ||
+    code.startsWith("OPENAI_") ||
+    code.includes("_LLM_") ||
+    code === "DISPLAY_TRANSLATE_INVALID"
+  ) {
     res.status(502).json({ code: "AI_SERVICE_UNAVAILABLE", message: "AI 服务暂不可用，请稍后再试" });
     return true;
   }
@@ -636,7 +641,7 @@ export function createProductionRouter(): Router {
     }
   });
 
-  router.get("/text/tasks/:taskId/article", (req: Request<TaskRouteParams>, res) => {
+  router.get("/text/tasks/:taskId/article", async (req: Request<TaskRouteParams>, res) => {
     const userId = requireUserId(req);
     if (!userId) {
       res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
@@ -646,24 +651,8 @@ export function createProductionRouter(): Router {
     const taskId = req.params.taskId.trim();
     try {
       assertInterviewExists(scope);
-      const handle = openTextTask(scope, taskId);
-      if (!fs.existsSync(handle.paths.articlePath)) {
-        res.status(404).json({ code: "TEXT_ARTICLE_NOT_FOUND", message: "正式文章尚未生成" });
-        return;
-      }
-      const raw = JSON.parse(fs.readFileSync(handle.paths.articlePath, "utf-8")) as Record<string, unknown>;
-      const article = typeof raw.article === "string" ? raw.article : "";
-      if (!article.trim()) {
-        res.status(404).json({ code: "TEXT_ARTICLE_NOT_FOUND", message: "正式文章尚未生成" });
-        return;
-      }
-      res.status(200).json({
-        taskId,
-        savedAt: typeof raw.savedAt === "string" ? raw.savedAt : undefined,
-        sectionCount: typeof raw.sectionCount === "number" ? raw.sectionCount : undefined,
-        skippedModel: typeof raw.skippedModel === "boolean" ? raw.skippedModel : undefined,
-        article,
-      });
+      const payload = await getTextArticleForDisplay(scope, taskId);
+      res.status(200).json(payload);
     } catch (error) {
       if (mapProductionError(res, error)) return;
       res.status(500).json({ code: "INTERNAL_ERROR", message: "读取正式文章失败" });

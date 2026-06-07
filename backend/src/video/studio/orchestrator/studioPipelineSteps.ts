@@ -9,9 +9,11 @@ import { runStudioDurationAlignStep } from "../render/durationAlign.js";
 import { runStudioClipsStep } from "../render/clipRender.js";
 import { runStudioMergeStep } from "../render/mergeClips.js";
 import { runStudioTtsStep } from "../render/studioTts.js";
+import type { InterviewScope } from "../../../services/interviewWorkspace.service";
 import type { VideoTaskPaths } from "../../shared/orchestrator/videoTaskWorkspace.js";
 
 export type StudioPipelineContext = {
+  scope: InterviewScope;
   paths: VideoTaskPaths;
   hostVoice?: string;
   guestVoice?: string;
@@ -42,11 +44,11 @@ export async function runStudioPipelineStep(
       };
     }
     case STUDIO_PIPELINE_STEPS.TTS: {
-      const r = await runStudioTtsStep(ctx.paths, ctx.hostVoice, ctx.guestVoice);
+      const r = await runStudioTtsStep(ctx.scope, ctx.paths, ctx.hostVoice, ctx.guestVoice);
       return { stepId: STUDIO_PIPELINE_STEPS.TTS, savedAt, detail: { turnCount: r.turnCount } };
     }
     case STUDIO_PIPELINE_STEPS.DURATION_ALIGN: {
-      const r = await runStudioDurationAlignStep(ctx.paths, ctx.hostVoice, ctx.guestVoice);
+      const r = await runStudioDurationAlignStep(ctx.scope, ctx.paths, ctx.hostVoice, ctx.guestVoice);
       return {
         stepId: STUDIO_PIPELINE_STEPS.DURATION_ALIGN,
         savedAt,

@@ -1,13 +1,15 @@
+import { QUESTION_TEXT_MAX_CHARS } from "../content/displayLocale";
 import type { ColloquializeItem } from "./types";
-
-const QUESTION_TEXT_MAX = 80;
 const REASON_MAX_LEN = 60;
 
 function assertQuestionText(question: string, questionText: string): void {
-  if (/请填写|^\[|fieldKey/i.test(questionText)) {
+  if (/请填写|^\[|fieldKey|please fill|fill in\b|enter your/i.test(questionText)) {
     throw new Error("COLLOQUIALIZE_INVALID: questionText 不得为填表指令或字段名复述");
   }
-  if (/选项|选择对应|点选|按钮|UI/i.test(questionText)) {
+  if (
+    /选项|选择对应|点选|按钮|UI/i.test(questionText) ||
+    /select from|tap to|choose one of|pick from/i.test(questionText)
+  ) {
     throw new Error(`COLLOQUIALIZE_INVALID: questionText 不得包含选项操作提示（${question}）`);
   }
 }
@@ -76,8 +78,9 @@ export function parseColloquialize(
     if (!questionText) {
       throw new Error(`COLLOQUIALIZE_INVALID: questionText 缺失（${question}）`);
     }
-    if (questionText.length > QUESTION_TEXT_MAX) {
-      throw new Error("COLLOQUIALIZE_INVALID: questionText 超过 80 字");
+    const maxLen = QUESTION_TEXT_MAX_CHARS;
+    if (questionText.length > maxLen) {
+      throw new Error(`COLLOQUIALIZE_INVALID: questionText 超过 ${maxLen} 字`);
     }
     assertQuestionText(question, questionText);
     if (reason.length > REASON_MAX_LEN) {

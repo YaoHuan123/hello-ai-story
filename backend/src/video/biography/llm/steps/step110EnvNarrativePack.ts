@@ -81,21 +81,35 @@ function slimSliceForEnvNarrativePack(slice: CrossValidatedTimelineItem[]) {
   }));
 }
 
+/** 模型偶发返回数组或沿用其它步骤键名；归一为 `{ crossValidatedTimelineSegments }`。 */
+function coerceEnvNarrativePack110Root(parsed: unknown): Record<string, unknown> {
+  if (Array.isArray(parsed)) {
+    return { crossValidatedTimelineSegments: parsed };
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("ENV_NARRATIVE_PACK_110_INVALID: 模型输出须为对象");
+  }
+  const root = parsed as Record<string, unknown>;
+  if (Array.isArray(root.crossValidatedTimelineSegments)) {
+    return root;
+  }
+  for (const altKey of ["splitDedupedTimelineSegments", "subsceneSplitTimelineSegments"] as const) {
+    if (Array.isArray(root[altKey])) {
+      return { crossValidatedTimelineSegments: root[altKey] };
+    }
+  }
+  if (Array.isArray(root.visualScenes) && typeof root.segmentIndex !== "undefined") {
+    return { crossValidatedTimelineSegments: [root] };
+  }
+  throw new Error("ENV_NARRATIVE_PACK_110_INVALID: 缺少 crossValidatedTimelineSegments");
+}
+
 /** 模型仅回传 visualScenes，按下标对齐输入并合并其余字段（narrative/timeLabel/originalNarrative/title）。 */
 function assertEnvNarrativePackModelShape(
   parsed: unknown,
   inputSegments: CrossValidatedTimelineItem[],
 ): CrossValidatedTimelineItem[] {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("ENV_NARRATIVE_PACK_110_INVALID: 模型输出须为对象");
-  }
-  const root = parsed as Record<string, unknown>;
-  const keys = Object.keys(root);
-  if (keys.length !== 1 || !Object.prototype.hasOwnProperty.call(root, "crossValidatedTimelineSegments")) {
-    throw new Error(
-      `ENV_NARRATIVE_PACK_110_INVALID: 顶层须仅含 crossValidatedTimelineSegments，当前键: ${keys.join(",")}`,
-    );
-  }
+  const root = coerceEnvNarrativePack110Root(parsed);
   const arr = root.crossValidatedTimelineSegments;
   if (!Array.isArray(arr) || arr.length === 0) {
     throw new Error("ENV_NARRATIVE_PACK_110_INVALID: crossValidatedTimelineSegments 须为非空数组");
@@ -139,22 +153,27 @@ async function runEnvNarrativePackForSlice(
   const pipelineStr = stringifyForAi({ crossValidatedTimelineSegments: slimSliceForEnvNarrativePack(slice) });
   const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
 
+  const messages = [
+    { role: "system" as const, content: systemText },
+    { role: "user" as const, content: userContent },
+  ];
+  const chatOpts = {
+    debugStepId: "env_narrative_pack_110",
+    temperature: 0.25,
+    useJsonObject: true,
+  };
+
   let parsed: unknown;
   try {
-    parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
-      {
-        debugStepId: "env_narrative_pack_110",
-        temperature: 0.25,
-        useJsonObject: true,
-      },
-    );
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(`ENV_NARRATIVE_PACK_110_INVALID: 模型调用或 JSON 解析失败。${msg}`);
+    parsed = await chatJson<unknown>(messages, chatOpts);
+  } catch (first) {
+    try {
+      parsed = await chatJson<unknown>(messages, { ...chatOpts, debugStepId: "env_narrative_pack_110_retry" });
+    } catch (second) {
+      const msg = second instanceof Error ? second.message : String(second);
+      const firstMsg = first instanceof Error ? first.message : String(first);
+      throw new Error(`ENV_NARRATIVE_PACK_110_INVALID: 模型调用或 JSON 解析失败。${msg}（首次：${firstMsg}）`);
+    }
   }
 
   return assertEnvNarrativePackModelShape(parsed, slice);

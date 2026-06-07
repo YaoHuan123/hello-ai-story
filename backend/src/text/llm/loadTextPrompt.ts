@@ -1,22 +1,8 @@
 import fs from "node:fs";
-import path from "node:path";
+import { resolvePromptFilePath } from "../../content/promptPath.js";
 import { stripUserSuffixSchemaAppendix } from "../../video/shared/llm/loadPrompt.js";
 
 const cache = new Map<string, { systemText: string; userSuffix: string }>();
-
-/** 仓库根 `prompts/create-text`（dist 下 __dirname 为 backend/dist/text/llm，向上 4 级到 repo 根）。 */
-const DEFAULT_TEXT_PROMPT_ROOT = path.join(__dirname, "..", "..", "..", "..", "prompts", "create-text");
-
-function textPromptRoot(): string {
-  const override = (process.env.TEXT_PROMPT_ROOT ?? "").trim();
-  if (override) return override;
-  return DEFAULT_TEXT_PROMPT_ROOT;
-}
-
-function resolveTextPromptPath(basename: string): string {
-  const file = basename.split("/").filter(Boolean).pop() ?? basename;
-  return path.join(textPromptRoot(), file);
-}
 
 /** 加载 `prompts/create-text/` 提示词：`## System` / `## User` 分段；Schema 附录不发给模型。 */
 export function loadTextPromptParts(
@@ -27,7 +13,8 @@ export function loadTextPromptParts(
   const hit = cache.get(cacheKey);
   if (hit) return hit;
 
-  const filePath = resolveTextPromptPath(basename);
+  const file = basename.split("/").filter(Boolean).pop() ?? basename;
+  const filePath = resolvePromptFilePath("create-text", file);
   if (!fs.existsSync(filePath)) {
     throw new Error(`TEXT_PROMPT_NOT_FOUND: ${basename}（期望路径 ${filePath}）`);
   }

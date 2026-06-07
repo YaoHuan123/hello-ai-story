@@ -7,6 +7,7 @@
  *
  * 详见 `docs/question-generation-module.md`。
  */
+import { isBasicProfileTopicName } from "../topic/catalog";
 import type { AnsweredSection, QuestionSet } from "../topic/types";
 
 /** 全量已答小节（定义见 [`topic/types`](../topic/types.ts) 的 `AnsweredSection`） */
@@ -50,7 +51,7 @@ export type DedupeQuestionsResult = {
 export type ColloquializeItem = {
   /** 模板题 key，与 `questionSet.questions` 某项字面一致 */
   question: string;
-  /** 访谈展示用问句，≤80 字 */
+  /** 访谈展示用问句（canonical 英文），≤180 字符 */
   questionText: string;
   /** 兼容旧 trace / 旧模型输出；新 prompt 不再要求模型输出 */
   reason?: string;
@@ -263,7 +264,7 @@ export type RefineAndSuggestCurrentResult = {
 
 /** 扩展追问单条（与 extend prompt 的 `questions[]` 对齐）。 */
 export type ExtendQuestionItem = {
-  /** 开放追问文案，≤30 字 */
+  /** 开放追问文案（canonical 英文），≤180 字符 */
   q: string;
   /** 0～4 条点选备选，仅轻量摘录/归一，每条 ≤40 字 */
   suggestedAnswers: string[];
@@ -287,8 +288,6 @@ export type ExtendSubCategoryResult = {
 
 // ─── 编排守卫（各步共用）────────────────────────────────────
 
-const BASIC_PROFILE_NAME = "基本档案";
-
 /**
  * 非 catalog 题集（生成题、热点、素材题等）不适用本模块 LLM 管道。
  * 单步调用抛 `*_NOT_APPLICABLE`；`runTemplatePrep` 抛 `TEMPLATE_PREP_NOT_APPLICABLE`。
@@ -303,7 +302,7 @@ export function isCatalogPrepNotApplicable(questionSet: QuestionSet): boolean {
  */
 export function isCatalogPrepSkipped(questionSet: QuestionSet): boolean {
   const title = questionSet.title.trim();
-  if (!title || title === BASIC_PROFILE_NAME) return true;
+  if (!title || isBasicProfileTopicName(title)) return true;
   if (title.startsWith("gen_")) return true;
   return false;
 }

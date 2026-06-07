@@ -362,7 +362,7 @@ q = await getCurrentQuestion(scope)   // 循环
 - `answers.json` — 按序累积已答；**进度由 answers 条数推导**，无 `QuestionEngineState`
 
 - **catalog**：首次 `getNextQuestion` 懒执行 `runTemplatePrep`；**非 catalog** 跳过 prep/extend。
-- **换子类**：`getPendingTopics` → `enterTopic`；不在本节结束时 `advanceStage`。
+- **换子类**：`getPendingTopics` → `enterTopic`；本节 `commitTopic` 时 `advanceStage`（基本档案冷启动除外，见 `topic-selection-module.md` §2.1）。
 
 验收：`npm run test:interview:orchestrator`。
 

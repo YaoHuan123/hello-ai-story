@@ -1,5 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { getInterviewDisplayLocale } from "../../../content/displayLocale.js";
+import { singleTextForDisplayTts } from "../../../content/voiceoverDisplayTts.js";
+import type { InterviewScope } from "../../../services/interviewWorkspace.service.js";
 import { synthesizeSingleSpeechMp3 } from "../../biography/render/step180Tts.js";
 import { readJsonObjectFile, writeJsonAtomic } from "../../shared/orchestrator/pipelineDisk.js";
 import type { VideoTaskPaths } from "../../shared/orchestrator/videoTaskWorkspace.js";
@@ -43,11 +46,13 @@ function requireTtsVoices(hostVoice: string | undefined, guestVoice: string | un
 }
 
 export async function runStudioTtsStep(
+  scope: InterviewScope,
   paths: VideoTaskPaths,
   hostVoice: string | undefined,
   guestVoice: string | undefined,
 ): Promise<{ bundlePath: string; turnCount: number }> {
   const voices = requireTtsVoices(hostVoice, guestVoice);
+  const locale = getInterviewDisplayLocale(scope);
   const scriptPath = studioPathUnderPipeline(paths.pipelineDir, STUDIO_SCRIPT_REL);
   const scriptRaw = readJsonObjectFile(scriptPath);
   const turns = parseTurnsFromScript(scriptRaw);
@@ -58,9 +63,10 @@ export async function runStudioTtsStep(
   const files: string[] = [];
   for (let i = 0; i < turns.length; i++) {
     const voice = turns[i].speaker === "host" ? voices.hostVoice : voices.guestVoice;
+    const speakText = await singleTextForDisplayTts(scope, turns[i].text, locale, voice);
     let buf: Buffer;
     try {
-      buf = await synthesizeSingleSpeechMp3(turns[i].text, voice);
+      buf = await synthesizeSingleSpeechMp3(speakText, voice);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       throw new Error(

@@ -50,7 +50,7 @@ export function createApp(db: DatabaseSync, authService: AuthService): Express {
 
   app.get("/api/production/video-styles", authMiddleware, (_req, res) => {
     try {
-      res.status(200).json(listPublicStyles(configDir));
+      res.status(200).json(listPublicStyles(configDir, APP_LOCALE));
     } catch (error) {
       const message = error instanceof Error ? error.message : "读取视频风格失败";
       res.status(500).json({ code: "VIDEO_STYLES_LOAD_FAILED", message });

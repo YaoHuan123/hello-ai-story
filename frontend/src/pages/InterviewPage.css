@@ -226,6 +226,28 @@
   color: var(--shell-label-2);
 }
 
+.iv-speak {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--shell-separator);
+  background: var(--shell-bg-elevated);
+  color: var(--shell-brand-deep);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.iv-speak--on {
+  border-color: var(--shell-brand);
+  background: var(--shell-brand-soft);
+}
+
+.iv-speak:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .iv-send {
   width: 44px;
   height: 44px;

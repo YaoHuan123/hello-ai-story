@@ -50,6 +50,13 @@ export async function runTextPipeline(
   scope: InterviewScope,
   opts?: RunTextPipelineOptions,
 ): Promise<TextPipelineResult> {
+  return runTextPipelineInner(scope, opts);
+}
+
+async function runTextPipelineInner(
+  scope: InterviewScope,
+  opts?: RunTextPipelineOptions,
+): Promise<TextPipelineResult> {
   const handle = opts?.createTask ? createTextTask(scope) : resolveTextTask(scope, opts?.taskId);
 
   const sections = opts?.sections ?? getSections(scope);

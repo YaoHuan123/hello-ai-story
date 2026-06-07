@@ -143,6 +143,95 @@ function extractBalancedJsonObject(s: string): string | null {
   return null;
 }
 
+function extractBalancedJsonArray(s: string): string | null {
+  const start = s.indexOf("[");
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (c === "\\" && inString) {
+      escape = true;
+      continue;
+    }
+    if (c === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (c === "[") depth++;
+    else if (c === "]") {
+      depth--;
+      if (depth === 0) return s.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+/** 模型常在字符串值里输出未转义换行/制表符，导致 JSON.parse 失败。 */
+function escapeRawControlCharsInJsonStrings(s: string): string {
+  let out = "";
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i]!;
+    if (!inString) {
+      out += c;
+      if (c === '"') {
+        inString = true;
+        escape = false;
+      }
+      continue;
+    }
+    if (escape) {
+      out += c;
+      escape = false;
+      continue;
+    }
+    if (c === "\\") {
+      if (i + 1 >= s.length) {
+        out += "\\\\";
+        break;
+      }
+      const next = s[i + 1]!;
+      if ('"\\/bfnrtu'.includes(next)) {
+        out += c;
+        escape = true;
+      } else {
+        out += "\\\\";
+      }
+      continue;
+    }
+    if (c === '"') {
+      out += c;
+      inString = false;
+      continue;
+    }
+    if (c === "\n") {
+      out += "\\n";
+      continue;
+    }
+    if (c === "\r") {
+      out += "\\r";
+      continue;
+    }
+    if (c === "\t") {
+      out += "\\t";
+      continue;
+    }
+    if (c.charCodeAt(0) < 0x20) {
+      continue;
+    }
+    out += c;
+  }
+  return out;
+}
+
 /**
  * 末位兜底修复：按括号栈重写一段以 `{` 开头的 JSON，纠正
  * (1) 响应截断导致的未闭合括号/字符串；(2) 用错闭合符（如该 `]` 却写成 `}`）。
@@ -206,16 +295,30 @@ function repairJsonBrackets(s: string): string | null {
   return out;
 }
 
+/** 模型常在 `'on-screen text overlay: …'` 后直接写 `}`/`]`，漏掉 JSON 字符串闭合引号。 */
+function insertMissingStringClosersBeforeBrackets(s: string): string {
+  return s.replace(/'(\s*[\}\]])/g, "'\"$1");
+}
+
 export function parseModelJson<T>(raw: string, context: string): T {
-  const cleaned = stripCodeFence(raw).trim();
-  const balanced = extractBalancedJsonObject(cleaned);
-  const repaired = repairJsonBrackets(cleaned);
+  const cleaned = stripCodeFence(raw).trim().replace(/^\uFEFF/, "");
+  const sanitized = escapeRawControlCharsInJsonStrings(cleaned);
+  const quoteClosed = insertMissingStringClosersBeforeBrackets(sanitized);
+  const balancedObject = extractBalancedJsonObject(quoteClosed);
+  const balancedArray = extractBalancedJsonArray(quoteClosed);
+  const repaired = repairJsonBrackets(quoteClosed);
+  const stripTrailingCommas = (s: string | null | undefined) => s?.replace(/,(\s*[}\]])/g, "$1") ?? null;
   const attempts = [
     cleaned,
-    balanced,
-    balanced?.replace(/,(\s*[}\]])/g, "$1"),
+    sanitized,
+    quoteClosed,
+    balancedObject,
+    balancedArray,
+    stripTrailingCommas(balancedObject),
+    stripTrailingCommas(balancedArray),
     repaired,
-    repaired?.replace(/,(\s*[}\]])/g, "$1"),
+    stripTrailingCommas(repaired),
+    stripTrailingCommas(extractBalancedJsonObject(repaired ?? "")),
   ].filter((s): s is string => Boolean(s?.trim()));
   for (const s of attempts) {
     try {

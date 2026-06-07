@@ -1,9 +1,22 @@
-import { chatJson } from "../topic/llm";
+import { QUESTION_TEXT_MAX_CHARS } from "../content/displayLocale";
+import { chatJson, type ChatMessage } from "../topic/llm";
 import { loadRefinePrompt } from "./loadPrompt";
 import { narratorProfileFromSections } from "./narratorProfile";
 import { parseRefine } from "./parseRefine";
 import type { RefineCurrentQuestionParams, RefineCurrentQuestionResult } from "./types";
 import { isRefineNotApplicable, isRefineSkipped } from "./types";
+
+function isRefineQuestionTooLongError(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    err.message.includes("REFINE_INVALID") &&
+    err.message.includes("questionText 超过")
+  );
+}
+
+async function callRefineLlm(messages: ChatMessage[]): Promise<unknown> {
+  return chatJson<unknown>(messages);
+}
 
 /**
  * 是否应对当前题调用 refine LLM。
@@ -86,11 +99,25 @@ export async function refineCurrentQuestion(
 
   const { system, userTemplate } = loadRefinePrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
-
-  const parsed = await chatJson<unknown>([
+  const messages: ChatMessage[] = [
     { role: "system", content: system },
     { role: "user", content: userContent },
-  ]);
+  ];
 
-  return parseRefine(parsed);
+  let parsed = await callRefineLlm(messages);
+  try {
+    return parseRefine(parsed);
+  } catch (err) {
+    if (!isRefineQuestionTooLongError(err)) throw err;
+    parsed = await callRefineLlm([
+      ...messages,
+      {
+        role: "user",
+        content:
+          `Your previous JSON violated the length limit. Regenerate JSON only. ` +
+          `questionText must be ≤ ${QUESTION_TEXT_MAX_CHARS} characters. Shorten wording.`,
+      },
+    ]);
+    return parseRefine(parsed);
+  }
 }

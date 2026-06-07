@@ -18,7 +18,7 @@ export function parseSuggestCurrent(parsed: unknown): string[] {
     throw new Error(`SUGGEST_CURRENT_MISSING_INPUT: ${JSON.stringify(root)}`);
   }
 
-  const rawArr = root.suggestedAnswers;
+  const rawArr = root.suggestedAnswers ?? root.options;
   if (!Array.isArray(rawArr)) {
     throw new Error("SUGGEST_CURRENT_INVALID: suggestedAnswers 须为数组");
   }

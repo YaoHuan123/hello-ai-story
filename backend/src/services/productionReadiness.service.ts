@@ -1,3 +1,4 @@
+import { productionTtsVoiceHints } from "../content/interviewTtsVoices";
 import type { InterviewScope } from "./interviewWorkspace.service";
 import { getSections } from "./answeredSections.service";
 import { assertStoryTextReady, listStoryTextTaskOptions, type StoryTextTaskOption } from "../text/storyArticleSource.js";
@@ -16,6 +17,12 @@ export type ProductionReadiness = {
   storyTextTasks: StoryTextTaskOption[];
   latestStoryTextTaskId?: string;
   message: string;
+  /** 采访展示语言（`meta.locale`） */
+  locale: "zh" | "en";
+  /** 与 locale 匹配的默认成片 TTS 音色 */
+  biographyTtsVoice: string;
+  studioHostVoice: string;
+  studioGuestVoice: string;
 };
 
 /** 采访是否具备启动文本/成片生产的最低条件。 */
@@ -25,6 +32,7 @@ export function getProductionReadiness(scope: InterviewScope): ProductionReadine
   const sectionNames = filtered.map((s) => s.name.trim()).filter(Boolean);
   const storyTextTasks = listStoryTextTaskOptions(scope);
   const latestStoryTextTaskId = storyTextTasks[0]?.taskId;
+  const tts = productionTtsVoiceHints(scope);
 
   if (filtered.length === 0) {
     return {
@@ -36,6 +44,10 @@ export function getProductionReadiness(scope: InterviewScope): ProductionReadine
       storyTextTasks,
       ...(latestStoryTextTaskId ? { latestStoryTextTaskId } : {}),
       message: "尚无有效访谈内容。请先在「访谈」页完成至少一个小节的问答，再进入生产。",
+      locale: tts.locale,
+      biographyTtsVoice: tts.biographyTtsVoice,
+      studioHostVoice: tts.studioHostVoice,
+      studioGuestVoice: tts.studioGuestVoice,
     };
   }
 
@@ -48,6 +60,10 @@ export function getProductionReadiness(scope: InterviewScope): ProductionReadine
     storyTextTasks,
     ...(latestStoryTextTaskId ? { latestStoryTextTaskId } : {}),
     message: `已收集 ${filtered.length} 个小节，可以开始生产。`,
+    locale: tts.locale,
+    biographyTtsVoice: tts.biographyTtsVoice,
+    studioHostVoice: tts.studioHostVoice,
+    studioGuestVoice: tts.studioGuestVoice,
   };
 }
 
