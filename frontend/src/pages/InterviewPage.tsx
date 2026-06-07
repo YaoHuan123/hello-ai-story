@@ -3,7 +3,6 @@ import { getCurrentQuestion, getInterviewMessages, submitAnswer } from "../api/i
 import { ApiRequestError } from "../api/client";
 import { SubpageHeader } from "../components/SubpageHeader";
 import { YearMonthInput } from "../components/YearMonthInput";
-import { useInterviewQuestionTts } from "../hooks/useInterviewQuestionTts";
 import { displayError, isUnauthorizedError, t } from "../i18n";
 import type { InterviewChatMessage, InterviewQuestion } from "../types/interview";
 import { INTERVIEW_SKIP_LABEL, INTERVIEW_SKIP_LABEL_EN } from "../types/interview";
@@ -49,11 +48,6 @@ export function InterviewPage({
   const [error, setError] = useState<string | null>(null);
   const submittingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { play: playQuestionTts, stop: stopQuestionTts, speaking, loadingTts } = useInterviewQuestionTts(
-    interviewId,
-    question,
-    { paused: loading },
-  );
 
   const isStaleProgressError = (err: unknown): boolean => {
     if (err instanceof ApiRequestError) {
@@ -143,8 +137,8 @@ export function InterviewPage({
     if (!value) {
       if (question.fieldType === "yearMonth") {
         setError(t("interview.invalidYearMonth"));
-      } else if (question.fieldType === "select" && question.fieldChoices?.length) {
-        setError(t("interview.pickFromChoices"));
+      } else if (question.type === "topic" || (question.fieldType === "select" && question.fieldChoices?.length)) {
+        setError(t("interview.pickAbove"));
       } else {
         setError(t("interview.enterOrPick"));
       }
@@ -292,74 +286,42 @@ export function InterviewPage({
 
           {showComposer && (
             <div className="iv-composer-row">
-              <div className="iv-panel">
-                {!isTopicQuestion && fieldType === "yearMonth" && (
-                  <div className="iv-ym-wrap">
-                    <YearMonthInput value={answer} onChange={setAnswer} disabled={loading} />
-                  </div>
-                )}
+              {!isTopicQuestion && (
+                <div className="iv-panel">
+                  {fieldType === "yearMonth" && (
+                    <div className="iv-ym-wrap">
+                      <YearMonthInput value={answer} onChange={setAnswer} disabled={loading} />
+                    </div>
+                  )}
 
-                {!isTopicQuestion && fieldType !== "yearMonth" && fieldType !== "select" && (
-                  <input
-                    className="iv-input"
-                    value={answer}
-                    onChange={(e) => {
-                      setAnswer(e.target.value);
-                      setError(null);
-                    }}
-                    placeholder={t("interview.answerPlaceholder")}
-                    disabled={loading}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit();
-                      }
-                    }}
-                  />
-                )}
+                  {fieldType !== "yearMonth" && fieldType !== "select" && (
+                    <input
+                      className="iv-input"
+                      value={answer}
+                      onChange={(e) => {
+                        setAnswer(e.target.value);
+                        setError(null);
+                      }}
+                      placeholder={t("interview.answerPlaceholder")}
+                      disabled={loading}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSubmit();
+                        }
+                      }}
+                    />
+                  )}
 
-                {isTopicQuestion && (
-                  <input
-                    className="iv-input"
-                    value={answer}
-                    onChange={(e) => {
-                      setAnswer(e.target.value);
-                      setError(null);
-                    }}
-                    placeholder={t("interview.topicPlaceholder")}
-                    disabled={loading}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSubmit();
-                      }
-                    }}
-                  />
-                )}
+                  {fieldType === "select" && choiceChips.length > 0 && !answer && (
+                    <p className="iv-hint">{t("interview.pickAbove")}</p>
+                  )}
+                </div>
+              )}
 
-                {fieldType === "select" && choiceChips.length > 0 && !answer && (
-                  <p className="iv-hint">{t("interview.pickAbove")}</p>
-                )}
-              </div>
-
-              <button
-                type="button"
-                className={`iv-speak${speaking ? " iv-speak--on" : ""}`}
-                onClick={() => {
-                  if (speaking || loadingTts) {
-                    stopQuestionTts();
-                  } else {
-                    void playQuestionTts().catch(() => {
-                      /* 无 TTS 配置或浏览器拦截播放时静默 */
-                    });
-                  }
-                }}
-                disabled={loading && !speaking}
-                aria-label={speaking ? t("interview.stopListen") : t("interview.listenQuestionAria")}
-                title={speaking ? t("interview.stopListen") : t("interview.listenQuestion")}
-              >
-                {speaking || loadingTts ? "■" : "♪"}
-              </button>
+              {isTopicQuestion && !answer && (
+                <p className="iv-hint">{t("interview.pickAbove")}</p>
+              )}
 
               <button
                 type="button"

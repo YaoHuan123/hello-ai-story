@@ -12,7 +12,6 @@ import {
 import { getInterviewDisplayLocale, runWithDisplayLocaleSync } from "../content/displayLocale";
 import { getInterviewChatHistoryForDisplay } from "../services/interviewChatHistory.service";
 import { getCurrentQuestionTraced, submit } from "../services/interviewOrchestrator.service";
-import { synthesizeCurrentQuestionTts } from "../services/interviewQuestionTts.service";
 
 const submitSchema = z
   .object({
@@ -98,10 +97,6 @@ function mapInterviewError(res: Response, error: unknown): boolean {
     res.status(502).json({ code: "AI_SERVICE_UNAVAILABLE", message: "AI 服务暂不可用，请稍后再试" });
     return true;
   }
-  if (code === "INTERVIEW_TTS_EMPTY" || code === "INTERVIEW_TTS_FAILED") {
-    res.status(502).json({ code: "TTS_UNAVAILABLE", message: "语音播报暂不可用，请稍后再试" });
-    return true;
-  }
   return false;
 }
 
@@ -111,7 +106,6 @@ function mapInterviewError(res: Response, error: unknown): boolean {
  * - GET  /api/interviews              列出采访
  * - DELETE /api/interviews/:id        删除采访
  * - GET  /api/interviews/:id/current      读当前题
- * - GET  /api/interviews/:id/current/tts  当前展示题 TTS（audio/mpeg）
  * - POST /api/interviews/:id/submit       交（主题 / 答案）
  */
 export const createInterviewRouter = (): Router => {
@@ -165,26 +159,6 @@ export const createInterviewRouter = (): Router => {
     } catch (error) {
       if (mapInterviewError(res, error)) return;
       res.status(500).json({ code: "INTERNAL_ERROR", message: "获取聊天记录失败" });
-    }
-  });
-
-  router.get("/:interviewId/current/tts", async (req, res) => {
-    const user = req.user;
-    if (!user) {
-      res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
-      return;
-    }
-    const scope = scopeFromReq(user.userId, req.params.interviewId);
-    try {
-      assertInterviewExists(scope);
-      const { audio, locale } = await synthesizeCurrentQuestionTts(scope);
-      res.setHeader("Content-Type", "audio/mpeg");
-      res.setHeader("Cache-Control", "private, no-store");
-      res.setHeader("X-Interview-Locale", locale);
-      res.status(200).send(audio);
-    } catch (error) {
-      if (mapInterviewError(res, error)) return;
-      res.status(500).json({ code: "INTERVIEW_TTS_FAILED", message: "语音合成失败" });
     }
   });
 

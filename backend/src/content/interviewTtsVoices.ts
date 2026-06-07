@@ -11,12 +11,8 @@ export const STUDIO_GUEST_VOICE_ZH = "zh_male_M392_conversation_wvae_bigtts";
 export const STUDIO_HOST_VOICE_EN = "en_female_sarah_mars_bigtts";
 export const STUDIO_GUEST_VOICE_EN = "en_male_adam_mars_bigtts";
 
-export function interviewQuestionTtsVoice(locale: DisplayLocale): string {
-  return locale === "en" ? INTERVIEW_TTS_VOICE_EN : INTERVIEW_TTS_VOICE_ZH;
-}
-
 export function biographyTtsVoiceForLocale(locale: DisplayLocale): string {
-  return interviewQuestionTtsVoice(locale);
+  return locale === "en" ? INTERVIEW_TTS_VOICE_EN : INTERVIEW_TTS_VOICE_ZH;
 }
 
 export function studioHostVoiceForLocale(locale: DisplayLocale): string {

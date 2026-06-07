@@ -1,4 +1,4 @@
-import { apiRequest, fetchAuthenticatedBlob } from "./client";
+import { apiRequest } from "./client";
 import type {
   InterviewListResponse,
   InterviewMessagesResponse,
@@ -30,12 +30,6 @@ export async function deleteInterview(interviewId: string): Promise<void> {
 export async function getCurrentQuestion(interviewId: string): Promise<InterviewQuestion> {
   const id = encodeURIComponent(interviewId);
   return apiRequest<InterviewQuestion>(`/api/interviews/${id}/current`, { method: "GET" }, true);
-}
-
-/** 当前展示题 TTS（服务端按 meta.locale 选音色并合成）。 */
-export async function fetchInterviewQuestionTts(interviewId: string): Promise<Blob> {
-  const id = encodeURIComponent(interviewId);
-  return fetchAuthenticatedBlob(`/api/interviews/${id}/current/tts`);
 }
 
 export async function getInterviewMessages(interviewId: string): Promise<InterviewMessagesResponse> {
