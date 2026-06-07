@@ -36,9 +36,13 @@ export function runE2ePreflight(opts?: { includeVideoRender?: boolean }): E2ePre
 
   const llmOk = Boolean(env("OPENAI_API_KEY"));
   const ttsKeyOk = Boolean(env("TTS_API_KEY") || env("OPENAI_API_KEY"));
-  const ttsVoiceOk = Boolean(env("VIDEO_DEMO_TTS_VOICE"));
-  const hostOk = Boolean(env("VIDEO_DEMO_HOST_VOICE") || env("VIDEO_DEMO_TTS_VOICE"));
-  const guestOk = Boolean(env("VIDEO_DEMO_GUEST_VOICE") || env("VIDEO_DEMO_TTS_VOICE"));
+  const ttsVoiceOk = Boolean(env("TTS_VOICE_ZH_MALE") || env("VIDEO_DEMO_TTS_VOICE"));
+  const hostOk = Boolean(
+    env("TTS_VOICE_ZH_FEMALE") || env("VIDEO_DEMO_HOST_VOICE") || env("VIDEO_DEMO_TTS_VOICE"),
+  );
+  const guestOk = Boolean(
+    env("TTS_VOICE_ZH_MALE") || env("VIDEO_DEMO_GUEST_VOICE") || env("VIDEO_DEMO_TTS_VOICE"),
+  );
   const text2imgOk = Boolean(env("TEXT2IMG_API_KEY") || env("OPENAI_API_KEY"));
   const bioSeedOk = Boolean(env("E2E_BIO_SEED_READY")); // set by caller after fs check
   const studioSeedOk = Boolean(env("E2E_STUDIO_SEED_READY"));
@@ -60,24 +64,24 @@ export function runE2ePreflight(opts?: { includeVideoRender?: boolean }): E2ePre
     },
     {
       id: "tts_voice",
-      label: "VIDEO_DEMO_TTS_VOICE（传记旁白音色）",
+      label: "TTS_VOICE_ZH_MALE（传记旁白 / 演播室嘉宾）",
       ok: ttsVoiceOk,
       required: true,
-      hint: "例：zh_female_tianmeixiaoyuan_moon_bigtts（302 网关）",
+      hint: "backend/.env 必填；例：zh_male_M392_conversation_wvae_bigtts",
     },
     {
       id: "host_voice",
-      label: "VIDEO_DEMO_HOST_VOICE（演播室主持）",
+      label: "TTS_VOICE_ZH_FEMALE（演播室主持）",
       ok: hostOk,
       required: true,
-      hint: "可与 TTS_VOICE 相同；例：zh_female_tianmeixiaoyuan_moon_bigtts",
+      hint: "例：zh_female_tianmeixiaoyuan_moon_bigtts",
     },
     {
       id: "guest_voice",
-      label: "VIDEO_DEMO_GUEST_VOICE（演播室嘉宾）",
+      label: "TTS_VOICE_ZH_MALE（演播室嘉宾，与传记男声共用）",
       ok: guestOk,
       required: true,
-      hint: "例：zh_male_M392_conversation_wvae_bigtts",
+      hint: "与 TTS_VOICE_ZH_MALE 相同即可",
     },
     {
       id: "bio_seed",

@@ -90,9 +90,11 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const ttsVoice = (process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
-  if (!ttsVoice) {
-    console.warn("[SKIP] 未配置 VIDEO_DEMO_TTS_VOICE（step 180 旁白音色，须显式传入）。");
+  const ttsConfigured = Boolean(
+    (process.env.TTS_VOICE_ZH_MALE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim(),
+  );
+  if (!ttsConfigured) {
+    console.warn("[SKIP] 未配置 TTS_VOICE_ZH_MALE（step 180 旁白音色）。");
     process.exit(0);
   }
 
@@ -165,7 +167,6 @@ async function main(): Promise<void> {
       polishMode: useSeed ? undefined : "llm",
       throughStep: "230",
       fromStep: fromStep as "150" | undefined,
-      ttsVoice,
       onStepComplete: (r) => {
         const out = "outputRelativePath" in r ? r.outputRelativePath : undefined;
         console.log(`  [step ${r.stepId}] skipped=${r.skipped}${out ? ` → ${out}` : ""}`);

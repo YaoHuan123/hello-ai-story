@@ -332,7 +332,7 @@ case "90": {
       >["relations"] = [];
       if (!skipped) {
         const locale = getInterviewDisplayLocale(ctx.scope);
-        const voice = resolveBiographyTtsVoice(ctx.scope, ctx.ttsVoice);
+        const voice = resolveBiographyTtsVoice(ctx.scope);
         const segmentsForTts = await mergedSegmentsForDisplayTts(
           ctx.scope,
           mergedNarrativeSegments,
@@ -522,7 +522,7 @@ case "90": {
             ctx.scope,
             base,
             subtitleLocale,
-            resolveBiographyTtsVoice(ctx.scope, ctx.ttsVoice),
+            resolveBiographyTtsVoice(ctx.scope),
           );
         } catch {
           subtitleBySegment = new Map();

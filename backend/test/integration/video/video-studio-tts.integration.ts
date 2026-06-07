@@ -60,12 +60,10 @@ function hasTtsCredentials(): boolean {
   return Boolean(tts || openai);
 }
 
-function resolveHostVoice(): string {
-  return (process.env.VIDEO_DEMO_HOST_VOICE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
-}
-
-function resolveGuestVoice(): string {
-  return (process.env.VIDEO_DEMO_GUEST_VOICE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
+function voicesConfigured(): boolean {
+  const male = (process.env.TTS_VOICE_ZH_MALE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
+  const female = (process.env.TTS_VOICE_ZH_FEMALE ?? process.env.VIDEO_DEMO_HOST_VOICE ?? "").trim();
+  return Boolean(male && female);
 }
 
 function countMp3InDir(dir: string): number {
@@ -98,9 +96,6 @@ function resolveThroughStep(useSeed: boolean): string {
 }
 
 async function main(): Promise<void> {
-  const hostVoice = resolveHostVoice();
-  const guestVoice = resolveGuestVoice();
-
   delete process.env.VIDEO_INPUT_STUB;
   delete process.env.VIDEO_PREP_STUB;
   delete process.env.STUDIO_SCRIPT_STUB;
@@ -117,8 +112,8 @@ async function main(): Promise<void> {
     effectiveThrough === "iv_merge";
 
   if (useSeed && needsTts) {
-    if (!hostVoice || !guestVoice) {
-      console.warn("[SKIP] 未配置 VIDEO_DEMO_TTS_VOICE（或 HOST/GUEST 分别配置），iv_tts 需音色。");
+    if (!voicesConfigured()) {
+      console.warn("[SKIP] 未配置 TTS_VOICE_ZH_MALE / TTS_VOICE_ZH_FEMALE，iv_tts 需音色。");
       process.exit(0);
     }
     if (!hasTtsCredentials()) {
@@ -133,8 +128,8 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  if (needsTts && (!hostVoice || !guestVoice)) {
-    console.warn("[SKIP] 缺少 hostVoice/guestVoice。");
+  if (needsTts && !voicesConfigured()) {
+    console.warn("[SKIP] 缺少 TTS_VOICE_* 配置。");
     process.exit(0);
   }
 
@@ -198,8 +193,6 @@ async function main(): Promise<void> {
     result = await runStudioVideoPipeline(scope, {
       taskId: handle.taskId,
       polishMode: useSeed ? undefined : "llm",
-      hostVoice,
-      guestVoice,
       throughStep: effectiveThrough as "iv_tts",
       fromStep: fromStep as "iv_tts" | undefined,
       onStepComplete: (r) => {

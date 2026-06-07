@@ -171,37 +171,6 @@ button.story-wall-card--new {
   color: var(--shell-label-2);
 }
 
-.story-wall-new-form {
-  width: 100%;
-  max-width: 280px;
-  margin-top: 10px;
-  display: grid;
-  gap: 10px;
-}
-
-.story-wall-new-form input {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: var(--shell-radius-sm);
-  border: 1px solid var(--shell-separator);
-  font-size: 15px;
-  font-family: inherit;
-  box-sizing: border-box;
-  background: var(--shell-bg-grouped);
-}
-
-.story-wall-new-submit {
-  border: none;
-  border-radius: var(--shell-radius-sm);
-  padding: 10px 14px;
-  font-size: 14px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  color: #fff;
-  background: linear-gradient(180deg, var(--shell-brand-light) 0%, var(--shell-brand) 100%);
-}
-
 .story-wall-msg {
   margin: 10px 22px 6px;
   font-size: 13px;

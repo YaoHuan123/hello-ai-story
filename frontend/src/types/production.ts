@@ -81,7 +81,6 @@ export type CreateTextTaskResponse = {
 export type PolishMode = "llm" | "stub";
 
 export type ScheduleBiographyPayload = {
-  ttsVoice: string;
   styleConfigPath?: string;
   styleId?: string;
   textTaskId?: string;
@@ -91,8 +90,6 @@ export type ScheduleBiographyPayload = {
 };
 
 export type ScheduleStudioPayload = {
-  hostVoice: string;
-  guestVoice: string;
   qaGranularity?: "hybrid" | "per_event" | "batch";
   textTaskId?: string;
   polishMode?: PolishMode;

@@ -108,7 +108,7 @@ export function pipelineProgressPercent(
   const done = completedSteps.filter((id) => steps.some((s) => s.id === id)).length;
   const base = (done / steps.length) * 100;
   if (status === "running" && done < steps.length) {
-    return Math.min(99, base + 100 / steps.length / 2);
+    return Math.round(Math.min(99, base + 100 / steps.length / 2));
   }
   return Math.round(base);
 }

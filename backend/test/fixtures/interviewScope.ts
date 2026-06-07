@@ -7,9 +7,11 @@ export function interviewScope(userId: string, interviewId: string): InterviewSc
   return { userId, interviewId };
 }
 
-/** 与 VIDEO_DEMO_* 音色前缀对齐，避免成片测试 locale/音色校验失败。 */
+/** 与 TTS_VOICE_* / VIDEO_DEMO_* 音色前缀对齐，避免成片测试 locale/音色校验失败。 */
 export function resolveVideoTestLocale(): ContentLocale {
   const sample = (
+    process.env.TTS_VOICE_ZH_MALE ??
+    process.env.TTS_VOICE_EN_MALE ??
     process.env.VIDEO_DEMO_TTS_VOICE ??
     process.env.VIDEO_DEMO_HOST_VOICE ??
     ""

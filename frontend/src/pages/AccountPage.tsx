@@ -4,7 +4,7 @@ import { changePhone, deleteAccount, getMe, sendSms } from "../api/auth";
 import { authTokenStore } from "../lib/authToken";
 import type { HealthResponse } from "../api/health";
 import type { MeResponse } from "../types/auth";
-import { displayError, formatLocaleDate, t } from "../i18n";
+import { displayError, t } from "../i18n";
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -29,11 +29,6 @@ type MeScreen = "home" | "phone" | "delete" | "about";
 function maskPhone(phone: string): string {
   if (phone.length < 7) return phone;
   return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
-}
-
-function avatarInitial(phone: string): string {
-  const tail = phone.replace(/\D/g, "").slice(-2);
-  return tail || t("common.me");
 }
 
 function MeListRow({
@@ -346,16 +341,6 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
 
   return (
     <div className="me-page">
-      <header className="me-profile">
-        <div className="me-profile__avatar" aria-hidden>
-          {avatarInitial(me.phone)}
-        </div>
-        <div className="me-profile__info">
-          <p className="me-profile__phone">{maskPhone(me.phone)}</p>
-          <p className="me-profile__meta">{t("account.joined", { date: formatLocaleDate(me.createdAt) })}</p>
-        </div>
-      </header>
-
       <Feedback loading={loading} error={error} message={message} />
 
       <p className="me-group-label">{t("account.sectionAccount")}</p>
@@ -416,8 +401,6 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
           </span>
         </button>
       </div>
-
-      <p className="me-footer-note">{t("account.footer")}</p>
     </div>
   );
 }

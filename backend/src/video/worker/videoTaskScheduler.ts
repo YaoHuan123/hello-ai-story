@@ -18,7 +18,6 @@ import type { BiographyVideoQueuePayload, StudioVideoQueuePayload } from "./vide
 export type ScheduleBiographyVideoTaskOptions = {
   taskId?: string;
   textTaskId?: string;
-  ttsVoice: string;
   styleConfigPath?: string;
   styleId?: string;
   polishMode?: MaterialPolishMode;
@@ -28,8 +27,6 @@ export type ScheduleBiographyVideoTaskOptions = {
 export type ScheduleStudioVideoTaskOptions = {
   taskId?: string;
   textTaskId?: string;
-  hostVoice: string;
-  guestVoice: string;
   qaGranularity?: InterviewQaGranularity;
   polishMode?: MaterialPolishMode;
   throughStep?: string;
@@ -61,7 +58,7 @@ export function scheduleBiographyVideoTask(
   scope: InterviewScope,
   opts: ScheduleBiographyVideoTaskOptions,
 ): ScheduledVideoTask {
-  const ttsVoice = resolveBiographyTtsVoice(scope, opts.ttsVoice);
+  const ttsVoice = resolveBiographyTtsVoice(scope);
 
   assertVideoProductionReady(scope, opts.textTaskId);
 
@@ -99,7 +96,7 @@ export function scheduleStudioVideoTask(
   scope: InterviewScope,
   opts: ScheduleStudioVideoTaskOptions,
 ): ScheduledVideoTask {
-  const { hostVoice, guestVoice } = resolveStudioTtsVoices(scope, opts.hostVoice, opts.guestVoice);
+  const { hostVoice, guestVoice } = resolveStudioTtsVoices(scope);
 
   assertVideoProductionReady(scope, opts.textTaskId);
 

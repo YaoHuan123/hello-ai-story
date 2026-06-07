@@ -42,52 +42,6 @@
   color: var(--shell-label-2);
 }
 
-/* 资料头 */
-.me-profile {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 16px;
-  margin-bottom: 20px;
-  background: var(--shell-bg-elevated);
-  border-radius: var(--shell-radius-md);
-  box-shadow: var(--shell-shadow-card);
-  border: 1px solid var(--shell-separator);
-}
-
-.me-profile__avatar {
-  flex-shrink: 0;
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
-  font-weight: 800;
-  color: #fff;
-  background: linear-gradient(145deg, var(--shell-brand-light), var(--shell-brand-deep));
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-}
-
-.me-profile__info {
-  min-width: 0;
-  flex: 1;
-}
-
-.me-profile__phone {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--shell-label-1);
-  letter-spacing: -0.2px;
-}
-
-.me-profile__meta {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--shell-label-2);
-}
-
 /* 分组列表（iOS 设置风格） */
 .me-group-label {
   margin: 0 0 8px 4px;

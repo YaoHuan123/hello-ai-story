@@ -129,7 +129,6 @@ async function phaseText(scope: ReturnType<typeof setupUserWithInterview>): Prom
 
 async function phaseBio230(scope: ReturnType<typeof setupUserWithInterview>): Promise<string> {
   console.log("\n=== Phase 2：传记成片 150→230（LLM + TTS，seed 续跑）===");
-  const ttsVoice = (process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
   const seedRoot = resolveVideoBioSeedRoot();
   const useSeed = !wantBioFull() && isVideoBioSeedReady(seedRoot);
   const fromStep = useSeed ? VIDEO_BIO_DEFAULT_FROM_STEP : undefined;
@@ -159,7 +158,6 @@ async function phaseBio230(scope: ReturnType<typeof setupUserWithInterview>): Pr
     polishMode: useSeed ? undefined : "llm",
     throughStep: "230",
     fromStep: fromStep as "150" | undefined,
-    ttsVoice,
     onStepComplete: (r) => {
       const out = "outputRelativePath" in r ? r.outputRelativePath : undefined;
       console.log(`  [step ${r.stepId}]${out ? ` → ${out}` : ""}`);
@@ -184,13 +182,11 @@ async function phaseBioRender260(
   taskId: string,
 ): Promise<void> {
   console.log("\n=== Phase 2b：传记 240→260（文生图 + ffmpeg）===");
-  const ttsVoice = (process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
   const startedAt = Date.now();
   const result = await runBiographyVideoPipeline(scope, {
     taskId,
     throughStep: "260",
     fromStep: "240",
-    ttsVoice,
     onStepComplete: (r) => {
       const out = "outputRelativePath" in r ? r.outputRelativePath : undefined;
       console.log(`  [step ${r.stepId}]${out ? ` → ${out}` : ""}`);
@@ -204,8 +200,6 @@ async function phaseBioRender260(
 
 async function phaseStudioTts(scope: ReturnType<typeof setupUserWithInterview>): Promise<void> {
   console.log("\n=== Phase 3：演播室 iv_tts（TTS，seed 续跑）===");
-  const hostVoice = (process.env.VIDEO_DEMO_HOST_VOICE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
-  const guestVoice = (process.env.VIDEO_DEMO_GUEST_VOICE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
   const seedRoot = resolveVideoStudioSeedRoot();
   const useSeed = !wantStudioFull() && isVideoStudioSeedReady(seedRoot);
   const fromStep = useSeed ? VIDEO_STUDIO_DEFAULT_FROM_STEP : undefined;
@@ -234,8 +228,6 @@ async function phaseStudioTts(scope: ReturnType<typeof setupUserWithInterview>):
   const result = await runStudioVideoPipeline(scope, {
     taskId: handle.taskId,
     polishMode: useSeed ? undefined : "llm",
-    hostVoice,
-    guestVoice,
     throughStep: "iv_tts",
     fromStep: fromStep as "iv_tts" | undefined,
     onStepComplete: (r) => {

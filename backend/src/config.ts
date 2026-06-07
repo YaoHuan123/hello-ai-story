@@ -37,3 +37,23 @@ function parseAppLocale(raw: string | undefined): AppLocale {
 }
 
 export const APP_LOCALE = parseAppLocale(process.env.APP_LOCALE);
+
+const TTS_VOICE_TYPE_RE = /^(zh|en)_[a-z0-9_]+$/i;
+
+/** 火山 voice_type；须与 expected 语种前缀一致（zh_ / en_）。 */
+function requireTtsVoiceEnv(name: string, expected: "zh" | "en"): string {
+  const value = requireEnv(name);
+  if (!TTS_VOICE_TYPE_RE.test(value)) {
+    throw new Error(`INVALID_ENV:${name} must be volcano voice_type (zh_* or en_*)`);
+  }
+  if (!value.toLowerCase().startsWith(`${expected}_`)) {
+    throw new Error(`INVALID_ENV:${name} must start with ${expected}_`);
+  }
+  return value;
+}
+
+/** 成片 TTS 默认音色（传记旁白 / 演播室主持·嘉宾），见 backend/.env.example */
+export const TTS_VOICE_ZH_MALE = requireTtsVoiceEnv("TTS_VOICE_ZH_MALE", "zh");
+export const TTS_VOICE_ZH_FEMALE = requireTtsVoiceEnv("TTS_VOICE_ZH_FEMALE", "zh");
+export const TTS_VOICE_EN_MALE = requireTtsVoiceEnv("TTS_VOICE_EN_MALE", "en");
+export const TTS_VOICE_EN_FEMALE = requireTtsVoiceEnv("TTS_VOICE_EN_FEMALE", "en");

@@ -31,15 +31,7 @@ import {
 
 const polishModeSchema = z.enum(["llm", "stub"]).optional();
 
-/** 302 / 火山 voice_type 形态；拒绝 default-voice 等占位符 */
-const ttsVoiceSchema = z
-  .string()
-  .min(8)
-  .max(200)
-  .regex(/^(zh|en)_[a-z0-9_]+$/i, "须为火山 voice_type，如 zh_male_M392_conversation_wvae_bigtts 或 en_male_adam_mars_bigtts");
-
 const scheduleBiographySchema = z.object({
-  ttsVoice: ttsVoiceSchema,
   styleConfigPath: z.string().max(500).optional(),
   styleId: z.string().min(1).max(120).optional(),
   textTaskId: z.string().uuid().optional(),
@@ -49,8 +41,6 @@ const scheduleBiographySchema = z.object({
 });
 
 const scheduleStudioSchema = z.object({
-  hostVoice: ttsVoiceSchema,
-  guestVoice: ttsVoiceSchema,
   qaGranularity: z.enum(["hybrid", "per_event", "batch"]).optional(),
   textTaskId: z.string().uuid().optional(),
   polishMode: polishModeSchema,
@@ -167,6 +157,11 @@ function mapProductionError(res: Response, error: unknown): boolean {
   }
   if (code === "VIDEO_QUEUE_NOT_FOUND") {
     res.status(404).json({ code, message: "队列任务不存在" });
+    return true;
+  }
+  if (code === "VIDEO_TTS_VOICE_LOCALE_MISMATCH") {
+    const detail = msg.split(":").slice(1).join(":").trim();
+    res.status(400).json({ code, message: detail || "TTS 音色与采访语言不匹配，请检查 .env 中 TTS_VOICE_* 配置" });
     return true;
   }
   if (

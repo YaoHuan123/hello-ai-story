@@ -26,8 +26,6 @@ export type RunStudioVideoPipelineOptions = {
   textTaskId?: string;
   polishMode?: MaterialPolishMode;
   sections?: AnsweredSection[];
-  hostVoice: string;
-  guestVoice: string;
   qaGranularity?: InterviewQaGranularity;
   throughStep?: typeof VIDEO_PREP_STEPS.POLISH | StudioPipelineStepId;
   /** 从该步（含）开始跑；此前 prep/泳道步跳过（须已有落盘产物）。 */
@@ -50,7 +48,7 @@ export async function runStudioVideoPipeline(
   scope: InterviewScope,
   opts: RunStudioVideoPipelineOptions,
 ): Promise<StudioVideoPipelineResult> {
-  const { hostVoice, guestVoice } = resolveStudioTtsVoices(scope, opts.hostVoice, opts.guestVoice);
+  const { hostVoice, guestVoice } = resolveStudioTtsVoices(scope);
 
   const handle = opts.createTask
     ? createStudioVideoTask(scope)

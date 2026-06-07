@@ -1,5 +1,3 @@
-import type { HealthResponse } from "../api/health";
-import { IconSpark, IconStory } from "../components/icons";
 import { t } from "../i18n";
 
 type Props = {
@@ -8,7 +6,6 @@ type Props = {
   loading: boolean;
   error: string | null;
   message: string | null;
-  health: HealthResponse | null;
   onPhoneChange: (v: string) => void;
   onCodeChange: (v: string) => void;
   onSendSms: () => void;
@@ -21,42 +18,19 @@ export function LoginPage({
   loading,
   error,
   message,
-  health,
   onPhoneChange,
   onCodeChange,
   onSendSms,
   onLogin,
 }: Props) {
-  const smsMock = health?.sms?.mode !== "real";
-  const chinaMode =
-    health?.sms?.china?.mode === "real" ? t("login.smsReal") : t("login.smsMock");
-  const overseasMode =
-    health?.sms?.overseas?.mode === "real" ? t("login.smsReal") : t("login.smsMock");
-
   return (
     <div className="login-shell">
       <div className="login-hero">
-        <div className="login-hero__mark" aria-hidden>
-          <IconStory size={28} />
-        </div>
         <h1 className="login-shell-title">{t("common.appName")}</h1>
-        <p className="login-hero__tagline">{t("login.tagline")}</p>
-        <p className="login-hero__steps">
-          <IconSpark size={14} /> {t("login.steps")}
-        </p>
       </div>
 
       <div className="login-card">
         <h2 className="login-card__heading">{t("login.heading")}</h2>
-        {health?.sms && (
-          <p className="login-card__hint">
-            {t("login.smsHint", {
-              china: chinaMode,
-              overseas: overseasMode,
-              mock: smsMock ? t("login.smsDevMock") : "",
-            })}
-          </p>
-        )}
         <label className="login-field">
           <span className="login-field__label">{t("login.phoneLabel")}</span>
           <input

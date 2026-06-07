@@ -20,8 +20,6 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -66,9 +64,7 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
     setCreating(true);
     setError(null);
     try {
-      const meta = await createInterview(newTitle.trim() || undefined);
-      setNewTitle("");
-      setShowNewForm(false);
+      const meta = await createInterview();
       await refresh();
       onOpenCreate(meta.id);
     } catch (err) {
@@ -124,43 +120,23 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
         ))}
 
         <li className="story-wall-list__item">
-          {showNewForm || creating ? (
-            <div className="story-wall-card--new" style={{ cursor: "default" }}>
-              <span className="story-wall-card-newlabel">{t("storyWall.newStory")}</span>
-              <div className="story-wall-new-form">
-                <input
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder={t("storyWall.titleOptional")}
-                  disabled={creating}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void handleCreate();
-                  }}
-                />
-                <button
-                  type="button"
-                  className="story-wall-new-submit"
-                  onClick={() => void handleCreate()}
-                  disabled={creating}
-                >
-                  {creating ? t("storyWall.creating") : t("storyWall.createAndStart")}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="story-wall-card--new"
-              onClick={() => setShowNewForm(true)}
-              aria-label={t("storyWall.newStoryAria")}
-            >
-              <span className="story-wall-card-plus" aria-hidden>
-                <IconPlus size={22} />
-              </span>
-              <span className="story-wall-card-newlabel">{t("storyWall.newStory")}</span>
+          <button
+            type="button"
+            className="story-wall-card--new"
+            onClick={() => void handleCreate()}
+            disabled={creating}
+            aria-label={t("storyWall.newStoryAria")}
+          >
+            <span className="story-wall-card-plus" aria-hidden>
+              <IconPlus size={22} />
+            </span>
+            <span className="story-wall-card-newlabel">
+              {creating ? t("storyWall.creating") : t("storyWall.newStory")}
+            </span>
+            {!creating ? (
               <span className="story-wall-card-newhint">{t("storyWall.tapToCreate")}</span>
-            </button>
-          )}
+            ) : null}
+          </button>
         </li>
       </ul>
     </div>

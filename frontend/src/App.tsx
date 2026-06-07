@@ -129,7 +129,6 @@ function App() {
           loading={loading}
           error={error}
           message={message}
-          health={health}
           onPhoneChange={setPhone}
           onCodeChange={setCode}
           onSendSms={handleSendSms}

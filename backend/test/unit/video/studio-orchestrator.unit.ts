@@ -53,10 +53,12 @@ async function main() {
 
   await runTextPipeline(scope, { createTask: true, mode: "stub", sections: FIXTURE });
 
-  const hostVoice = (process.env.VIDEO_DEMO_HOST_VOICE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
-  const guestVoice = (process.env.VIDEO_DEMO_GUEST_VOICE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim();
-  if (!hostVoice || !guestVoice) {
-    console.warn("[SKIP] 未配置 VIDEO_DEMO_TTS_VOICE（或 HOST/GUEST），iv_tts 需合法 zh_/en_ 音色。");
+  const voicesOk = Boolean(
+    (process.env.TTS_VOICE_ZH_MALE ?? process.env.VIDEO_DEMO_TTS_VOICE ?? "").trim() &&
+      (process.env.TTS_VOICE_ZH_FEMALE ?? process.env.VIDEO_DEMO_HOST_VOICE ?? "").trim(),
+  );
+  if (!voicesOk) {
+    console.warn("[SKIP] 未配置 TTS_VOICE_ZH_MALE / TTS_VOICE_ZH_FEMALE（iv_tts 需合法 zh_/en_ 音色）。");
     process.exit(0);
   }
 
@@ -66,8 +68,6 @@ async function main() {
   const result = await runStudioVideoPipeline(scope, {
     taskId: handle.taskId,
     polishMode: "stub",
-    hostVoice,
-    guestVoice,
     throughStep: "iv_duration_align",
   });
 

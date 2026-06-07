@@ -178,7 +178,6 @@ async function main(): Promise<void> {
       method: "POST",
       headers: authHeader(token),
       body: JSON.stringify({
-        ttsVoice: "zh_male_M392_conversation_wvae_bigtts",
         styleId: stylesBody.selectedStyleId,
         textTaskId,
         polishMode: "stub",

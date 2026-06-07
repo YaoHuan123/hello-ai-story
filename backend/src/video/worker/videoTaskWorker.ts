@@ -103,7 +103,6 @@ export async function executeVideoQueueTask(
         const p = parseBiographyPayload(rec.payload);
         return await runBiographyVideoPipeline(scope, {
           taskId: rec.videoTaskId,
-          ttsVoice: p.ttsVoice,
           styleConfigPath: p.styleConfigPath,
           styleId: p.styleId,
           textTaskId: p.textTaskId,
@@ -120,8 +119,6 @@ export async function executeVideoQueueTask(
         const p = parseStudioPayload(rec.payload);
         return await runStudioVideoPipeline(scope, {
           taskId: rec.videoTaskId,
-          hostVoice: p.hostVoice,
-          guestVoice: p.guestVoice,
           qaGranularity: p.qaGranularity,
           textTaskId: p.textTaskId,
           polishMode: p.polishMode,

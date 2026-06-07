@@ -198,23 +198,14 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
   const handleScheduleVideo = () => {
     if (!canProduce) return;
     void run(async () => {
-      const ttsVoice = readiness?.biographyTtsVoice;
-      const hostVoice = readiness?.studioHostVoice;
-      const guestVoice = readiness?.studioGuestVoice;
-      if (!ttsVoice || !hostVoice || !guestVoice) {
-        throw new Error("TTS voice hints missing");
-      }
       const scheduled =
         videoKind === "biography"
           ? await scheduleBiographyVideo(interviewId, {
-              ttsVoice,
               styleId: styleId || undefined,
               textTaskId,
               polishMode,
             })
           : await scheduleStudioVideo(interviewId, {
-              hostVoice,
-              guestVoice,
               textTaskId,
               polishMode,
               qaGranularity: "hybrid",

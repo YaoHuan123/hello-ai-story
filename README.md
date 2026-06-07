@@ -104,16 +104,11 @@ npm run pm2:start
 - 仅 **1** 个 video-worker 进程（串行消费队列，一次一条 pipeline，见 `backend/docs/video-worker.md`）
 - 出站网络可达 LLM / TTS / 文生图 API
 
-## API examples
+## HTTP API
 
-- `GET /api/health`
-- `POST /api/auth/sms/send`
-- `POST /api/auth/sms/login`
-- `GET /api/auth/me`
-- `PATCH /api/auth/phone`
-- `DELETE /api/auth/me`
+完整接口列表（按模块：认证、采访、文本/视频生产等）见 **[backend/docs/http-api.md](backend/docs/http-api.md)**。
 
-The frontend calls APIs via Vite proxy (`/api` -> `http://localhost:3001`).
+开发时前端经 Vite 代理访问：`/api` → `http://localhost:3001`。
 
 ## Frontend shell
 
