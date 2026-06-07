@@ -168,8 +168,25 @@ export function videoTaskCoverUrl(interviewId: string, taskId: string): string |
   return `${productionPath(interviewId, `/video/tasks/${tid}/cover`)}?${q.toString()}`;
 }
 
+/** 取最近一次成功成片任务的封面 URL（故事墙卡片用）。 */
+export function latestSuccessVideoCoverUrl(
+  interviewId: string,
+  tasks: VideoTaskListItem[],
+): string | null {
+  const latest = tasks
+    .filter((t) => t.status === "success")
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  if (!latest) return null;
+  return videoTaskCoverUrl(interviewId, latest.taskId);
+}
+
 export async function fetchVideoPrimaryBlob(interviewId: string, taskId: string): Promise<Blob> {
   return fetchAuthenticatedBlob(videoPrimaryVideoUrl(interviewId, taskId));
+}
+
+export async function fetchVideoCoverBlob(interviewId: string, taskId: string): Promise<Blob> {
+  const tid = encodeURIComponent(taskId);
+  return fetchAuthenticatedBlob(productionPath(interviewId, `/video/tasks/${tid}/cover`));
 }
 
 export async function getProductionReadiness(interviewId: string) {

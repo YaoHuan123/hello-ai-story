@@ -7,12 +7,13 @@ import {
   getVideoTaskProgress,
   listVideoStyles,
   listVideoTasks,
-  videoTaskCoverUrl,
   retryVideoTask,
   scheduleBiographyVideo,
   scheduleStudioVideo,
 } from "../api/production";
 import { AppPageShell } from "../components/AppPageShell";
+import { VideoPreviewModal } from "../components/VideoPreviewModal";
+import { VideoTaskCover } from "../components/VideoTaskCover";
 import { SubpageHeader } from "../components/SubpageHeader";
 import { PipelineProgress } from "../components/production/PipelineProgress";
 import { ProductionFailureNotice } from "../components/production/ProductionFailureNotice";
@@ -63,7 +64,9 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
 
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   const [videoDetail, setVideoDetail] = useState<VideoTaskProgress | null>(null);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [previewTaskId, setPreviewTaskId] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const [styleId, setStyleId] = useState("");
   const [textTaskId, setTextTaskId] = useState("");
@@ -140,8 +143,9 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
   }, [interviewId, expandedTaskId]);
 
   useEffect(() => {
-    if (!expandedTaskId) {
-      setVideoPreviewUrl((prev) => {
+    if (!previewTaskId) {
+      setPreviewLoading(false);
+      setPreviewUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
         return null;
       });
@@ -149,32 +153,51 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
     }
     let cancelled = false;
     let createdUrl: string | null = null;
-    void getVideoTaskArtifacts(interviewId, expandedTaskId)
+    setPreviewLoading(true);
+    void getVideoTaskArtifacts(interviewId, previewTaskId)
       .then((artifacts) => {
         if (cancelled || !artifacts.primaryVideo.available) return null;
-        return fetchVideoPrimaryBlob(interviewId, expandedTaskId);
+        return fetchVideoPrimaryBlob(interviewId, previewTaskId);
       })
       .then((blob) => {
-        if (cancelled || !blob) return;
+        if (cancelled) return;
+        if (!blob) {
+          setPreviewUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+          });
+          return;
+        }
         createdUrl = URL.createObjectURL(blob);
-        setVideoPreviewUrl((prev) => {
+        setPreviewUrl((prev) => {
           if (prev) URL.revokeObjectURL(prev);
           return createdUrl;
         });
       })
       .catch(() => {
         if (!cancelled) {
-          setVideoPreviewUrl((prev) => {
+          setPreviewUrl((prev) => {
             if (prev) URL.revokeObjectURL(prev);
             return null;
           });
         }
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
       });
     return () => {
       cancelled = true;
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
-  }, [interviewId, expandedTaskId]);
+  }, [interviewId, previewTaskId]);
+
+  const openPreview = (taskId: string) => {
+    setPreviewTaskId(taskId);
+  };
+
+  const closePreview = () => {
+    setPreviewTaskId(null);
+  };
 
   const handleScheduleVideo = () => {
     if (!canProduce) return;
@@ -305,9 +328,6 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
               {videoTasks.map((task) => {
                 const isExpanded = task.taskId === expandedTaskId;
                 const detail = isExpanded && videoDetail?.taskId === task.taskId ? videoDetail : null;
-                const coverSrc =
-                  task.status === "success" ? videoTaskCoverUrl(interviewId, task.taskId) : null;
-
                 return (
                   <article
                     key={task.taskId}
@@ -318,8 +338,22 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                         task.productionMode === "interview_studio" ? "prod-video-cover--studio" : ""
                       }`}
                     >
-                      {coverSrc ? (
-                        <img className="prod-video-cover__img" src={coverSrc} alt="" loading="lazy" />
+                      {task.status === "success" ? (
+                        <VideoTaskCover
+                          interviewId={interviewId}
+                          taskId={task.taskId}
+                          className="prod-video-cover__img"
+                        />
+                      ) : null}
+                      {task.status === "success" ? (
+                        <button
+                          type="button"
+                          className="prod-video-cover__play"
+                          aria-label="播放成片"
+                          onClick={() => openPreview(task.taskId)}
+                        >
+                          ▶
+                        </button>
                       ) : null}
                       <span className={coverBadgeClass(task.status)}>
                         {videoTaskStatusLabel(task.status)}
@@ -341,16 +375,26 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                           ) : null}
                         </div>
                         <div className="prod-video-card__actions">
-                          {(task.status === "success" || task.status === "failed" || isExpanded) && (
+                          {task.status === "success" ? (
+                            <button
+                              type="button"
+                              className="prod-chip-btn"
+                              onClick={() => openPreview(task.taskId)}
+                              disabled={loading}
+                            >
+                              播放
+                            </button>
+                          ) : null}
+                          {(task.status === "failed" || isExpanded) && task.status !== "success" ? (
                             <button
                               type="button"
                               className="prod-chip-btn"
                               onClick={() => toggleExpanded(task.taskId)}
                               disabled={loading}
                             >
-                              {isExpanded ? "收起" : task.status === "success" ? "观看" : "查看"}
+                              {isExpanded ? "收起" : "查看"}
                             </button>
-                          )}
+                          ) : null}
                           {task.status === "failed" ? (
                             <button
                               type="button"
@@ -382,9 +426,6 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                               queueError={detail.queue?.error}
                             />
                           ) : null}
-                          {videoPreviewUrl && detail.status === "success" ? (
-                            <video controls className="prod-video-preview" src={videoPreviewUrl} />
-                          ) : null}
                         </div>
                       ) : null}
                     </div>
@@ -395,6 +436,13 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
           </section>
         </div>
       </main>
+
+      <VideoPreviewModal
+        open={previewTaskId !== null}
+        src={previewUrl}
+        loading={previewLoading}
+        onClose={closePreview}
+      />
     </AppPageShell>
   );
 }

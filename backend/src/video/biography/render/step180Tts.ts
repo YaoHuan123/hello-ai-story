@@ -372,16 +372,21 @@ export async function synthesizeAudioRelationsFromMergedSegments(
       const segFolder = `segment-${String(row.segmentIndex).padStart(4, "0")}`;
       for (let k = 0; k < scenes.length; k++) {
         const scene = scenes[k];
-        const si = typeof scene.sceneIndex === "number" && Number.isFinite(scene.sceneIndex) ? scene.sceneIndex : NaN;
-        if (!Number.isFinite(si)) {
-          throw new Error(`${ERR}: segmentIndex=${row.segmentIndex} 第 ${k + 1} 个 visualScene 缺少有效 sceneIndex`);
+        if (!scene || typeof scene !== "object") {
+          throw new Error(`${ERR}: segmentIndex=${row.segmentIndex} 第 ${k + 1} 个 visualScene 无效`);
         }
+        const slotIndex = k + 1;
         const text = String(row.voiceover[k] ?? "").trim();
         if (!text) {
-          throw new Error(`${ERR}: segmentIndex=${row.segmentIndex} sceneIndex=${si} 对应旁白为空`);
+          throw new Error(`${ERR}: segmentIndex=${row.segmentIndex} 第 ${slotIndex} 镜旁白为空`);
         }
-        const fileName = `scene-${String(si).padStart(4, "0")}.mp3`;
-        work.push({ segmentIndex: row.segmentIndex, sceneIndex: si, text, relativePath: `${audioRelativeDir}/${segFolder}/${fileName}` });
+        const fileName = `scene-${String(slotIndex).padStart(4, "0")}.mp3`;
+        work.push({
+          segmentIndex: row.segmentIndex,
+          sceneIndex: slotIndex,
+          text,
+          relativePath: `${audioRelativeDir}/${segFolder}/${fileName}`,
+        });
       }
     } else {
       const text = row.voiceover.join(" ").trim();

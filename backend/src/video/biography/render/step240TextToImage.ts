@@ -169,22 +169,25 @@ function buildPlannedSceneRows(
     const folderPath = path.join(workspaceRoot, imageRelativeDir, folderName);
     fs.mkdirSync(folderPath, { recursive: true });
 
-    for (const scene of seg.visualScenes) {
+    for (let slot = 0; slot < seg.visualScenes.length; slot++) {
+      const scene = seg.visualScenes[slot];
       if (!scene || typeof scene !== "object" || typeof (scene as { sceneDescription?: unknown }).sceneDescription !== "string") {
         continue;
       }
-      const sceneIndex = (scene as { sceneIndex: number; sceneDescription: string }).sceneIndex;
-      if (typeof sceneIndex !== "number" || !Number.isFinite(sceneIndex)) {
-        continue;
-      }
       const desc = (scene as { sceneDescription: string }).sceneDescription;
-      const signage = signageByScene?.get(sceneSignageKey(seg.segmentIndex, sceneIndex));
+      const semanticSceneIndex = (scene as { sceneIndex?: number }).sceneIndex;
+      const slotIndex = slot + 1;
+      const signageKey =
+        typeof semanticSceneIndex === "number" && Number.isFinite(semanticSceneIndex)
+          ? sceneSignageKey(seg.segmentIndex, semanticSceneIndex)
+          : null;
+      const signage = signageKey ? signageByScene?.get(signageKey) : undefined;
       const primaryForApi = appendGeoSignageToPrompt(buildDirectPrompt(desc), signage);
-      const fileName = `scene-${String(sceneIndex).padStart(4, "0")}.png`;
+      const fileName = `scene-${String(slotIndex).padStart(4, "0")}.png`;
       const relativePath = `${imageRelativeDir}/${folderName}/${fileName}`;
       out.push({
         segmentIndex: seg.segmentIndex,
-        sceneIndex,
+        sceneIndex: slotIndex,
         relativePath,
         displayPrompt: primaryForApi,
         primaryForApi,

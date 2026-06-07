@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { listVideoTasks } from "../api/production";
 import { createInterview, deleteInterview, listInterviews } from "../api/interviews";
 import type { InterviewMeta } from "../types/interview";
 import { StoryCard } from "./StoryCard";
@@ -14,6 +15,7 @@ type Props = {
 
 export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) {
   const [interviews, setInterviews] = useState<InterviewMeta[]>([]);
+  const [coverTaskMap, setCoverTaskMap] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -26,6 +28,23 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
     try {
       const res = await listInterviews();
       setInterviews(res.interviews);
+      setCoverTaskMap({});
+
+      void Promise.all(
+        res.interviews.map(async (item) => {
+          try {
+            const { tasks } = await listVideoTasks(item.id);
+            const latest = tasks
+              .filter((t) => t.status === "success")
+              .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+            return [item.id, latest?.taskId ?? null] as const;
+          } catch {
+            return [item.id, null] as const;
+          }
+        }),
+      ).then((entries) => {
+        setCoverTaskMap(Object.fromEntries(entries));
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "加载失败";
       if (msg.includes("未登录") || msg.includes("Unauthorized")) {
@@ -33,6 +52,7 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
       }
       setError(msg);
       setInterviews([]);
+      setCoverTaskMap({});
     } finally {
       setLoading(false);
     }
@@ -96,6 +116,8 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
           <li key={item.id} className="story-wall-list__item">
             <StoryCard
               title={item.title || "未命名故事"}
+              interviewId={item.id}
+              coverTaskId={coverTaskMap[item.id] ?? null}
               onOpenCreate={() => onOpenCreate(item.id)}
               onDelete={() => void handleDelete(item)}
             />

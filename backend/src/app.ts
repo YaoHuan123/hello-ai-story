@@ -46,8 +46,9 @@ export function createApp(db: DatabaseSync, authService: AuthService): Express {
   });
 
   app.use("/api/auth", createAuthRouter(authService));
-  app.use("/api/interviews", createInterviewRouter());
+  // 生产子路由须先于 /api/interviews：否则访谈 router 的全局 auth 会挡住 cover?token= 等媒体 GET
   app.use("/api/interviews/:interviewId", createProductionRouter());
+  app.use("/api/interviews", createInterviewRouter());
 
   return app;
 }

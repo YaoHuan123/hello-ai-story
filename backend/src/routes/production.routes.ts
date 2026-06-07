@@ -228,6 +228,7 @@ function mapProductionError(res: Response, error: unknown): boolean {
 export function createProductionRouter(): Router {
   const router = Router({ mergeParams: true });
 
+  // 须在 authMiddleware 之前：img 标签只能用 query token= 鉴权
   router.get("/video/tasks/:taskId/cover", (req: Request<TaskRouteParams>, res) => {
     const userId = verifyUserIdFromRequest(req);
     if (!userId) {

@@ -65,10 +65,6 @@ export function flattenVoiceoverItems(merged: MergedNarrativeSegmentItem[]): Voi
   return out;
 }
 
-function itemKey(segmentIndex: number, sceneIndex: number | null): string {
-  return `${segmentIndex}:${sceneIndex === null ? "null" : String(sceneIndex)}`;
-}
-
 export function mergeOptimizedVoiceovers(
   merged: MergedNarrativeSegmentItem[],
   flatIn: VoiceoverFlatItem[],
@@ -77,7 +73,6 @@ export function mergeOptimizedVoiceovers(
   if (optimized.length !== flatIn.length) {
     throw new Error(`${ERR}: optimizedItems 长度 ${optimized.length} 与输入 ${flatIn.length} 不一致`);
   }
-  const keyToText = new Map<string, string>();
   for (let i = 0; i < flatIn.length; i++) {
     const a = flatIn[i]!;
     const b = optimized[i]!;
@@ -93,32 +88,33 @@ export function mergeOptimizedVoiceovers(
     if ([...t].length > MAX_CHARS_PER_LINE) {
       throw new Error(`${ERR}: 第 ${i + 1} 项超过 ${MAX_CHARS_PER_LINE} 字：${t.slice(0, 40)}…`);
     }
-    keyToText.set(itemKey(b.segmentIndex, b.sceneIndex), t);
+    optimized[i] = { ...b, text: t };
   }
 
+  // 按 flatten 时的遍历顺序回写，勿用 segmentIndex:sceneIndex 作键——同段多镜可能共用 sceneIndex。
+  let cursor = 0;
   return merged.map((row) => {
     const scenes = Array.isArray(row.visualScenes) ? row.visualScenes : [];
     if (scenes.length > 0) {
       const newVo: string[] = [];
       for (let i = 0; i < scenes.length; i++) {
-        const sc = scenes[i]!;
-        const si = typeof sc.sceneIndex === "number" && Number.isFinite(sc.sceneIndex) ? sc.sceneIndex : NaN;
-        if (!Number.isFinite(si)) {
-          throw new Error(`${ERR}: segmentIndex=${row.segmentIndex} 场景缺少 sceneIndex`);
+        const opt = optimized[cursor++];
+        if (!opt) {
+          throw new Error(`${ERR}: 旁白条数不足，segmentIndex=${row.segmentIndex} 第 ${i + 1} 镜缺少优化结果`);
         }
-        const t = keyToText.get(itemKey(row.segmentIndex, si));
-        if (typeof t !== "string") {
-          throw new Error(`${ERR}: 缺少 segmentIndex=${row.segmentIndex} sceneIndex=${si} 的优化结果`);
-        }
-        newVo.push(t);
+        newVo.push(opt.text);
       }
       return { ...row, voiceover: newVo };
     }
-    const t = keyToText.get(itemKey(row.segmentIndex, null));
-    if (typeof t !== "string") {
+    const vo = row.voiceover;
+    if (!Array.isArray(vo) || vo.length === 0) {
       return row;
     }
-    return { ...row, voiceover: [t] };
+    const opt = optimized[cursor++];
+    if (!opt) {
+      throw new Error(`${ERR}: 旁白条数不足，segmentIndex=${row.segmentIndex} 缺少优化结果`);
+    }
+    return { ...row, voiceover: [opt.text] };
   });
 }
 

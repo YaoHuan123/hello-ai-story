@@ -484,11 +484,91 @@
   border-top: 1px solid var(--shell-separator);
 }
 
-.prod-video-preview {
+.prod-video-cover__play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  padding: 0 0 0 3px;
+}
+
+.prod-video-preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.prod-video-preview-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.92);
+  cursor: pointer;
+}
+
+.prod-video-preview-modal__body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 16px 24px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.prod-video-preview-modal__close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  right: 16px;
+  z-index: 2;
+  pointer-events: auto;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  min-width: 72px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 12px;
+}
+
+.prod-video-preview-modal__video {
   width: 100%;
-  max-width: 100%;
+  max-width: min(100%, 720px);
+  max-height: 100%;
   border-radius: 12px;
   background: #000;
+  pointer-events: auto;
+}
+
+.prod-video-preview-modal__loading {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  pointer-events: auto;
 }
 
 /* 子页内生产内容：桥接 production-* 与 iOS 卡片 */

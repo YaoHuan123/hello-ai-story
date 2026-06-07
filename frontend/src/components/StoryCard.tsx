@@ -1,13 +1,22 @@
 import { IconFilm } from "./icons";
+import { VideoTaskCover } from "./VideoTaskCover";
 
 type Props = {
   title: string;
+  interviewId: string;
+  coverTaskId?: string | null;
   onOpenCreate: () => void;
   onDelete: () => void;
 };
 
-/** 故事墙卡片：标题 + 进入创作。 */
-export function StoryCard({ title, onOpenCreate, onDelete }: Props) {
+const framePlaceholder = (
+  <div className="story-card__frame-placeholder" aria-hidden>
+    <IconFilm size={32} />
+  </div>
+);
+
+/** 故事墙卡片：标题 + 进入创作（有成功成片时显示真实封面）。 */
+export function StoryCard({ title, interviewId, coverTaskId, onOpenCreate, onDelete }: Props) {
   return (
     <article className="story-card story-card--wall">
       <div className="story-card__head story-card__head--wall">
@@ -31,9 +40,16 @@ export function StoryCard({ title, onOpenCreate, onDelete }: Props) {
         onClick={onOpenCreate}
         aria-label={`进入创作 ${title}`}
       >
-        <div className="story-card__frame-placeholder" aria-hidden>
-          <IconFilm size={32} />
-        </div>
+        {coverTaskId ? (
+          <VideoTaskCover
+            interviewId={interviewId}
+            taskId={coverTaskId}
+            className="story-card__frame-img"
+            fallback={framePlaceholder}
+          />
+        ) : (
+          framePlaceholder
+        )}
         <span className="story-card__frame-cta">进入创作</span>
       </button>
     </article>

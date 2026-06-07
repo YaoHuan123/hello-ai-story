@@ -1,6 +1,5 @@
 import { AppPageShell } from "../components/AppPageShell";
 import { SubpageHeader } from "../components/SubpageHeader";
-import { WorkflowSteps } from "../components/WorkflowSteps";
 import { IconFileText, IconFilm, IconMic } from "../components/icons";
 import "./CreateHomePage.css";
 
@@ -60,9 +59,6 @@ export function CreateHomePage({
       <SubpageHeader title="创作工作台" subtitle={interviewTitle} onBack={onBack} />
 
       <main className="create-home-scroll">
-        <p className="create-home-lead">按顺序完成三步，即可从访谈到成片。</p>
-        <WorkflowSteps activeIndex={0} className="create-home-workflow" />
-
         <ul className="create-home-cards" aria-label="创作方式">
           {CARDS.map((card) => {
             const Icon = card.Icon;
