@@ -4,13 +4,15 @@ import { createApp } from "./app";
 import { AuthService } from "./services/auth/auth.service";
 import { AliyunSmsService } from "./services/auth/aliyunSms.service";
 import { AuthAuditLogService } from "./services/auth/authAuditLog.service";
+import { RoutingSmsService } from "./services/auth/routingSms.service";
 import { SmsRateLimitService } from "./services/auth/smsRateLimit.service";
+import { TwilioVerifyService } from "./services/auth/twilioVerify.service";
 
 const db = initDb();
-const aliyunSmsService = new AliyunSmsService();
+const smsService = new RoutingSmsService(new AliyunSmsService(), new TwilioVerifyService());
 const smsRateLimitService = new SmsRateLimitService(db);
 const authAuditLogService = new AuthAuditLogService(db);
-const authService = new AuthService(db, aliyunSmsService, smsRateLimitService, authAuditLogService);
+const authService = new AuthService(db, smsService, smsRateLimitService, authAuditLogService);
 
 const app = createApp(db, authService);
 

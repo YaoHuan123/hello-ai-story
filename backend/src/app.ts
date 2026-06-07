@@ -8,7 +8,8 @@ import { createAuthRouter } from "./routes/auth.routes";
 import { createInterviewRouter } from "./routes/interview.routes";
 import { createProductionRouter } from "./routes/production.routes";
 import type { AuthService } from "./services/auth/auth.service";
-import { describeAliyunSmsMode } from "./services/auth/aliyunSms.service";
+import { APP_LOCALE } from "./config";
+import { describeCombinedSmsMode } from "./services/auth/routingSms.service";
 import { listPublicStyles } from "./video/biography/llm/steps/videoStyles.js";
 
 export function createApp(db: DatabaseSync, authService: AuthService): Express {
@@ -23,15 +24,26 @@ export function createApp(db: DatabaseSync, authService: AuthService): Express {
   app.use("/static/video-styles", express.static(path.join(configDir, "video-styles")));
 
   app.get("/api/health", (_req, res) => {
-    const sms = describeAliyunSmsMode();
+    const sms = describeCombinedSmsMode();
     res.json({
       ok: true,
       message: "Backend is running",
       timestamp: new Date().toISOString(),
+      locale: APP_LOCALE,
       sms: {
         mode: sms.mode,
-        forcedMock: sms.forcedMock,
-        missingEnvCount: sms.missingEnv.length,
+        china: {
+          provider: sms.china.provider,
+          mode: sms.china.mode,
+          forcedMock: sms.china.forcedMock,
+          missingEnvCount: sms.china.missingEnv.length,
+        },
+        overseas: {
+          provider: sms.overseas.provider,
+          mode: sms.overseas.mode,
+          forcedMock: sms.overseas.forcedMock,
+          missingEnvCount: sms.overseas.missingEnv.length,
+        },
       },
     });
   });

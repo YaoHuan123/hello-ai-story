@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { t } from "../i18n";
 import { normalizeYearMonthInRange, yearMonthFromDigits } from "../utils/yearMonth";
-
-const MASK = "YYYY年MM月";
 
 function ymToMaskDigits(ym: string): string {
   const n = normalizeYearMonthInRange(ym);
@@ -9,10 +8,10 @@ function ymToMaskDigits(ym: string): string {
   return n.replace("-", "");
 }
 
-function buildMaskParts(digits: string): { typed: string; rest: string } {
+function buildMaskParts(mask: string, digits: string): { typed: string; rest: string } {
   const chars: string[] = [];
   let d = 0;
-  for (const m of MASK) {
+  for (const m of mask) {
     if (m === "Y" || m === "M") {
       chars.push(d < digits.length ? digits[d]! : m);
       d++;
@@ -23,10 +22,16 @@ function buildMaskParts(digits: string): { typed: string; rest: string } {
   const full = chars.join("");
   const n = digits.length;
   let typedLen: number;
-  if (n < 4) typedLen = n;
-  else if (n === 4) typedLen = 5;
-  else if (n === 5) typedLen = 6;
-  else typedLen = 8;
+  if (mask.includes("年")) {
+    if (n < 4) typedLen = n;
+    else if (n === 4) typedLen = 5;
+    else if (n === 5) typedLen = 6;
+    else typedLen = 8;
+  } else {
+    if (n < 4) typedLen = n;
+    else if (n === 4) typedLen = 5;
+    else typedLen = 7;
+  }
   return { typed: full.slice(0, typedLen), rest: full.slice(typedLen) };
 }
 
@@ -36,8 +41,9 @@ export type YearMonthInputProps = {
   disabled?: boolean;
 };
 
-/** 年月输入：灰色 YYYY年MM月 模板，落盘 YYYY-MM。 */
+/** 年月输入：灰色模板提示，落盘 YYYY-MM。 */
 export function YearMonthInput({ value, onChange, disabled }: YearMonthInputProps) {
+  const mask = t("interview.yearMonthMask");
   const [digits, setDigits] = useState(() => ymToMaskDigits(value));
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,11 +60,11 @@ export function YearMonthInput({ value, onChange, disabled }: YearMonthInputProp
     advanceCaretToMonth.current = false;
     const el = inputRef.current;
     if (!el) return;
-    const pos = buildMaskParts(digits).typed.length;
+    const pos = buildMaskParts(mask, digits).typed.length;
     el.setSelectionRange(pos, pos);
-  }, [digits, focused]);
+  }, [digits, focused, mask]);
 
-  const { typed, rest } = buildMaskParts(digits);
+  const { typed, rest } = buildMaskParts(mask, digits);
 
   const commitDigits = (nextDigits: string) => {
     if (nextDigits.length === 4 && digits.length < 4) {
@@ -84,7 +90,7 @@ export function YearMonthInput({ value, onChange, disabled }: YearMonthInputProp
         inputMode="numeric"
         autoComplete="off"
         disabled={disabled}
-        aria-label="年月"
+        aria-label={t("interview.yearMonthAria")}
         value={typed}
         style={{ boxSizing: "border-box", width: "100%", padding: 8 }}
         onFocus={() => setFocused(true)}

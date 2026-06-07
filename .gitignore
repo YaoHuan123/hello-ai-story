@@ -4,6 +4,10 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.android
+!.env.android.example
+!.env.ios
+!.env.ios.example
 
 # 本地数据与密钥
 backend/data/

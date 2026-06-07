@@ -3,7 +3,9 @@ import { getCurrentQuestion, getInterviewMessages, submitAnswer } from "../api/i
 import { ApiRequestError } from "../api/client";
 import { SubpageHeader } from "../components/SubpageHeader";
 import { YearMonthInput } from "../components/YearMonthInput";
+import { displayError, isUnauthorizedError, t } from "../i18n";
 import type { InterviewChatMessage, InterviewQuestion } from "../types/interview";
+import { INTERVIEW_SKIP_LABEL } from "../types/interview";
 import { normalizeYearMonthInRange } from "../utils/yearMonth";
 import "./InterviewPage.css";
 
@@ -15,6 +17,11 @@ type Props = {
   onBack: () => void;
   onNeedLogin: () => void;
 };
+
+function formatChatText(text: string): string {
+  if (text === INTERVIEW_SKIP_LABEL) return t("interview.skipped");
+  return text;
+}
 
 export function InterviewPage({
   interviewId,
@@ -41,8 +48,7 @@ export function InterviewPage({
         code === "INTERVIEW_TOPIC_IN_PROGRESS"
       );
     }
-    const msg = err instanceof Error ? err.message : "";
-    return msg.includes("提交与当前进度不一致");
+    return false;
   };
 
   const run = useCallback(async (fn: () => Promise<void>) => {
@@ -51,11 +57,10 @@ export function InterviewPage({
     try {
       await fn();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "请求失败";
-      if (msg.includes("未登录") || msg.includes("Unauthorized")) {
+      if (isUnauthorizedError(err)) {
         onNeedLogin();
       }
-      setError(msg);
+      setError(displayError(err));
     } finally {
       setLoading(false);
     }
@@ -81,7 +86,7 @@ export function InterviewPage({
 
   useEffect(() => {
     if (!question) return;
-    const meta = question.type === "topic" ? "选主题" : question.title ?? undefined;
+    const meta = question.type === "topic" ? t("interview.pickTopic") : question.title ?? undefined;
     const id = `q-${question.key}`;
     setMessages((prev) => {
       if (prev.some((m) => m.id === id)) return prev;
@@ -114,14 +119,13 @@ export function InterviewPage({
   const handleSubmitError = async (err: unknown) => {
     if (isStaleProgressError(err)) {
       await loadSession(interviewId);
-      setError("当前题目已过期（可能已答过或本节已结束），已为你刷新，请继续作答。");
+      setError(t("interview.staleQuestion"));
       return;
     }
-    const msg = err instanceof Error ? err.message : "请求失败";
-    if (msg.includes("未登录") || msg.includes("Unauthorized")) {
+    if (isUnauthorizedError(err)) {
       onNeedLogin();
     }
-    setError(msg);
+    setError(displayError(err));
   };
 
   const handleSubmit = () => {
@@ -130,11 +134,11 @@ export function InterviewPage({
     const value = resolveSubmitValue(question, answer);
     if (!value) {
       if (question.fieldType === "yearMonth") {
-        setError("请输入合法的年月，如 1992年3月");
+        setError(t("interview.invalidYearMonth"));
       } else if (question.fieldType === "select" && question.fieldChoices?.length) {
-        setError("请从给定选项中选择");
+        setError(t("interview.pickFromChoices"));
       } else {
-        setError("请输入或选择内容");
+        setError(t("interview.enterOrPick"));
       }
       return;
     }
@@ -195,23 +199,23 @@ export function InterviewPage({
 
   return (
     <div className="iv-layout">
-      <SubpageHeader title="采访聊天" subtitle={interviewTitle} onBack={onBack} />
+      <SubpageHeader title={t("interview.title")} subtitle={interviewTitle} onBack={onBack} />
       <div className="iv-main">
         <section className="iv-messages" aria-live="polite">
           {messages.map((m) => (
             <div key={m.id} className={`iv-msg iv-msg--${m.role}`}>
               <div className="iv-card">
                 {m.role === "ai" && m.meta ? <div className="iv-meta">{m.meta}</div> : null}
-                <div>{m.text}</div>
+                <div>{formatChatText(m.text)}</div>
               </div>
             </div>
           ))}
-          {!question && loading && <p className="iv-loading">加载题目中…</p>}
+          {!question && loading && <p className="iv-loading">{t("interview.loadingQuestion")}</p>}
           <div ref={messagesEndRef} />
         </section>
 
         <footer className="iv-composer">
-          {loading && question && <p className="iv-hint">处理中…</p>}
+          {loading && question && <p className="iv-hint">{t("common.processing")}</p>}
           {error && <p className="iv-hint iv-hint--err">{error}</p>}
 
           {showComposer && isTopicQuestion && question.options.length > 0 && (
@@ -225,14 +229,14 @@ export function InterviewPage({
                   disabled={loading}
                 >
                   <strong>{opt}</strong>
-                  <span>选择后发送，进入这个主题的追问。</span>
+                  <span>{t("interview.topicHint")}</span>
                 </button>
               ))}
             </div>
           )}
 
           {showComposer && choiceChips.length > 0 && (
-            <div className="iv-chips" role="group" aria-label="选项">
+            <div className="iv-chips" role="group" aria-label={t("interview.optionsAria")}>
               {choiceChips.map((opt) => (
                 <button
                   key={opt}
@@ -248,7 +252,7 @@ export function InterviewPage({
           )}
 
           {showComposer && suggestionChips.length > 0 && (
-            <div className="iv-chips" role="group" aria-label="建议答案">
+            <div className="iv-chips" role="group" aria-label={t("interview.suggestionsAria")}>
               {suggestionChips.map((opt) => (
                 <button
                   key={opt}
@@ -264,14 +268,14 @@ export function InterviewPage({
           )}
 
           {showComposer && question.skippable && (
-            <div className="iv-chips" role="group" aria-label="可选操作">
+            <div className="iv-chips" role="group" aria-label={t("interview.optionalActionsAria")}>
               <button
                 type="button"
                 className="iv-chip iv-chip--skip"
                 onClick={handleSkip}
                 disabled={loading}
               >
-                跳过此题
+                {t("interview.skipQuestion")}
               </button>
             </div>
           )}
@@ -293,7 +297,7 @@ export function InterviewPage({
                       setAnswer(e.target.value);
                       setError(null);
                     }}
-                    placeholder="输入你的回答…"
+                    placeholder={t("interview.answerPlaceholder")}
                     disabled={loading}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
@@ -312,7 +316,7 @@ export function InterviewPage({
                       setAnswer(e.target.value);
                       setError(null);
                     }}
-                    placeholder="或输入主题标题…"
+                    placeholder={t("interview.topicPlaceholder")}
                     disabled={loading}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -324,7 +328,7 @@ export function InterviewPage({
                 )}
 
                 {fieldType === "select" && choiceChips.length > 0 && !answer && (
-                  <p className="iv-hint">请从上方选项中选择</p>
+                  <p className="iv-hint">{t("interview.pickAbove")}</p>
                 )}
               </div>
 
@@ -333,8 +337,8 @@ export function InterviewPage({
                 className="iv-send"
                 onClick={handleSubmit}
                 disabled={loading || !answer.trim()}
-                aria-label="发送"
-                title="发送"
+                aria-label={t("interview.send")}
+                title={t("interview.send")}
               >
                 ↑
               </button>

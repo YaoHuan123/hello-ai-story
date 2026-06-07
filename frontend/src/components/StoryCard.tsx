@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { IconFilm } from "./icons";
 import { VideoTaskCover } from "./VideoTaskCover";
 
@@ -28,9 +29,9 @@ export function StoryCard({ title, interviewId, coverTaskId, onOpenCreate, onDel
             e.stopPropagation();
             onDelete();
           }}
-          aria-label={`删除故事 ${title}`}
+          aria-label={t("storyWall.deleteStoryAria", { title })}
         >
-          删除
+          {t("common.delete")}
         </button>
       </div>
 
@@ -38,7 +39,7 @@ export function StoryCard({ title, interviewId, coverTaskId, onOpenCreate, onDel
         type="button"
         className="story-card__frame"
         onClick={onOpenCreate}
-        aria-label={`进入创作 ${title}`}
+        aria-label={t("storyWall.enterCreateAria", { title })}
       >
         {coverTaskId ? (
           <VideoTaskCover
@@ -50,7 +51,7 @@ export function StoryCard({ title, interviewId, coverTaskId, onOpenCreate, onDel
         ) : (
           framePlaceholder
         )}
-        <span className="story-card__frame-cta">进入创作</span>
+        <span className="story-card__frame-cta">{t("storyWall.enterCreate")}</span>
       </button>
     </article>
   );

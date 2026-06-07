@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { displayError, isUnauthorizedError } from "../../i18n";
 import { formatProductionError } from "../../lib/formatProductionError";
 import { parseApiErrorMessage } from "./utils";
 
@@ -15,12 +16,18 @@ export function useProductionRunner(onNeedLogin: () => void) {
       try {
         await fn();
       } catch (err) {
-        const raw = parseApiErrorMessage(err);
-        if (raw.includes("未登录") || raw.includes("Unauthorized")) {
+        if (isUnauthorizedError(err)) {
           onNeedLogin();
+          setError(displayError(err));
+        } else {
+          const raw = parseApiErrorMessage(err);
+          const friendly = formatProductionError(raw);
+          setError(
+            friendly
+              ? `${friendly.title}${friendly.hint ? ` — ${friendly.hint}` : ""}`
+              : displayError(err),
+          );
         }
-        const friendly = formatProductionError(raw);
-        setError(friendly ? `${friendly.title}${friendly.hint ? ` — ${friendly.hint}` : ""}` : raw);
       } finally {
         setLoading(false);
       }

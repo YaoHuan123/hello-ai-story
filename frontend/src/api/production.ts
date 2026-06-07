@@ -1,3 +1,4 @@
+import { resolveApiUrl } from "../lib/apiBase";
 import { authTokenStore } from "../lib/authToken";
 import { apiRequest, fetchAuthenticatedBlob } from "./client";
 import type {
@@ -22,7 +23,7 @@ import type {
 
 function productionPath(interviewId: string, suffix: string): string {
   const id = encodeURIComponent(interviewId);
-  return `/api/interviews/${id}${suffix}`;
+  return resolveApiUrl(`/api/interviews/${id}${suffix}`);
 }
 
 export async function listVideoTasks(interviewId: string) {

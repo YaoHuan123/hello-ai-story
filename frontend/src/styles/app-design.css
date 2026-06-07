@@ -51,6 +51,23 @@ body {
   }
 }
 
+/* Capacitor Android / iOS：真机全屏，去掉浏览器「手机壳」描边与居中留白 */
+html.capacitor-native {
+  background: var(--shell-bg-canvas);
+}
+
+html.capacitor-native #root {
+  justify-content: stretch;
+}
+
+html.capacitor-native .app-shell-phone.tc-phone {
+  max-width: none;
+  box-shadow: none;
+  border: none;
+  min-height: 100dvh;
+  max-height: none;
+}
+
 /* 主按钮 */
 .hs-btn {
   display: inline-flex;

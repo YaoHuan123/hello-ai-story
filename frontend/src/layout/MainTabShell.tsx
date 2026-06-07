@@ -2,6 +2,7 @@ import { AppPageShell } from "../components/AppPageShell";
 import { AccountPage } from "../pages/AccountPage";
 import { StoryWall } from "../components/StoryWall";
 import { IconStory, IconUser } from "../components/icons";
+import { t } from "../i18n";
 import type { MeResponse } from "../types/auth";
 import type { HealthResponse } from "../api/health";
 import "./MainTabShell.css";
@@ -55,7 +56,7 @@ export function MainTabShell({
                   health={health}
                 />
               ) : (
-                <p className="story-wall-msg">请先登录</p>
+                <p className="story-wall-msg">{t("tab.loginRequired")}</p>
               )}
             </div>
           </div>
@@ -63,7 +64,7 @@ export function MainTabShell({
       </div>
 
       <div className="app-shell-tabbar-outer">
-        <nav className="app-shell-tabbar" role="tablist" aria-label="主栏目">
+        <nav className="app-shell-tabbar" role="tablist" aria-label={t("tab.mainAria")}>
           <button
             type="button"
             role="tab"
@@ -72,7 +73,7 @@ export function MainTabShell({
             onClick={() => onTabChange("story")}
           >
             <IconStory size={22} className="app-shell-tab__icon" />
-            <span>故事</span>
+            <span>{t("tab.story")}</span>
           </button>
           <button
             type="button"
@@ -82,7 +83,7 @@ export function MainTabShell({
             onClick={() => onTabChange("me")}
           >
             <IconUser size={22} className="app-shell-tab__icon" />
-            <span>我的</span>
+            <span>{t("tab.me")}</span>
           </button>
         </nav>
       </div>

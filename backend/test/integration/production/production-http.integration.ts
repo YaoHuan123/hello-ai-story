@@ -14,6 +14,8 @@ import { createInterview } from "../../../dist/services/interviewWorkspace.servi
 import { createUserWorkspace, getUserRootDir } from "../../../dist/services/workspace.service.js";
 import { AuthService } from "../../../dist/services/auth/auth.service.js";
 import { AliyunSmsService } from "../../../dist/services/auth/aliyunSms.service.js";
+import { RoutingSmsService } from "../../../dist/services/auth/routingSms.service.js";
+import { TwilioVerifyService } from "../../../dist/services/auth/twilioVerify.service.js";
 import { AuthAuditLogService } from "../../../dist/services/auth/authAuditLog.service.js";
 import { SmsRateLimitService } from "../../../dist/services/auth/smsRateLimit.service.js";
 import type { AnsweredSection } from "../../../dist/topic/types.js";
@@ -53,7 +55,7 @@ async function main(): Promise<void> {
   const db = initDb();
   const authService = new AuthService(
     db,
-    new AliyunSmsService(),
+    new RoutingSmsService(new AliyunSmsService(), new TwilioVerifyService()),
     new SmsRateLimitService(db),
     new AuthAuditLogService(db),
   );

@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 import { IconChevronLeft } from "./icons";
 
 type Props = {
@@ -7,7 +8,7 @@ type Props = {
   backLabel?: string;
 };
 
-export function SubpageHeader({ title, subtitle, onBack, backLabel = "返回" }: Props) {
+export function SubpageHeader({ title, subtitle, onBack, backLabel = t("common.back") }: Props) {
   return (
     <header className="hs-subheader">
       <button type="button" className="hs-subheader__back" onClick={onBack}>

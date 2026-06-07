@@ -27,3 +27,13 @@ export const DATA_USERS_ROOT = requireEnv("DATA_USERS_ROOT");
 export const OPENAI_API_KEY = requireEnv("OPENAI_API_KEY");
 export const OPENAI_BASE_URL = requireEnv("OPENAI_BASE_URL").replace(/\/$/, "");
 export const OPENAI_MODEL = requireEnv("OPENAI_MODEL");
+
+/** Web 壳层语言开关：zh（默认）| en。详见 docs/i18n.md */
+export type AppLocale = "zh" | "en";
+
+function parseAppLocale(raw: string | undefined): AppLocale {
+  const v = (raw ?? "zh").trim().toLowerCase();
+  return v === "en" ? "en" : "zh";
+}
+
+export const APP_LOCALE = parseAppLocale(process.env.APP_LOCALE);

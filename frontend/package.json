@@ -6,14 +6,27 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:android": "tsc -b && vite build --mode android",
+    "build:ios": "tsc -b && vite build --mode ios",
+    "cap:sync": "cap sync android",
+    "cap:sync:ios": "cap sync ios",
+    "cap:open": "cap open android",
+    "cap:open:ios": "cap open ios",
+    "android": "npm run build:android && cap sync android",
+    "ios": "npm run build:ios && cap sync ios",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.2",
+    "@capacitor/core": "^7.4.2",
+    "@capacitor/ios": "^7.6.6",
+    "@capacitor/status-bar": "^7.0.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.4.2",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",

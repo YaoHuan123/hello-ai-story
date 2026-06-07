@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import type { PublicVideoStyle } from "../../types/production";
 
 type Props = {
@@ -11,12 +12,12 @@ export function VideoStylePicker({ styles, selectedStyleId, onChange, disabled }
   const selected = styles.find((s) => s.id === selectedStyleId) ?? styles[0];
 
   if (styles.length === 0) {
-    return <p className="production-muted">暂无可用视频风格配置。</p>;
+    return <p className="production-muted">{t("production.styleEmpty")}</p>;
   }
 
   return (
     <label className="production-field video-style-picker">
-      画面风格
+      {t("production.styleLabel")}
       <select
         value={selected?.id ?? selectedStyleId}
         onChange={(e) => onChange(e.target.value)}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { t } from "../i18n";
 
 type Props = {
   open: boolean;
@@ -9,8 +10,15 @@ type Props = {
 };
 
 /** 成片预览：应用内全屏黑底弹层，不新开浏览器窗口。 */
-export function VideoPreviewModal({ open, src, loading = false, title = "成片预览", onClose }: Props) {
+export function VideoPreviewModal({
+  open,
+  src,
+  loading = false,
+  title,
+  onClose,
+}: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const dialogTitle = title ?? t("production.previewTitle");
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -41,17 +49,22 @@ export function VideoPreviewModal({ open, src, loading = false, title = "成片�
       className="prod-video-preview-modal"
       role="dialog"
       aria-modal="true"
-      aria-label={title}
+      aria-label={dialogTitle}
       tabIndex={-1}
       onKeyDown={onKeyDown}
     >
-      <button type="button" className="prod-video-preview-modal__backdrop" aria-label="关闭预览" onClick={onClose} />
+      <button
+        type="button"
+        className="prod-video-preview-modal__backdrop"
+        aria-label={t("production.previewCloseBackdrop")}
+        onClick={onClose}
+      />
       <div className="prod-video-preview-modal__body">
         <button type="button" className="prod-video-preview-modal__close" onClick={onClose}>
-          关闭
+          {t("production.previewClose")}
         </button>
         {loading ? (
-          <p className="prod-video-preview-modal__loading">加载中…</p>
+          <p className="prod-video-preview-modal__loading">{t("production.previewLoading")}</p>
         ) : src ? (
           <video
             className="prod-video-preview-modal__video"
@@ -62,7 +75,7 @@ export function VideoPreviewModal({ open, src, loading = false, title = "成片�
             preload="metadata"
           />
         ) : (
-          <p className="prod-video-preview-modal__loading">无法加载视频</p>
+          <p className="prod-video-preview-modal__loading">{t("production.previewFailed")}</p>
         )}
       </div>
     </div>

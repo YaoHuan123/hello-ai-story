@@ -1,3 +1,5 @@
+import { NOT_LOGGED_IN, t } from "../i18n";
+import { resolveApiUrl } from "../lib/apiBase";
 import { authTokenStore } from "../lib/authToken";
 
 interface ApiErrorPayload {
@@ -28,7 +30,10 @@ export async function parseApiError(response: Response): Promise<Error> {
   } catch {
     // ignore
   }
-  return new ApiRequestError(message, response.status, code);
+  const localized = code ? t(`api.${code}`) : message;
+  const display =
+    code && localized !== `api.${code}` ? localized : message;
+  return new ApiRequestError(display, response.status, code);
 }
 
 export async function apiRequest<T>(url: string, init: RequestInit = {}, useAuth = false): Promise<T> {
@@ -36,10 +41,10 @@ export async function apiRequest<T>(url: string, init: RequestInit = {}, useAuth
   headers.set("Content-Type", "application/json");
   if (useAuth) {
     const token = authTokenStore.get();
-    if (!token) throw new Error("未登录");
+    if (!token) throw new ApiRequestError(t("api.NOT_LOGGED_IN"), 401, NOT_LOGGED_IN);
     headers.set("Authorization", `Bearer ${token}`);
   }
-  const response = await fetch(url, { ...init, headers });
+  const response = await fetch(resolveApiUrl(url), { ...init, headers });
   if (!response.ok) throw await parseApiError(response);
   if (response.status === 204) return undefined as T;
   const text = await response.text();
@@ -49,8 +54,8 @@ export async function apiRequest<T>(url: string, init: RequestInit = {}, useAuth
 
 export async function fetchAuthenticatedBlob(url: string): Promise<Blob> {
   const token = authTokenStore.get();
-  if (!token) throw new Error("未登录");
-  const response = await fetch(url, {
+  if (!token) throw new ApiRequestError(t("api.NOT_LOGGED_IN"), 401, NOT_LOGGED_IN);
+  const response = await fetch(resolveApiUrl(url), {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw await parseApiError(response);

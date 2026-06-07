@@ -13,11 +13,15 @@ import { initDb } from "../../../dist/db/init.js";
 import { getUserRootDir } from "../../../dist/services/workspace.service.js";
 import { AuthService } from "../../../dist/services/auth/auth.service.js";
 import { AliyunSmsService, ALIYUN_SMS_DEV_MOCK_CODE } from "../../../dist/services/auth/aliyunSms.service.js";
+import { RoutingSmsService } from "../../../dist/services/auth/routingSms.service.js";
+import { TwilioVerifyService } from "../../../dist/services/auth/twilioVerify.service.js";
 import { AuthAuditLogService } from "../../../dist/services/auth/authAuditLog.service.js";
+import { normalizePhoneE164 } from "../../../dist/utils/phone.js";
 import { SmsRateLimitService } from "../../../dist/services/auth/smsRateLimit.service.js";
 
 loadEnv();
 process.env.ALIYUN_DYPNSAPI_DEV_MOCK = "1";
+process.env.TWILIO_VERIFY_DEV_MOCK = "1";
 
 const MOCK_CODE = ALIYUN_SMS_DEV_MOCK_CODE;
 
@@ -44,6 +48,12 @@ function uniquePhone(suffix: string): string {
   return `138${tail.slice(-8)}`;
 }
 
+function canonicalPhone(phone: string): string {
+  const c = normalizePhoneE164(phone);
+  if (!c) throw new Error(`bad test phone: ${phone}`);
+  return c;
+}
+
 async function smsLogin(base: string, phone: string): Promise<{ token: string; userId: string; phone: string }> {
   const res = await fetch(`${base}/api/auth/sms/login`, {
     method: "POST",
@@ -61,7 +71,7 @@ async function main(): Promise<void> {
   const db = initDb();
   const authService = new AuthService(
     db,
-    new AliyunSmsService(),
+    new RoutingSmsService(new AliyunSmsService(), new TwilioVerifyService()),
     new SmsRateLimitService(db),
     new AuthAuditLogService(db),
   );
@@ -84,7 +94,7 @@ async function main(): Promise<void> {
     const meRes = await fetch(`${base}/api/auth/me`, { headers: authHeader(loginA.token) });
     const meBody = (await meRes.json()) as { phone?: string; userId?: string };
     check("GET /me → 200", meRes.status === 200);
-    check("GET /me phone matches", meBody.phone === phoneA, meBody);
+    check("GET /me phone matches", meBody.phone === canonicalPhone(phoneA), meBody);
 
     console.log("\n=== 换绑手机号 + token_version ===");
     const phoneB = uniquePhone("2");
@@ -95,7 +105,7 @@ async function main(): Promise<void> {
     });
     const changeBody = (await changeRes.json()) as { phone?: string; code?: string };
     check("PATCH /phone → 200", changeRes.status === 200, changeBody);
-    check("PATCH /phone returns new phone", changeBody.phone === phoneB, changeBody);
+    check("PATCH /phone returns new phone", changeBody.phone === canonicalPhone(phoneB), changeBody);
 
     const tvRow = db
       .prepare("SELECT token_version FROM users WHERE id = ?")
@@ -107,11 +117,15 @@ async function main(): Promise<void> {
     check("old token → 401 TOKEN_REVOKED", oldTokenMe.status === 401 && oldTokenBody.code === "TOKEN_REVOKED", oldTokenBody);
 
     const loginB = await smsLogin(base, phoneB);
-    check("re-login with new phone", loginB.userId === loginA.userId && loginB.phone === phoneB, loginB);
+    check(
+      "re-login with new phone",
+      loginB.userId === loginA.userId && loginB.phone === canonicalPhone(phoneB),
+      loginB,
+    );
 
     const meAfter = await fetch(`${base}/api/auth/me`, { headers: authHeader(loginB.token) });
     const meAfterBody = (await meAfter.json()) as { phone?: string };
-    check("GET /me after change shows new phone", meAfterBody.phone === phoneB, meAfterBody);
+    check("GET /me after change shows new phone", meAfterBody.phone === canonicalPhone(phoneB), meAfterBody);
 
     console.log("\n=== 换绑冲突 ===");
     const phoneC = uniquePhone("3");

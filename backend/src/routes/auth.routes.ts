@@ -58,7 +58,7 @@ function mapAuthError(res: Response, error: unknown): boolean {
 
   const code = error.message;
   if (code === "INVALID_PHONE") {
-    res.status(400).json({ code, message: "请输入有效的中国大陆手机号" });
+    res.status(400).json({ code, message: "请输入有效的手机号（中国 11 位或含国家区号如 +1）" });
     return true;
   }
   if (code === "SMS_RATE_LIMITED") {

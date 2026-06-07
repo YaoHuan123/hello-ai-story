@@ -4,6 +4,7 @@ import { changePhone, deleteAccount, getMe, sendSms } from "../api/auth";
 import { authTokenStore } from "../lib/authToken";
 import type { HealthResponse } from "../api/health";
 import type { MeResponse } from "../types/auth";
+import { displayError, formatLocaleDate, t } from "../i18n";
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -30,21 +31,9 @@ function maskPhone(phone: string): string {
   return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
 }
 
-function formatMemberSince(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("zh-CN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-}
-
 function avatarInitial(phone: string): string {
   const tail = phone.replace(/\D/g, "").slice(-2);
-  return tail || "我";
+  return tail || t("common.me");
 }
 
 function MeListRow({
@@ -81,7 +70,7 @@ function MeListRow({
 
 function Feedback({ loading, error, message }: { loading: boolean; error: string | null; message: string | null }) {
   if (loading) {
-    return <p className="me-banner me-banner--ok">处理中…</p>;
+    return <p className="me-banner me-banner--ok">{t("common.processing")}</p>;
   }
   if (error) {
     return <p className="me-banner me-banner--err">{error}</p>;
@@ -120,7 +109,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
     try {
       await fn();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "请求失败");
+      setError(displayError(err));
     } finally {
       setLoading(false);
     }
@@ -130,7 +119,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
     void run(async () => {
       const profile = await getMe();
       onMeChange(profile);
-      setMessage("资料已更新");
+      setMessage(t("account.profileUpdated"));
     });
   };
 
@@ -138,7 +127,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
     if (!me?.phone) return;
     void run(async () => {
       await sendSms(me.phone, "change_phone_old");
-      setMessage("验证码已发送至当前手机号");
+      setMessage(t("account.codeSentCurrent"));
     });
   };
 
@@ -146,7 +135,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
     if (!newPhone.trim()) return;
     void run(async () => {
       await sendSms(newPhone.trim(), "change_phone_new");
-      setMessage("验证码已发送至新手机号");
+      setMessage(t("account.codeSentNew"));
     });
   };
 
@@ -159,7 +148,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
       });
       authTokenStore.clear();
       onMeChange(null);
-      setMessage(`换绑成功：${maskPhone(result.phone)}，请用新手机号重新登录`);
+      setMessage(t("account.changeSuccess", { phone: maskPhone(result.phone) }));
       setNewPhone("");
       setOldCode("");
       setNewCode("");
@@ -171,12 +160,12 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
     if (!me?.phone) return;
     void run(async () => {
       await sendSms(me.phone, "delete_account");
-      setMessage("验证码已发送");
+      setMessage(t("account.codeSent"));
     });
   };
 
   const handleDeleteAccount = () => {
-    if (!window.confirm("确定注销账号吗？注销后无法再用本手机号登录，本地故事数据将无法找回。")) {
+    if (!window.confirm(t("account.deleteConfirm"))) {
       return;
     }
     void run(async () => {
@@ -195,7 +184,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
   };
 
   if (!me) {
-    return <p className="me-empty">请先登录后查看账户信息</p>;
+    return <p className="me-empty">{t("account.loginRequired")}</p>;
   }
 
   if (screen === "phone") {
@@ -203,45 +192,45 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
       <div className="me-page me-subpage">
         <button type="button" className="me-subpage__back" onClick={() => goScreen("home")}>
           <IconChevronLeft size={18} />
-          我的
+          {t("tab.me")}
         </button>
-        <h2 className="me-subpage__title">换绑手机号</h2>
-        <p className="me-subpage__desc">需验证当前手机号与新手机号。换绑成功后需重新登录。</p>
+        <h2 className="me-subpage__title">{t("account.changePhoneTitle")}</h2>
+        <p className="me-subpage__desc">{t("account.changePhoneDesc")}</p>
         <Feedback loading={loading} error={error} message={message} />
         <div className="me-form-card">
           <label className="me-field">
-            <span className="me-field__label">新手机号</span>
+            <span className="me-field__label">{t("account.newPhone")}</span>
             <input
               value={newPhone}
               onChange={(e) => setNewPhone(e.target.value)}
-              placeholder="请输入新手机号"
+              placeholder={t("login.phonePlaceholder")}
               inputMode="tel"
               autoComplete="tel"
               disabled={loading}
             />
           </label>
           <label className="me-field">
-            <span className="me-field__label">当前手机号验证码</span>
+            <span className="me-field__label">{t("account.oldCode")}</span>
             <div className="me-field-row">
               <input
                 value={oldCode}
                 onChange={(e) => setOldCode(e.target.value)}
-                placeholder="6 位验证码"
+                placeholder={t("account.codePlaceholder6")}
                 inputMode="numeric"
                 disabled={loading}
               />
               <button type="button" className="hs-btn hs-btn--secondary" onClick={handleSendOldCode} disabled={loading}>
-                获取
+                {t("common.getCode")}
               </button>
             </div>
           </label>
           <label className="me-field">
-            <span className="me-field__label">新手机号验证码</span>
+            <span className="me-field__label">{t("account.newCode")}</span>
             <div className="me-field-row">
               <input
                 value={newCode}
                 onChange={(e) => setNewCode(e.target.value)}
-                placeholder="6 位验证码"
+                placeholder={t("account.codePlaceholder6")}
                 inputMode="numeric"
                 disabled={loading}
               />
@@ -251,7 +240,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
                 onClick={handleSendNewCode}
                 disabled={loading || !newPhone.trim()}
               >
-                获取
+                {t("common.getCode")}
               </button>
             </div>
           </label>
@@ -262,7 +251,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
             onClick={handleChangePhone}
             disabled={loading || !newPhone.trim() || !oldCode.trim() || !newCode.trim()}
           >
-            确认换绑
+            {t("account.confirmChangePhone")}
           </button>
         </div>
       </div>
@@ -274,26 +263,29 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
       <div className="me-page me-subpage">
         <button type="button" className="me-subpage__back" onClick={() => goScreen("home")}>
           <IconChevronLeft size={18} />
-          我的
+          {t("tab.me")}
         </button>
-        <h2 className="me-subpage__title">注销账号</h2>
-        <p className="me-subpage__desc">
-          注销后无法使用本手机号登录。服务器上的故事与成片文件可能仍保留在磁盘，但与本账号解绑且无法通过应用访问。
-        </p>
+        <h2 className="me-subpage__title">{t("account.deleteTitle")}</h2>
+        <p className="me-subpage__desc">{t("account.deleteDesc")}</p>
         <Feedback loading={loading} error={error} message={message} />
         <div className="me-form-card me-form-card--danger">
           <label className="me-field">
-            <span className="me-field__label">短信验证码</span>
+            <span className="me-field__label">{t("account.smsCode")}</span>
             <div className="me-field-row">
               <input
                 value={deleteCode}
                 onChange={(e) => setDeleteCode(e.target.value)}
-                placeholder="请输入验证码"
+                placeholder={t("account.codePlaceholder")}
                 inputMode="numeric"
                 disabled={loading}
               />
-              <button type="button" className="hs-btn hs-btn--secondary" onClick={handleSendDeleteCode} disabled={loading}>
-                获取
+              <button
+                type="button"
+                className="hs-btn hs-btn--secondary"
+                onClick={handleSendDeleteCode}
+                disabled={loading}
+              >
+                {t("common.getCode")}
               </button>
             </div>
           </label>
@@ -304,7 +296,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
             onClick={handleDeleteAccount}
             disabled={loading || !deleteCode.trim()}
           >
-            确认注销
+            {t("account.confirmDelete")}
           </button>
         </div>
       </div>
@@ -312,37 +304,42 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
   }
 
   if (screen === "about") {
-    const smsMode = health?.sms?.mode === "real" ? "真实短信" : health?.sms ? "开发 mock" : "—";
+    const smsMode =
+      health?.sms?.mode === "real"
+        ? t("account.smsReal")
+        : health?.sms
+          ? t("account.smsDevMock")
+          : t("common.emDash");
     return (
       <div className="me-page me-subpage">
         <button type="button" className="me-subpage__back" onClick={() => goScreen("home")}>
           <IconChevronLeft size={18} />
-          我的
+          {t("tab.me")}
         </button>
-        <h2 className="me-subpage__title">关于</h2>
+        <h2 className="me-subpage__title">{t("account.aboutTitle")}</h2>
         <div className="me-form-card">
           <ul className="me-about-list">
             <li>
-              <span>应用</span>
-              <span>Hello Story</span>
+              <span>{t("account.aboutApp")}</span>
+              <span>{t("common.appName")}</span>
             </li>
             <li>
-              <span>服务状态</span>
-              <span>{health?.ok ? "在线" : "未知"}</span>
+              <span>{t("account.aboutStatus")}</span>
+              <span>{health?.ok ? t("common.online") : t("common.unknown")}</span>
             </li>
             <li>
-              <span>短信通道</span>
+              <span>{t("account.aboutSms")}</span>
               <span>{smsMode}</span>
             </li>
             {health?.ok ? (
               <li>
-                <span>最近检查</span>
+                <span>{t("account.aboutChecked")}</span>
                 <span>{new Date(health.timestamp).toLocaleString()}</span>
               </li>
             ) : null}
           </ul>
         </div>
-        <p className="me-footer-note">把访谈整理成故事，再生成属于你的传记视频。</p>
+        <p className="me-footer-note">{t("account.aboutFooter")}</p>
       </div>
     );
   }
@@ -355,57 +352,57 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
         </div>
         <div className="me-profile__info">
           <p className="me-profile__phone">{maskPhone(me.phone)}</p>
-          <p className="me-profile__meta">加入于 {formatMemberSince(me.createdAt)}</p>
+          <p className="me-profile__meta">{t("account.joined", { date: formatLocaleDate(me.createdAt) })}</p>
         </div>
       </header>
 
       <Feedback loading={loading} error={error} message={message} />
 
-      <p className="me-group-label">账号</p>
+      <p className="me-group-label">{t("account.sectionAccount")}</p>
       <div className="me-group">
         <MeListRow
           icon={<IconPhone size={18} />}
-          label="手机号"
+          label={t("account.phone")}
           value={maskPhone(me.phone)}
           showChevron={false}
           disabled
         />
         <MeListRow
           icon={<IconShield size={18} />}
-          label="换绑手机号"
-          hint="更换登录手机号"
+          label={t("account.changePhone")}
+          hint={t("account.changePhoneHint")}
           onClick={() => goScreen("phone")}
           disabled={loading}
         />
         <MeListRow
           icon={<IconRefresh size={18} />}
           iconTone="muted"
-          label="刷新资料"
+          label={t("account.refreshProfile")}
           onClick={refreshMe}
           disabled={loading}
           showChevron={false}
         />
       </div>
 
-      <p className="me-group-label">其他</p>
+      <p className="me-group-label">{t("account.sectionOther")}</p>
       <div className="me-group">
         <MeListRow
           icon={<IconInfo size={18} />}
           iconTone="muted"
-          label="关于 Hello Story"
-          hint="服务状态与版本信息"
+          label={t("account.about")}
+          hint={t("account.aboutHint")}
           onClick={() => goScreen("about")}
           disabled={loading}
         />
       </div>
 
-      <p className="me-group-label">账号安全</p>
+      <p className="me-group-label">{t("account.sectionSecurity")}</p>
       <div className="me-group me-group--danger">
         <MeListRow
           icon={<IconTrash size={18} />}
           iconTone="danger"
-          label="注销账号"
-          hint="不可恢复，请谨慎操作"
+          label={t("account.deleteAccount")}
+          hint={t("account.deleteAccountHint")}
           onClick={() => goScreen("delete")}
           disabled={loading}
         />
@@ -415,12 +412,12 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
         <button type="button" className="me-row me-row--logout" onClick={handleLogout} disabled={loading}>
           <span className="me-row--logout__inner">
             <IconLogOut size={18} />
-            退出登录
+            {t("account.logout")}
           </span>
         </button>
       </div>
 
-      <p className="me-footer-note">Hello Story · 传记创作</p>
+      <p className="me-footer-note">{t("account.footer")}</p>
     </div>
   );
 }

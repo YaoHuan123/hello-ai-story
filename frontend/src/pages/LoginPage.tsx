@@ -1,5 +1,6 @@
 import type { HealthResponse } from "../api/health";
 import { IconSpark, IconStory } from "../components/icons";
+import { t } from "../i18n";
 
 type Props = {
   phone: string;
@@ -26,42 +27,52 @@ export function LoginPage({
   onSendSms,
   onLogin,
 }: Props) {
+  const smsMock = health?.sms?.mode !== "real";
+  const chinaMode =
+    health?.sms?.china?.mode === "real" ? t("login.smsReal") : t("login.smsMock");
+  const overseasMode =
+    health?.sms?.overseas?.mode === "real" ? t("login.smsReal") : t("login.smsMock");
+
   return (
     <div className="login-shell">
       <div className="login-hero">
         <div className="login-hero__mark" aria-hidden>
           <IconStory size={28} />
         </div>
-        <h1 className="login-shell-title">Hello Story</h1>
-        <p className="login-hero__tagline">把访谈变成属于你的故事视频</p>
+        <h1 className="login-shell-title">{t("common.appName")}</h1>
+        <p className="login-hero__tagline">{t("login.tagline")}</p>
         <p className="login-hero__steps">
-          <IconSpark size={14} /> 聊天采集 · 整理成文 · 一键成片
+          <IconSpark size={14} /> {t("login.steps")}
         </p>
       </div>
 
       <div className="login-card">
-        <h2 className="login-card__heading">手机号登录</h2>
+        <h2 className="login-card__heading">{t("login.heading")}</h2>
         {health?.sms && (
           <p className="login-card__hint">
-            短信模式：{health.sms.mode === "real" ? "真实发送" : "开发 mock（验证码 123456）"}
+            {t("login.smsHint", {
+              china: chinaMode,
+              overseas: overseasMode,
+              mock: smsMock ? t("login.smsDevMock") : "",
+            })}
           </p>
         )}
         <label className="login-field">
-          <span className="login-field__label">手机号</span>
+          <span className="login-field__label">{t("login.phoneLabel")}</span>
           <input
             value={phone}
             onChange={(e) => onPhoneChange(e.target.value)}
-            placeholder="例如 13800138000"
+            placeholder={t("login.phonePlaceholder")}
             inputMode="tel"
             autoComplete="tel"
           />
         </label>
         <label className="login-field">
-          <span className="login-field__label">验证码</span>
+          <span className="login-field__label">{t("login.codeLabel")}</span>
           <input
             value={code}
             onChange={(e) => onCodeChange(e.target.value)}
-            placeholder="6 位数字"
+            placeholder={t("login.codePlaceholder")}
             inputMode="numeric"
             autoComplete="one-time-code"
           />
@@ -73,7 +84,7 @@ export function LoginPage({
             onClick={onSendSms}
             disabled={loading || !phone}
           >
-            发送验证码
+            {t("login.sendCode")}
           </button>
           <button
             type="button"
@@ -81,10 +92,10 @@ export function LoginPage({
             onClick={onLogin}
             disabled={loading || !phone || !code}
           >
-            进入故事
+            {t("login.submit")}
           </button>
         </div>
-        {loading && <p className="login-msg">处理中…</p>}
+        {loading && <p className="login-msg">{t("common.processing")}</p>}
         {error && <p className="login-msg login-msg--err">{error}</p>}
         {message && <p className="login-msg login-msg--ok">{message}</p>}
       </div>

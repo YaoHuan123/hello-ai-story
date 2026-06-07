@@ -1,10 +1,10 @@
 import {
-  PHASE_LABELS,
   pipelineProgressPercent,
   pipelineStepsForMode,
   resolveStepStates,
   type PipelineStepDef,
 } from "../../constants/videoPipelineSteps";
+import { t } from "../../i18n";
 import type { VideoProductionMode, VideoTaskStatus } from "../../types/production";
 
 type Props = {
@@ -12,6 +12,14 @@ type Props = {
   status: VideoTaskStatus;
   completedSteps: string[];
   compact?: boolean;
+};
+
+const PHASE_I18N: Record<PipelineStepDef["phase"], string> = {
+  prep: "production.phasePrep",
+  narrative: "production.phaseNarrative",
+  voice: "production.phaseVoice",
+  visual: "production.phaseVisual",
+  render: "production.phaseRender",
 };
 
 function groupByPhase(steps: Array<PipelineStepDef & { state: string }>) {
@@ -27,22 +35,20 @@ function groupByPhase(steps: Array<PipelineStepDef & { state: string }>) {
   return groups;
 }
 
+function pipelineStatusLine(status: VideoTaskStatus): string {
+  if (status === "success") return t("production.statusSuccess");
+  if (status === "failed") return t("production.statusFailed");
+  if (status === "running") return t("production.statusRunning");
+  if (status === "queued") return t("production.statusQueued");
+  return t("production.statusPending");
+}
+
 export function PipelineProgress({ productionMode, status, completedSteps, compact }: Props) {
   const defs = pipelineStepsForMode(productionMode);
   const steps = resolveStepStates(defs, completedSteps, status);
   const percent = pipelineProgressPercent(defs, completedSteps, status);
   const groups = groupByPhase(steps);
-
-  const statusLine =
-    status === "success"
-      ? "已完成"
-      : status === "failed"
-        ? "已失败"
-        : status === "running"
-          ? "生成中"
-          : status === "queued"
-            ? "排队中"
-            : "待处理";
+  const statusLine = pipelineStatusLine(status);
 
   return (
     <div className="pipeline-progress">
@@ -50,14 +56,20 @@ export function PipelineProgress({ productionMode, status, completedSteps, compa
         <span className="pipeline-progress__status">{statusLine}</span>
         <span className="pipeline-progress__percent">{percent}%</span>
       </div>
-      <div className="pipeline-progress__bar" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
+      <div
+        className="pipeline-progress__bar"
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div className="pipeline-progress__bar-fill" style={{ width: `${percent}%` }} />
       </div>
       {!compact && import.meta.env.DEV && (
         <div className="pipeline-progress__phases">
           {groups.map((group) => (
             <div key={group.phase} className="pipeline-progress__phase">
-              <div className="pipeline-progress__phase-title">{PHASE_LABELS[group.phase]}</div>
+              <div className="pipeline-progress__phase-title">{t(PHASE_I18N[group.phase])}</div>
               <ul className="pipeline-progress__steps">
                 {group.steps.map((step) => (
                   <li key={step.id} className={`pipeline-step pipeline-step--${step.state}`}>

@@ -6,6 +6,7 @@ import { listInterviews } from "./api/interviews";
 import { AppPageShell } from "./components/AppPageShell";
 import { MainTabShell, type MainTab } from "./layout/MainTabShell";
 import "./layout/MainTabShell.css";
+import { displayError, t } from "./i18n";
 import { authTokenStore } from "./lib/authToken";
 import { CreateHomePage } from "./pages/CreateHomePage";
 import { InterviewPage } from "./pages/InterviewPage";
@@ -78,7 +79,7 @@ function App() {
     try {
       await action();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(displayError(err));
     } finally {
       setLoading(false);
     }
@@ -87,11 +88,7 @@ function App() {
   const handleSendSms = () => {
     void runAuthAction(async () => {
       await sendSms(phone, "login");
-      setMessage(
-        health?.sms?.mode === "real"
-          ? "验证码已发送，请查收短信"
-          : "验证码已发送（当前为 mock 模式，固定验证码 123456）",
-      );
+      setMessage(health?.sms?.mode === "real" ? t("login.codeSentReal") : t("login.codeSentMock"));
     });
   };
 
@@ -101,7 +98,7 @@ function App() {
       setAuthResult(result);
       const profile = await getMe();
       setMe(profile);
-      setMessage("登录成功");
+      setMessage(t("login.success"));
       setScreen({ kind: "shell", tab: "story" });
       setStoryRefreshKey((k) => k + 1);
     });
@@ -111,7 +108,7 @@ function App() {
     setAuthResult(null);
     setMe(null);
     setScreen({ kind: "shell", tab: "me" });
-    setMessage("已退出登录");
+    setMessage(t("login.loggedOut"));
   };
 
   const goShell = (tab: MainTab = "story") => {
@@ -123,25 +120,21 @@ function App() {
     setScreen({ kind: "create-home", interviewId });
   };
 
-  const loginBlock = !hasToken ? (
-    <LoginPage
-      phone={phone}
-      code={code}
-      loading={loading}
-      error={error}
-      message={message}
-      health={health}
-      onPhoneChange={setPhone}
-      onCodeChange={setCode}
-      onSendSms={handleSendSms}
-      onLogin={handleLogin}
-    />
-  ) : null;
-
   if (!hasToken) {
     return (
       <AppPageShell>
-        {loginBlock}
+        <LoginPage
+          phone={phone}
+          code={code}
+          loading={loading}
+          error={error}
+          message={message}
+          health={health}
+          onPhoneChange={setPhone}
+          onCodeChange={setCode}
+          onSendSms={handleSendSms}
+          onLogin={handleLogin}
+        />
       </AppPageShell>
     );
   }

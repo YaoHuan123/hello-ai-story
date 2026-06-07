@@ -18,6 +18,7 @@ import { SubpageHeader } from "../components/SubpageHeader";
 import { PipelineProgress } from "../components/production/PipelineProgress";
 import { ProductionFailureNotice } from "../components/production/ProductionFailureNotice";
 import { VideoStylePicker } from "../components/production/VideoStylePicker";
+import { t } from "../i18n";
 import type {
   ProductionReadiness,
   VideoStylesCatalog,
@@ -43,7 +44,7 @@ type Props = {
 };
 
 function modeLabel(mode: VideoTaskListItem["productionMode"]): string {
-  return mode === "interview_studio" ? "对话访谈片" : "传记纪录片";
+  return mode === "interview_studio" ? t("videoCreate.studio") : t("videoCreate.biography");
 }
 
 function coverBadgeClass(status: VideoTaskListItem["status"]): string {
@@ -77,7 +78,7 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
   const canProduce =
     readiness?.ready === true &&
     storyOptions.length > 0 &&
-    storyOptions.some((t) => t.taskId === textTaskId);
+    storyOptions.some((task) => task.taskId === textTaskId);
 
   const refreshLists = useCallback(async () => {
     const [videoRes, readinessRes] = await Promise.all([
@@ -108,13 +109,13 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
       return;
     }
     setTextTaskId((prev) => {
-      if (prev && tasks.some((t) => t.taskId === prev)) return prev;
+      if (prev && tasks.some((task) => task.taskId === prev)) return prev;
       return readiness?.latestStoryTextTaskId ?? tasks[0]!.taskId;
     });
   }, [readiness?.storyTextTasks, readiness?.latestStoryTextTaskId]);
 
   const hasActiveVideo = useMemo(
-    () => videoTasks.some((t) => isVideoActive(t.status)),
+    () => videoTasks.some((task) => isVideoActive(task.status)),
     [videoTasks],
   );
 
@@ -232,7 +233,7 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
 
   const handleDeleteVideo = (task: VideoTaskListItem) => {
     if (isVideoActive(task.status)) return;
-    if (!window.confirm(`确定删除 ${formatDateTime(task.createdAt)} 的视频吗？删除后无法恢复。`)) {
+    if (!window.confirm(t("videoCreate.deleteConfirm", { date: formatDateTime(task.createdAt) }))) {
       return;
     }
     void run(async () => {
@@ -248,15 +249,14 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
 
   return (
     <AppPageShell className="prod-subpage">
-      <SubpageHeader title="创作视频" subtitle={interviewTitle} onBack={onBack} />
+      <SubpageHeader title={t("videoCreate.title")} subtitle={interviewTitle} onBack={onBack} />
 
       <main className="prod-subpage-scroll">
-
         <div className="production-page">
-          <section className="prod-card" aria-label="生成视频">
-            <h2 className="prod-card__title">生成视频</h2>
+          <section className="prod-card" aria-label={t("videoCreate.scheduleAria")}>
+            <h2 className="prod-card__title">{t("videoCreate.sectionTitle")}</h2>
             <div className="prod-form-card">
-              <div className="prod-segment" role="tablist" aria-label="视频类型">
+              <div className="prod-segment" role="tablist" aria-label={t("videoCreate.typeAria")}>
                 <button
                   type="button"
                   role="tab"
@@ -265,7 +265,7 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                   onClick={() => setVideoKind("biography")}
                   disabled={loading}
                 >
-                  传记纪录片
+                  {t("videoCreate.biography")}
                 </button>
                 <button
                   type="button"
@@ -275,14 +275,14 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                   onClick={() => setVideoKind("studio")}
                   disabled={loading}
                 >
-                  对话访谈片
+                  {t("videoCreate.studio")}
                 </button>
               </div>
 
               <div className="prod-form-grid">
                 {storyOptions.length > 0 ? (
                   <label className="production-field">
-                    故事文本
+                    {t("videoCreate.storyTextLabel")}
                     <select
                       className="production-select"
                       value={textTaskId}
@@ -315,15 +315,15 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                 onClick={handleScheduleVideo}
                 disabled={loading || !canProduce}
               >
-                {loading ? "提交中…" : "开始生成视频"}
+                {loading ? t("videoCreate.submitting") : t("videoCreate.startGenerate")}
               </button>
             </div>
           </section>
 
           {error ? <p className="prod-banner-err">{error}</p> : null}
 
-          <section aria-label="视频列表">
-            <h3 className="prod-section-heading">我的视频</h3>
+          <section aria-label={t("videoCreate.listAria")}>
+            <h3 className="prod-section-heading">{t("videoCreate.sectionHeading")}</h3>
             <div className="prod-feed">
               {videoTasks.map((task) => {
                 const isExpanded = task.taskId === expandedTaskId;
@@ -349,7 +349,7 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                         <button
                           type="button"
                           className="prod-video-cover__play"
-                          aria-label="播放成片"
+                          aria-label={t("videoCreate.playAria")}
                           onClick={() => openPreview(task.taskId)}
                         >
                           ▶
@@ -382,7 +382,7 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                               onClick={() => openPreview(task.taskId)}
                               disabled={loading}
                             >
-                              播放
+                              {t("videoCreate.play")}
                             </button>
                           ) : null}
                           {(task.status === "failed" || isExpanded) && task.status !== "success" ? (
@@ -392,7 +392,7 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                               onClick={() => toggleExpanded(task.taskId)}
                               disabled={loading}
                             >
-                              {isExpanded ? "收起" : "查看"}
+                              {isExpanded ? t("videoCreate.collapse") : t("videoCreate.view")}
                             </button>
                           ) : null}
                           {task.status === "failed" ? (
@@ -402,7 +402,7 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                               onClick={() => handleRetryVideo(task.taskId)}
                               disabled={loading}
                             >
-                              重试
+                              {t("videoCreate.retry")}
                             </button>
                           ) : null}
                           {!isVideoActive(task.status) ? (
@@ -412,7 +412,7 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                               onClick={() => handleDeleteVideo(task)}
                               disabled={loading}
                             >
-                              删除
+                              {t("common.delete")}
                             </button>
                           ) : null}
                         </div>
