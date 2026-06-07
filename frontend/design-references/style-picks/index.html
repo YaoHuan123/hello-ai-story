@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tab 风格对比</title>
+  <style>
+    :root {
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      color: #1a1a1a;
+    }
+    body { margin: 0; padding: 32px 20px 48px; background: #f5f5f5; }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    h2 { margin: 36px 0 14px; font-size: 16px; color: #334155; }
+    .lead { margin: 0 0 12px; color: #666; line-height: 1.6; max-width: 600px; }
+    .hint {
+      margin: 0 0 20px; padding: 12px 14px; max-width: 600px;
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+      font-size: 14px; color: #1e40af; line-height: 1.55;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      max-width: 1100px;
+    }
+    .pick {
+      display: block;
+      padding: 18px 20px;
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #e8e8e8;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 4px 16px rgba(0,0,0,.04);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .pick:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    .pick--focus { border-color: #93c5fd; box-shadow: 0 4px 20px rgba(59,130,246,.12); }
+    .pick__swatches { display: flex; gap: 6px; margin-bottom: 12px; }
+    .pick__swatches span {
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(0,0,0,.06);
+    }
+    .pick strong { display: block; font-size: 16px; margin-bottom: 6px; }
+    .pick span { font-size: 13px; color: #666; line-height: 1.5; }
+    .pick em { display: block; margin-top: 6px; font-size: 12px; font-style: normal; color: #3b82f6; }
+  </style>
+</head>
+<body>
+  <h1>故事 Tab + 我的 Tab · 风格对比</h1>
+  <p class="lead">
+    均以<strong>简洁</strong>为主：无页头大标题、故事卡无进度文案。
+    每个 HTML 内可点击底部 Tab 切换「故事 / 我的」。
+  </p>
+  <p class="hint">
+    你目前偏向 <strong>03 雾蓝清冷</strong>。下方「冷色延伸」4 款是在 03 附近的变体（更淡 / 更深 / 更灰 / 偏青），可重点对比。
+  </p>
+
+  <h2>冷色延伸（贴近 03）</h2>
+  <div class="grid">
+    <a class="pick pick--focus" href="03-sky.html">
+      <div class="pick__swatches">
+        <span style="background:#eef4f8"></span>
+        <span style="background:#3b82f6"></span>
+        <span style="background:#f8fafc"></span>
+      </div>
+      <strong>03 · 雾蓝清冷</strong>
+      <span>冷灰蓝底 + 天蓝强调，干净理性</span>
+      <em>当前偏好</em>
+    </a>
+    <a class="pick pick--focus" href="05-ice.html">
+      <div class="pick__swatches">
+        <span style="background:#e5f4fc"></span>
+        <span style="background:#0ea5e9"></span>
+        <span style="background:#fafcff"></span>
+      </div>
+      <strong>05 · 冰川浅白</strong>
+      <span>比 03 更淡、更白，阴影更轻，几乎无压迫感</span>
+      <em>03  lighter</em>
+    </a>
+    <a class="pick pick--focus" href="06-indigo.html">
+      <div class="pick__swatches">
+        <span style="background:#e4e7f5"></span>
+        <span style="background:#4f46e5"></span>
+        <span style="background:#f5f6fb"></span>
+      </div>
+      <strong>06 · 靛蓝沉静</strong>
+      <span>比 03 更深、偏靛紫，略沉稳专业</span>
+      <em>03 deeper</em>
+    </a>
+    <a class="pick pick--focus" href="07-slate.html">
+      <div class="pick__swatches">
+        <span style="background:#e2e8f0"></span>
+        <span style="background:#0369a1"></span>
+        <span style="background:#f1f5f9"></span>
+      </div>
+      <strong>07 · 蓝灰素净</strong>
+      <span>灰阶为主、蓝色点缀，最克制低调</span>
+      <em>03 grayer</em>
+    </a>
+    <a class="pick pick--focus" href="08-mist.html">
+      <div class="pick__swatches">
+        <span style="background:#dfeef0"></span>
+        <span style="background:#0891b2"></span>
+        <span style="background:#f4fafa"></span>
+      </div>
+      <strong>08 · 海雾青蓝</strong>
+      <span>在 03 基础上偏青、偏海雾，清爽不刺眼</span>
+      <em>03 cyan-leaning</em>
+    </a>
+  </div>
+
+  <h2>其他方向（首批 4 款）</h2>
+  <div class="grid">
+    <a class="pick" href="01-mint.html">
+      <div class="pick__swatches">
+        <span style="background:#e3f4ef"></span>
+        <span style="background:#14b8a6"></span>
+        <span style="background:#f2fbf8"></span>
+      </div>
+      <strong>01 · 青绿小清新</strong>
+      <span>薄荷底 + 青绿点缀</span>
+    </a>
+    <a class="pick" href="02-mono.html">
+      <div class="pick__swatches">
+        <span style="background:#f0f0f0"></span>
+        <span style="background:#171717"></span>
+        <span style="background:#fafafa"></span>
+      </div>
+      <strong>02 · 极简黑白</strong>
+      <span>近乎无彩色，细线框白卡</span>
+    </a>
+    <a class="pick" href="04-sand.html">
+      <div class="pick__swatches">
+        <span style="background:#f0ebe3"></span>
+        <span style="background:#8b7355"></span>
+        <span style="background:#faf8f5"></span>
+      </div>
+      <strong>04 · 暖沙素简</strong>
+      <span>米沙暖底 + 低饱和褐</span>
+    </a>
+  </div>
+</body>
+</html>

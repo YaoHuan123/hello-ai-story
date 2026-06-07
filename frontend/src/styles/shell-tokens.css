@@ -1,11 +1,45 @@
-/* 主壳 / 故事墙：对齐老项目浅色 Tab + #f2f2f7 分组底 */
+/* Hello Story — 06 靛蓝沉静 */
 :root {
-  --shell-bg-grouped: #f2f2f7;
-  --shell-label-1: #1d1d1f;
-  --shell-label-2: #636366;
-  --shell-label-3: #8e8e93;
-  --shell-separator: rgba(0, 0, 0, 0.08);
-  --shell-tabbar-reserve: calc(49px + env(safe-area-inset-bottom, 0px));
+  /* 画布 */
+  --shell-bg-canvas: #e4e7f5;
+  --shell-bg-grouped: #f5f6fb;
+  --shell-bg-elevated: #ffffff;
+  --shell-bg-muted: #e8eaf6;
+
+  /* 文字 */
+  --shell-label-1: #1e1b4b;
+  --shell-label-2: #64748b;
+  --shell-label-3: #94a3b8;
+
+  /* 品牌（靛蓝） */
+  --shell-brand: #4f46e5;
+  --shell-brand-deep: #4338ca;
+  --shell-brand-light: #a5b4fc;
+  --shell-brand-soft: rgba(79, 70, 229, 0.1);
+  --shell-brand-ring: rgba(79, 70, 229, 0.28);
   --shell-indigo: #4f46e5;
-  --shell-indigo-soft: rgba(99, 102, 241, 0.12);
+  --shell-indigo-soft: rgba(79, 70, 229, 0.1);
+
+  /* 语义色 */
+  --shell-success: #059669;
+  --shell-success-soft: #d1fae5;
+  --shell-warning: #4338ca;
+  --shell-warning-soft: #eef2ff;
+  --shell-danger: #e11d48;
+  --shell-danger-soft: #fff1f2;
+
+  /* 结构 */
+  --shell-separator: rgba(79, 70, 229, 0.1);
+  --shell-radius-sm: 10px;
+  --shell-radius-md: 14px;
+  --shell-radius-lg: 18px;
+  --shell-shadow-card: 0 1px 3px rgba(79, 70, 229, 0.06), 0 6px 18px -6px rgba(79, 70, 229, 0.1);
+  --shell-shadow-float: 0 12px 32px -10px rgba(79, 70, 229, 0.16);
+
+  /* 布局 */
+  --shell-phone-max: 430px;
+  --shell-tabbar-reserve: calc(56px + env(safe-area-inset-bottom, 0px));
+
+  /* 字体 */
+  --shell-font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
 }

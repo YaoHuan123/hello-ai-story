@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>参考 · 创作工作台</title>
+  <link rel="stylesheet" href="_shared.css" />
+  <style>
+    .create-lead { margin: 0 0 12px; font-size: 14px; color: var(--shell-label-2); line-height: 1.5; }
+    .workflow {
+      display: flex; padding: 14px 16px; margin-bottom: 18px;
+      background: var(--shell-bg-elevated); border-radius: var(--shell-radius-md);
+      border: 1px solid var(--shell-separator); box-shadow: var(--shell-shadow-card);
+    }
+    .workflow__step { flex: 1; text-align: center; position: relative; }
+    .workflow__step:not(:last-child)::after {
+      content: ""; position: absolute; top: 14px; right: -8%; width: 16%; height: 2px;
+      background: var(--shell-bg-muted);
+    }
+    .workflow__dot {
+      width: 28px; height: 28px; margin: 0 auto 6px; border-radius: 999px;
+      display: grid; place-items: center; font-size: 12px; font-weight: 800;
+      background: var(--shell-brand-soft); color: var(--shell-brand);
+      box-shadow: 0 0 0 2px var(--shell-brand-ring);
+    }
+    .workflow__label { font-size: 11px; font-weight: 600; color: var(--shell-brand); }
+    .entry-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    .entry-card {
+      width: 100%; display: grid; grid-template-columns: auto auto 1fr auto;
+      align-items: center; gap: 12px; padding: 16px 14px; text-align: left;
+      cursor: pointer; font: inherit;
+    }
+    .entry-card__step {
+      width: 24px; height: 24px; border-radius: 999px; display: grid; place-items: center;
+      font-size: 12px; font-weight: 800; background: var(--shell-bg-muted); color: var(--shell-label-2);
+    }
+    .entry-card__icon {
+      width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+    }
+    .entry-card__icon--warm { background: var(--shell-warning-soft); color: var(--shell-brand); }
+    .entry-card__icon--paper { background: #f5f5f4; color: #57534e; }
+    .entry-card__icon--film { background: linear-gradient(145deg, #0d9488, #115e59); color: #ecfdf5; }
+    .entry-card__title { font-size: 16px; font-weight: 800; display: block; }
+    .entry-card__desc { font-size: 13px; color: var(--shell-label-2); display: block; margin-top: 4px; }
+    .entry-card__arrow { font-size: 18px; color: var(--shell-label-3); }
+  </style>
+</head>
+<body>
+  <div class="ref-canvas">
+    <div class="ref-phone">
+      <header class="hs-subheader">
+        <a class="hs-subheader__back" href="02-story-tab.html">← 返回</a>
+        <div class="hs-subheader__center">
+          <h1 class="hs-subheader__title">创作工作台</h1>
+          <p class="hs-subheader__subtitle">爷爷的抗战回忆</p>
+        </div>
+        <span class="hs-subheader__spacer"></span>
+      </header>
+
+      <div class="ref-body">
+        <div class="ref-scroll">
+          <p class="create-lead">按顺序完成三步，即可从访谈到成片。</p>
+
+          <div class="workflow" aria-label="创作流程">
+            <div class="workflow__step">
+              <span class="workflow__dot">1</span>
+              <span class="workflow__label">访谈</span>
+            </div>
+            <div class="workflow__step">
+              <span class="workflow__dot" style="background:var(--shell-bg-muted);color:var(--shell-label-3);box-shadow:none">2</span>
+              <span class="workflow__label" style="color:var(--shell-label-2)">故事文本</span>
+            </div>
+            <div class="workflow__step">
+              <span class="workflow__dot" style="background:var(--shell-bg-muted);color:var(--shell-label-3);box-shadow:none">3</span>
+              <span class="workflow__label" style="color:var(--shell-label-2)">成片</span>
+            </div>
+          </div>
+
+          <ul class="entry-list">
+            <li>
+              <button type="button" class="ref-card entry-card">
+                <span class="entry-card__step">1</span>
+                <span class="entry-card__icon entry-card__icon--warm">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+                </span>
+                <span>
+                  <span class="entry-card__title">采访聊天</span>
+                  <span class="entry-card__desc">和 AI 轻松对话，把回忆变成结构化素材</span>
+                </span>
+                <span class="entry-card__arrow">→</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="ref-card entry-card">
+                <span class="entry-card__step">2</span>
+                <span class="entry-card__icon entry-card__icon--paper">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </span>
+                <span>
+                  <span class="entry-card__title">创作文本</span>
+                  <span class="entry-card__desc">将访谈整理成可朗读的故事正文</span>
+                </span>
+                <span class="entry-card__arrow">→</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="ref-card entry-card">
+                <span class="entry-card__step">3</span>
+                <span class="entry-card__icon entry-card__icon--film">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/></svg>
+                </span>
+                <span>
+                  <span class="entry-card__title">创作视频</span>
+                  <span class="entry-card__desc">选择文本与风格，生成传记视频</span>
+                </span>
+                <span class="entry-card__arrow">→</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

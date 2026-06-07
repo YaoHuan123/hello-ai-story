@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentQuestion, getInterviewMessages, submitAnswer } from "../api/interviews";
 import { ApiRequestError } from "../api/client";
+import { SubpageHeader } from "../components/SubpageHeader";
 import { YearMonthInput } from "../components/YearMonthInput";
 import type { InterviewChatMessage, InterviewQuestion } from "../types/interview";
 import { normalizeYearMonthInRange } from "../utils/yearMonth";
@@ -190,22 +191,12 @@ export function InterviewPage({
     !isTopicQuestion && fieldType !== "select" && (question?.options.length ?? 0) > 0
       ? question!.options
       : [];
-  const headerTitle = interviewTitle?.trim() || "人生故事";
-
   const showComposer = !!question && !loading;
 
   return (
     <div className="iv-layout">
+      <SubpageHeader title="采访聊天" subtitle={interviewTitle} onBack={onBack} />
       <div className="iv-main">
-        <header className="iv-header">
-          <button type="button" className="iv-back-btn" onClick={onBack} aria-label="返回创作">
-            ← 创作
-          </button>
-          <div className="iv-header-text">
-            <h1>{headerTitle}</h1>
-          </div>
-        </header>
-
         <section className="iv-messages" aria-live="polite">
           {messages.map((m) => (
             <div key={m.id} className={`iv-msg iv-msg--${m.role}`}>

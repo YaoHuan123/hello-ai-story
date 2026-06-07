@@ -1,6 +1,7 @@
 import { AppPageShell } from "../components/AppPageShell";
 import { AccountPage } from "../pages/AccountPage";
 import { StoryWall } from "../components/StoryWall";
+import { IconStory, IconUser } from "../components/icons";
 import type { MeResponse } from "../types/auth";
 import type { HealthResponse } from "../api/health";
 import "./MainTabShell.css";
@@ -35,35 +36,24 @@ export function MainTabShell({
       <div className="app-shell-body">
         {activeTab === "story" ? (
           <div className="story-tab-shell">
-            <header className="story-tab-head">
-              <h1 className="story-tab-title">故事</h1>
-            </header>
             <div className="story-tab-scroll">
               <StoryWall
                 onOpenCreate={onOpenCreate}
                 onNeedLogin={onNeedLogin}
                 refreshKey={storyRefreshKey}
               />
-              <footer className="app-shell-footer">
-                {health?.ok ? (
-                  <span>
-                    后端在线 · {new Date(health.timestamp).toLocaleString()}
-                    {health.sms && <> · 短信 {health.sms.mode === "real" ? "真实" : "mock"}</>}
-                  </span>
-                ) : (
-                  <span>后端状态未知</span>
-                )}
-              </footer>
             </div>
           </div>
         ) : (
           <div className="story-tab-shell">
-            <header className="story-tab-head">
-              <h1 className="story-tab-title">我的</h1>
-            </header>
-            <div className="me-tab-scroll">
+            <div className="me-tab-scroll me-tab-scroll--profile">
               {me ? (
-                <AccountPage me={me} onMeChange={onMeChange} onLoggedOut={onLoggedOut} />
+                <AccountPage
+                  me={me}
+                  onMeChange={onMeChange}
+                  onLoggedOut={onLoggedOut}
+                  health={health}
+                />
               ) : (
                 <p className="story-wall-msg">请先登录</p>
               )}
@@ -81,7 +71,8 @@ export function MainTabShell({
             className={activeTab === "story" ? "app-shell-tab active" : "app-shell-tab"}
             onClick={() => onTabChange("story")}
           >
-            故事
+            <IconStory size={22} className="app-shell-tab__icon" />
+            <span>故事</span>
           </button>
           <button
             type="button"
@@ -90,7 +81,8 @@ export function MainTabShell({
             className={activeTab === "me" ? "app-shell-tab active" : "app-shell-tab"}
             onClick={() => onTabChange("me")}
           >
-            我的
+            <IconUser size={22} className="app-shell-tab__icon" />
+            <span>我的</span>
           </button>
         </nav>
       </div>

@@ -142,16 +142,6 @@ function App() {
     return (
       <AppPageShell>
         {loginBlock}
-        <footer className="app-shell-footer" style={{ padding: "0 20px 24px" }}>
-          {health?.ok ? (
-            <span>
-              后端在线 · {new Date(health.timestamp).toLocaleString()}
-              {health.sms && <> · 短信 {health.sms.mode === "real" ? "真实" : "mock"}</>}
-            </span>
-          ) : (
-            <span>后端状态未知</span>
-          )}
-        </footer>
       </AppPageShell>
     );
   }

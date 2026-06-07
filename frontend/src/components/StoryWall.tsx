@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { getProductionReadiness } from "../api/production";
 import { createInterview, deleteInterview, listInterviews } from "../api/interviews";
 import type { InterviewMeta } from "../types/interview";
-import type { ProductionReadiness } from "../types/production";
 import { StoryCard } from "./StoryCard";
+import { IconPlus, IconStory } from "./icons";
 import "./StoryWall.css";
 
 type Props = {
@@ -13,24 +12,8 @@ type Props = {
   refreshKey?: number;
 };
 
-function readinessMetrics(r: ProductionReadiness | null | undefined) {
-  if (!r) {
-    return { label: "加载中…", pct: 0, pill: "—" };
-  }
-  const pct =
-    r.sectionCount > 0 ? Math.min(100, Math.round((r.usableSectionCount / r.sectionCount) * 100)) : 0;
-  const label = r.ready
-    ? "可进入生产"
-    : r.sectionCount > 0
-      ? `${r.usableSectionCount}/${r.sectionCount} 小节`
-      : "尚未开始";
-  const pill = r.ready ? "可生产" : r.usableSectionCount > 0 ? "进行中" : "未开始";
-  return { label, pct, pill, videoLine: r.message };
-}
-
 export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) {
   const [interviews, setInterviews] = useState<InterviewMeta[]>([]);
-  const [readinessMap, setReadinessMap] = useState<Record<string, ProductionReadiness | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -43,18 +26,6 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
     try {
       const res = await listInterviews();
       setInterviews(res.interviews);
-
-      const entries = await Promise.all(
-        res.interviews.map(async (item) => {
-          try {
-            const r = await getProductionReadiness(item.id);
-            return [item.id, r] as const;
-          } catch {
-            return [item.id, null] as const;
-          }
-        }),
-      );
-      setReadinessMap(Object.fromEntries(entries));
     } catch (err) {
       const msg = err instanceof Error ? err.message : "加载失败";
       if (msg.includes("未登录") || msg.includes("Unauthorized")) {
@@ -62,7 +33,6 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
       }
       setError(msg);
       setInterviews([]);
-      setReadinessMap({});
     } finally {
       setLoading(false);
     }
@@ -107,27 +77,30 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
   };
 
   return (
-    <div>
+    <div className="story-wall">
       {error && <p className="story-wall-msg story-wall-msg--err">{error}</p>}
       {loading && <p className="story-wall-msg">加载中…</p>}
 
+      {!loading && interviews.length === 0 && !error ? (
+        <div className="hs-empty story-wall-empty">
+          <div className="hs-empty__icon">
+            <IconStory size={28} />
+          </div>
+          <h2 className="hs-empty__title">写下第一个故事</h2>
+          <p className="hs-empty__desc">从一次轻松访谈开始，我们会帮你整理成故事文本，再生成传记视频。</p>
+        </div>
+      ) : null}
+
       <ul className="story-wall-list" aria-label="故事列表">
-        {interviews.map((item) => {
-          const metrics = readinessMetrics(readinessMap[item.id]);
-          return (
-            <li key={item.id} className="story-wall-list__item">
-              <StoryCard
-                title={item.title || "未命名故事"}
-                textProgressLabel={metrics.label}
-                textProgressPct={metrics.pct}
-                statePill={metrics.pill}
-                videoStatusLine={metrics.videoLine}
-                onOpenCreate={() => onOpenCreate(item.id)}
-                onDelete={() => void handleDelete(item)}
-              />
-            </li>
-          );
-        })}
+        {interviews.map((item) => (
+          <li key={item.id} className="story-wall-list__item">
+            <StoryCard
+              title={item.title || "未命名故事"}
+              onOpenCreate={() => onOpenCreate(item.id)}
+              onDelete={() => void handleDelete(item)}
+            />
+          </li>
+        ))}
 
         <li className="story-wall-list__item">
           {showNewForm || creating ? (
@@ -161,7 +134,7 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
               aria-label="新建故事"
             >
               <span className="story-wall-card-plus" aria-hidden>
-                +
+                <IconPlus size={22} />
               </span>
               <span className="story-wall-card-newlabel">新故事</span>
               <span className="story-wall-card-newhint">点击开始创作</span>
@@ -169,10 +142,6 @@ export function StoryWall({ onOpenCreate, onNeedLogin, refreshKey = 0 }: Props) 
           )}
         </li>
       </ul>
-
-      {!loading && interviews.length === 0 && !error && (
-        <p className="story-wall-msg">还没有故事。点「+ 新故事」开始。</p>
-      )}
     </div>
   );
 }

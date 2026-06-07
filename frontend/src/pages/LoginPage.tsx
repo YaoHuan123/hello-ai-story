@@ -1,4 +1,5 @@
 import type { HealthResponse } from "../api/health";
+import { IconSpark, IconStory } from "../components/icons";
 
 type Props = {
   phone: string;
@@ -27,18 +28,26 @@ export function LoginPage({
 }: Props) {
   return (
     <div className="login-shell">
-      <h1 className="login-shell-title">Hello Story</h1>
-      <div className="login-card">
-        <p style={{ margin: 0, fontSize: 14, color: "var(--shell-label-2)" }}>
-          发送验证码 → 登录
-          {health?.sms && (
-            <span style={{ display: "block", marginTop: 6, fontSize: 12, color: "var(--shell-label-3)" }}>
-              短信模式：{health.sms.mode === "real" ? "真实阿里云" : "本地 mock（123456）"}
-            </span>
-          )}
+      <div className="login-hero">
+        <div className="login-hero__mark" aria-hidden>
+          <IconStory size={28} />
+        </div>
+        <h1 className="login-shell-title">Hello Story</h1>
+        <p className="login-hero__tagline">把访谈变成属于你的故事视频</p>
+        <p className="login-hero__steps">
+          <IconSpark size={14} /> 聊天采集 · 整理成文 · 一键成片
         </p>
-        <label>
-          手机号
+      </div>
+
+      <div className="login-card">
+        <h2 className="login-card__heading">手机号登录</h2>
+        {health?.sms && (
+          <p className="login-card__hint">
+            短信模式：{health.sms.mode === "real" ? "真实发送" : "开发 mock（验证码 123456）"}
+          </p>
+        )}
+        <label className="login-field">
+          <span className="login-field__label">手机号</span>
           <input
             value={phone}
             onChange={(e) => onPhoneChange(e.target.value)}
@@ -47,22 +56,32 @@ export function LoginPage({
             autoComplete="tel"
           />
         </label>
-        <label>
-          验证码
+        <label className="login-field">
+          <span className="login-field__label">验证码</span>
           <input
             value={code}
             onChange={(e) => onCodeChange(e.target.value)}
-            placeholder="例如 123456"
+            placeholder="6 位数字"
             inputMode="numeric"
             autoComplete="one-time-code"
           />
         </label>
         <div className="login-actions">
-          <button type="button" className="login-btn login-btn--secondary" onClick={onSendSms} disabled={loading || !phone}>
+          <button
+            type="button"
+            className="hs-btn hs-btn--secondary"
+            onClick={onSendSms}
+            disabled={loading || !phone}
+          >
             发送验证码
           </button>
-          <button type="button" className="login-btn" onClick={onLogin} disabled={loading || !phone || !code}>
-            登录
+          <button
+            type="button"
+            className="hs-btn hs-btn--primary login-actions__main"
+            onClick={onLogin}
+            disabled={loading || !phone || !code}
+          >
+            进入故事
           </button>
         </div>
         {loading && <p className="login-msg">处理中…</p>}

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>参考 · 采访聊天（目标统一态）</title>
+  <link rel="stylesheet" href="_shared.css" />
+  <style>
+    .iv-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--shell-bg-grouped); }
+    .iv-messages {
+      flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 8px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .iv-bubble { max-width: 88%; padding: 12px 14px; border-radius: 16px; font-size: 15px; line-height: 1.55; }
+    .iv-bubble--ai {
+      align-self: flex-start;
+      background: var(--shell-bg-elevated);
+      border: 1px solid var(--shell-separator);
+      color: var(--shell-label-1);
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shell-shadow-card);
+    }
+    .iv-bubble--user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--shell-brand-light), var(--shell-brand));
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .iv-bubble__role {
+      display: block; font-size: 11px; font-weight: 700; margin-bottom: 6px;
+      color: var(--shell-label-3);
+    }
+    .iv-bubble--user .iv-bubble__role { color: rgba(255,255,255,.75); }
+    .iv-composer {
+      flex-shrink: 0; padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+      background: var(--shell-bg-elevated);
+      border-top: 1px solid var(--shell-separator);
+      display: grid; gap: 10px;
+    }
+    .iv-composer__row { display: flex; gap: 10px; align-items: flex-end; }
+    .iv-composer textarea {
+      flex: 1; min-height: 44px; max-height: 120px; padding: 10px 12px;
+      border-radius: var(--shell-radius-sm); border: 1px solid var(--shell-separator);
+      font-size: 15px; font-family: inherit; resize: none; background: var(--shell-bg-grouped);
+    }
+    .iv-composer .hs-btn { flex-shrink: 0; padding: 10px 16px; }
+    .iv-hint { margin: 0; font-size: 12px; color: var(--shell-label-3); text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="ref-canvas">
+    <div class="ref-phone">
+      <header class="hs-subheader">
+        <a class="hs-subheader__back" href="03-create-home.html">← 返回</a>
+        <div class="hs-subheader__center">
+          <h1 class="hs-subheader__title">采访聊天</h1>
+          <p class="hs-subheader__subtitle">爷爷的抗战回忆</p>
+        </div>
+        <span class="hs-subheader__spacer"></span>
+      </header>
+
+      <div class="ref-body iv-chat">
+        <div class="iv-messages">
+          <div class="iv-bubble iv-bubble--ai">
+            <span class="iv-bubble__role">采访助手</span>
+            您好，我们先从一个小问题开始：您还记得第一次听说抗战故事是在什么时候、谁讲给您听的吗？
+          </div>
+          <div class="iv-bubble iv-bubble--user">
+            <span class="iv-bubble__role">我</span>
+            是我爷爷，大概我七八岁的时候，夏天傍晚在院子里摇着蒲扇讲的。
+          </div>
+          <div class="iv-bubble iv-bubble--ai">
+            <span class="iv-bubble__role">采访助手</span>
+            那场面您还记得什么细节吗？比如院子里有什么声音、爷爷当时是什么语气？
+          </div>
+        </div>
+
+        <footer class="iv-composer">
+          <div class="iv-composer__row">
+            <textarea rows="2" placeholder="输入您的回答…">夏天有蝉叫，爷爷语气很平静，像在讲一件很远的事。</textarea>
+            <button type="button" class="hs-btn hs-btn--primary">发送</button>
+          </div>
+          <p class="iv-hint">按 Enter 发送 · 访谈内容自动保存</p>
+        </footer>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

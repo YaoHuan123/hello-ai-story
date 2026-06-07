@@ -1,24 +1,36 @@
 import { AppPageShell } from "../components/AppPageShell";
+import { SubpageHeader } from "../components/SubpageHeader";
+import { WorkflowSteps } from "../components/WorkflowSteps";
+import { IconFileText, IconFilm, IconMic } from "../components/icons";
 import "./CreateHomePage.css";
 
 const CARDS = [
   {
     id: "interview-chat",
+    step: 1,
     title: "采访聊天",
-    desc: "与 AI 对话收集故事内容",
+    desc: "和 AI 轻松对话，把回忆变成结构化素材",
     action: "interview" as const,
+    Icon: IconMic,
+    accent: "warm",
   },
   {
     id: "create-text",
+    step: 2,
     title: "创作文本",
-    desc: "查看文本素材并生成故事文本",
+    desc: "将访谈整理成可朗读的故事正文",
     action: "text" as const,
+    Icon: IconFileText,
+    accent: "paper",
   },
   {
     id: "create-video",
+    step: 3,
     title: "创作视频",
-    desc: "查看本故事的视频列表与生成进度",
+    desc: "选择文本与风格，生成传记或访谈成片",
     action: "video" as const,
+    Icon: IconFilm,
+    accent: "film",
   },
 ] as const;
 
@@ -45,30 +57,40 @@ export function CreateHomePage({
 
   return (
     <AppPageShell className="create-home-page">
-      <header className="create-home-header">
-        <button type="button" className="create-home-back" onClick={onBack}>
-          返回
-        </button>
-        <h1 className="create-home-header-title">创作</h1>
-        <span className="create-home-header-spacer" aria-hidden />
-      </header>
+      <SubpageHeader title="创作工作台" subtitle={interviewTitle} onBack={onBack} />
 
       <main className="create-home-scroll">
-        {interviewTitle?.trim() ? <p className="create-home-story">{interviewTitle.trim()}</p> : null}
+        <p className="create-home-lead">按顺序完成三步，即可从访谈到成片。</p>
+        <WorkflowSteps activeIndex={0} className="create-home-workflow" />
+
         <ul className="create-home-cards" aria-label="创作方式">
-          {CARDS.map((card) => (
-            <li key={card.id} className="create-home-cards__item">
-              <button
-                type="button"
-                className="create-home-card"
-                onClick={handlers[card.action]}
-                aria-label={card.title}
-              >
-                <span className="create-home-card__title">{card.title}</span>
-                <span className="create-home-card__desc">{card.desc}</span>
-              </button>
-            </li>
-          ))}
+          {CARDS.map((card) => {
+            const Icon = card.Icon;
+            return (
+              <li key={card.id} className="create-home-cards__item">
+                <button
+                  type="button"
+                  className={`create-home-card create-home-card--${card.accent}`}
+                  onClick={handlers[card.action]}
+                  aria-label={card.title}
+                >
+                  <span className="create-home-card__step" aria-hidden>
+                    {card.step}
+                  </span>
+                  <span className="create-home-card__icon" aria-hidden>
+                    <Icon size={22} />
+                  </span>
+                  <span className="create-home-card__body">
+                    <span className="create-home-card__title">{card.title}</span>
+                    <span className="create-home-card__desc">{card.desc}</span>
+                  </span>
+                  <span className="create-home-card__arrow" aria-hidden>
+                    →
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </main>
     </AppPageShell>

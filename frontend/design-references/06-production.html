@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>参考 · 创作子页</title>
+  <link rel="stylesheet" href="_shared.css" />
+  <style>
+    .prod-section { margin-bottom: 16px; }
+    .prod-section h2 {
+      margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--shell-label-3);
+      letter-spacing: 0.04em; text-transform: uppercase; padding-left: 4px;
+    }
+    .prod-cta-card { padding: 16px; }
+    .prod-cta-card p { margin: 0 0 14px; font-size: 14px; color: var(--shell-label-2); line-height: 1.5; }
+    .prod-cta-card .hs-btn { width: 100%; }
+    .prod-list { list-style: none; margin: 0; padding: 0; }
+    .prod-item {
+      display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+      border-bottom: 1px solid var(--shell-separator); cursor: pointer;
+    }
+    .prod-item:last-child { border-bottom: none; }
+    .prod-item__thumb {
+      width: 56px; height: 56px; border-radius: 10px; flex-shrink: 0;
+      background: linear-gradient(145deg, #5eead4, #0d9488);
+      display: grid; place-items: center; color: rgba(255,255,255,.8);
+    }
+    .prod-item__body { flex: 1; min-width: 0; }
+    .prod-item__title { margin: 0; font-size: 15px; font-weight: 700; }
+    .prod-item__meta { margin: 4px 0 0; font-size: 12px; color: var(--shell-label-3); }
+    .prod-item__status {
+      font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 999px;
+      background: var(--shell-success-soft); color: var(--shell-success);
+    }
+    .prod-item__status--run {
+      background: var(--shell-warning-soft); color: var(--shell-brand);
+    }
+    .prod-tabs {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .prod-tabs button {
+      flex: 1; padding: 10px; border-radius: var(--shell-radius-sm);
+      border: 1px solid var(--shell-separator); background: var(--shell-bg-elevated);
+      font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--shell-label-2);
+    }
+    .prod-tabs button.active {
+      border-color: var(--shell-brand); color: var(--shell-brand);
+      background: var(--shell-brand-soft);
+    }
+  </style>
+</head>
+<body>
+  <div class="ref-canvas">
+    <div class="ref-phone">
+      <header class="hs-subheader">
+        <a class="hs-subheader__back" href="03-create-home.html">← 返回</a>
+        <div class="hs-subheader__center">
+          <h1 class="hs-subheader__title">创作视频</h1>
+          <p class="hs-subheader__subtitle">爷爷的抗战回忆</p>
+        </div>
+        <span class="hs-subheader__spacer"></span>
+      </header>
+
+      <div class="ref-body">
+        <div class="ref-scroll">
+          <div class="prod-tabs">
+            <button type="button">创作文本</button>
+            <button type="button" class="active">创作视频</button>
+          </div>
+
+          <section class="prod-section">
+            <h2>生成</h2>
+            <div class="ref-card prod-cta-card">
+              <p>选择故事文本与视频风格，提交后将在后台生成传记视频。</p>
+              <button type="button" class="hs-btn hs-btn--primary">开始生成视频</button>
+            </div>
+          </section>
+
+          <section class="prod-section">
+            <h2>历史任务</h2>
+            <div class="ref-card">
+              <ul class="prod-list">
+                <li class="prod-item">
+                  <div class="prod-item__thumb">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  </div>
+                  <div class="prod-item__body">
+                    <p class="prod-item__title">传记视频 · 复古胶片</p>
+                    <p class="prod-item__meta">2025年6月4日 14:32</p>
+                  </div>
+                  <span class="prod-item__status">已完成</span>
+                </li>
+                <li class="prod-item">
+                  <div class="prod-item__thumb">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  </div>
+                  <div class="prod-item__body">
+                    <p class="prod-item__title">传记视频 · 口述纪实</p>
+                    <p class="prod-item__meta">2025年6月5日 09:10</p>
+                  </div>
+                  <span class="prod-item__status prod-item__status--run">生成中</span>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

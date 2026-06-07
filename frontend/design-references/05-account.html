@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>参考 · 我的</title>
+  <link rel="stylesheet" href="_shared.css" />
+  <style>
+    .me-profile {
+      display: flex; align-items: center; gap: 14px; padding: 18px 16px; margin-bottom: 20px;
+    }
+    .me-profile__avatar {
+      width: 56px; height: 56px; border-radius: 999px; display: grid; place-items: center;
+      font-size: 22px; font-weight: 800; color: #fff;
+      background: linear-gradient(145deg, var(--shell-brand-light), var(--shell-brand-deep));
+      box-shadow: 0 4px 12px rgba(20, 184, 166, 0.28);
+    }
+    .me-profile__phone { margin: 0; font-size: 18px; font-weight: 800; }
+    .me-profile__meta { margin: 4px 0 0; font-size: 13px; color: var(--shell-label-2); }
+    .me-group-label {
+      margin: 0 0 8px 4px; font-size: 12px; font-weight: 600; color: var(--shell-label-3);
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .me-group { margin: 0 0 20px; overflow: hidden; }
+    .me-row {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px;
+      border: none; background: transparent; font: inherit; text-align: left; cursor: pointer;
+      border-bottom: 1px solid var(--shell-separator);
+    }
+    .me-row:last-child { border-bottom: none; }
+    .me-row__icon {
+      width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center;
+      background: var(--shell-brand-soft); color: var(--shell-brand); flex-shrink: 0;
+    }
+    .me-row__icon--muted { background: var(--shell-bg-muted); color: var(--shell-label-2); }
+    .me-row__icon--danger { background: var(--shell-danger-soft); color: var(--shell-danger); }
+    .me-row__body { flex: 1; min-width: 0; }
+    .me-row__label { display: block; font-size: 15px; font-weight: 600; }
+    .me-row__hint { display: block; font-size: 12px; color: var(--shell-label-3); margin-top: 2px; }
+    .me-row__value { font-size: 14px; color: var(--shell-label-2); }
+    .me-row__chevron { color: var(--shell-label-3); flex-shrink: 0; }
+    .me-logout {
+      display: block; width: 100%; margin-top: 8px; padding: 14px;
+      border: none; background: transparent; color: var(--shell-danger);
+      font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="ref-canvas">
+    <div class="ref-phone">
+      <div class="ref-body ref-body--tab">
+        <div class="ref-scroll" style="padding:12px 16px 20px">
+          <a href="index.html" style="font-size:12px;display:inline-block;margin-bottom:12px">← 索引</a>
+
+          <div class="ref-card me-profile">
+            <div class="me-profile__avatar">80</div>
+            <div>
+              <p class="me-profile__phone">138****8000</p>
+              <p class="me-profile__meta">加入于 2025年3月12日</p>
+            </div>
+          </div>
+
+          <p class="me-group-label">账号</p>
+          <div class="ref-card me-group">
+            <button type="button" class="me-row">
+              <span class="me-row__icon me-row__icon--muted">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+              </span>
+              <span class="me-row__body"><span class="me-row__label">手机号</span></span>
+              <span class="me-row__value">138****8000</span>
+            </button>
+            <button type="button" class="me-row">
+              <span class="me-row__icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/></svg>
+              </span>
+              <span class="me-row__body"><span class="me-row__label">换绑手机号</span></span>
+              <span class="me-row__chevron">›</span>
+            </button>
+            <button type="button" class="me-row">
+              <span class="me-row__icon me-row__icon--muted">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              </span>
+              <span class="me-row__body"><span class="me-row__label">刷新资料</span></span>
+              <span class="me-row__chevron">›</span>
+            </button>
+          </div>
+
+          <p class="me-group-label">其他</p>
+          <div class="ref-card me-group">
+            <button type="button" class="me-row">
+              <span class="me-row__icon me-row__icon--muted">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </span>
+              <span class="me-row__body"><span class="me-row__label">关于 Hello Story</span></span>
+              <span class="me-row__chevron">›</span>
+            </button>
+          </div>
+
+          <p class="me-group-label">账号安全</p>
+          <div class="ref-card me-group" style="border-color:#fecaca">
+            <button type="button" class="me-row">
+              <span class="me-row__icon me-row__icon--danger">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </span>
+              <span class="me-row__body">
+                <span class="me-row__label" style="color:var(--shell-danger)">注销账号</span>
+                <span class="me-row__hint">注销后无法恢复登录</span>
+              </span>
+              <span class="me-row__chevron">›</span>
+            </button>
+          </div>
+
+          <button type="button" class="me-logout">退出登录</button>
+        </div>
+      </div>
+
+      <nav class="ref-tabbar">
+        <button type="button" class="ref-tab">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          故事
+        </button>
+        <button type="button" class="ref-tab ref-tab--active">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          我的
+        </button>
+      </nav>
+    </div>
+  </div>
+</body>
+</html>

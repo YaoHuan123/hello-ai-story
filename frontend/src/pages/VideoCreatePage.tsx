@@ -13,6 +13,7 @@ import {
   scheduleStudioVideo,
 } from "../api/production";
 import { AppPageShell } from "../components/AppPageShell";
+import { SubpageHeader } from "../components/SubpageHeader";
 import { PipelineProgress } from "../components/production/PipelineProgress";
 import { ProductionFailureNotice } from "../components/production/ProductionFailureNotice";
 import { VideoStylePicker } from "../components/production/VideoStylePicker";
@@ -224,16 +225,9 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
 
   return (
     <AppPageShell className="prod-subpage">
-      <header className="prod-subpage-header">
-        <button type="button" className="prod-subpage-back" onClick={onBack}>
-          返回
-        </button>
-        <h1 className="prod-subpage-title">创作视频</h1>
-        <span className="prod-subpage-spacer" aria-hidden />
-      </header>
+      <SubpageHeader title="创作视频" subtitle={interviewTitle} onBack={onBack} />
 
       <main className="prod-subpage-scroll">
-        {interviewTitle?.trim() ? <p className="prod-story-label">{interviewTitle.trim()}</p> : null}
 
         <div className="production-page">
           <section className="prod-card" aria-label="生成视频">

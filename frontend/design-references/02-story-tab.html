@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>参考 · 故事 Tab</title>
+  <link rel="stylesheet" href="_shared.css" />
+  <style>
+    .story-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+    .story-card { padding: 14px 14px 12px; }
+    .story-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .story-card__title { margin: 0; flex: 1; font-size: 17px; font-weight: 800; line-height: 1.3; }
+    .story-card__frame {
+      position: relative; display: block; width: 100%; padding: 0; margin: 0;
+      border: none; border-radius: var(--shell-radius-sm); overflow: hidden;
+      aspect-ratio: 16/9; max-height: 200px; cursor: pointer; font-family: inherit;
+      background: linear-gradient(145deg, #99f6e4 0%, #2dd4bf 42%, #14b8a6 100%);
+      color: rgba(255,255,255,.85);
+    }
+    .story-card__frame svg { margin: auto; display: block; padding-top: 28%; }
+    .story-card__cta {
+      position: absolute; left: 12px; bottom: 12px;
+      padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; color: #fff;
+      background: rgba(0,0,0,.55); backdrop-filter: blur(8px);
+    }
+    .story-new {
+      min-height: 120px; border: 1.5px dashed rgba(180,83,9,.35);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px; cursor: pointer; padding: 18px; background: var(--shell-bg-elevated);
+      border-radius: var(--shell-radius-md); color: var(--shell-label-2);
+    }
+    .story-new__plus {
+      width: 44px; height: 44px; border-radius: 999px;
+      background: var(--shell-brand-soft); color: var(--shell-brand);
+      display: grid; place-items: center; font-size: 22px; font-weight: 300;
+    }
+    .story-new strong { color: var(--shell-label-1); font-size: 15px; }
+    .story-new span { font-size: 12px; }
+    .ref-back-link { font-size: 12px; margin-bottom: 8px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="ref-canvas">
+    <div class="ref-phone">
+      <div class="ref-body ref-body--tab">
+        <div class="ref-scroll">
+          <a class="ref-back-link" href="index.html">← 索引</a>
+          <ul class="story-list">
+            <li class="ref-card story-card">
+              <div class="story-card__head">
+                <h3 class="story-card__title">爷爷的抗战回忆</h3>
+                <button type="button" class="hs-btn hs-btn--danger-text">删除</button>
+              </div>
+              <button type="button" class="story-card__frame">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                <span class="story-card__cta">进入创作</span>
+              </button>
+            </li>
+            <li class="ref-card story-card">
+              <div class="story-card__head">
+                <h3 class="story-card__title">大学四年的故事</h3>
+                <button type="button" class="hs-btn hs-btn--danger-text">删除</button>
+              </div>
+              <button type="button" class="story-card__frame">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                <span class="story-card__cta">进入创作</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="story-new ref-card" style="width:100%;border-style:dashed">
+                <span class="story-new__plus">+</span>
+                <strong>新故事</strong>
+                <span>点击开始创作</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <nav class="ref-tabbar" aria-label="主栏目">
+        <button type="button" class="ref-tab ref-tab--active">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          故事
+        </button>
+        <button type="button" class="ref-tab">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          我的
+        </button>
+      </nav>
+    </div>
+  </div>
+</body>
+</html>
