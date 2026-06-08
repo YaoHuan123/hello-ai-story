@@ -9,6 +9,7 @@ import { seedCommittedSections } from "../../../src/services/answeredSections.se
 import { resolveVideoTestLocale } from "../../fixtures/interviewScope";
 import { createInterview } from "../../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../../src/services/workspace.service";
+import { testUserId } from "../../helpers/testAccount";
 import type { AnsweredSection } from "../../../src/topic/types";
 import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import { createStudioVideoTask, runStudioVideoPipeline } from "../../../dist/video/studio/orchestrator/runStudioVideoPipeline.js";
@@ -45,7 +46,7 @@ function check(label: string, cond: boolean, detail?: unknown): void {
 }
 
 async function main() {
-  const userId = `video-studio-test-${Date.now()}`;
+  const userId = testUserId("video-studio");
   createUserWorkspace(userId);
   const interview = createInterview(userId, { title: "演播室测试", locale: resolveVideoTestLocale() });
   const scope = { userId, interviewId: interview.id };

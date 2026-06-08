@@ -16,6 +16,9 @@ export type HealthResponse = {
     forcedMock?: boolean;
     missingEnvCount?: number;
   };
+  wallet?: {
+    mockRechargeEnabled?: boolean;
+  };
 };
 
 export async function getHealth(): Promise<HealthResponse> {

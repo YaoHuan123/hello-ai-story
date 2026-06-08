@@ -1,6 +1,7 @@
 import { Router, type Response } from "express";
 import { z } from "zod";
 import type { AuthService } from "../services/auth/auth.service";
+import { AliyunSmsError } from "../services/auth/aliyunSms.service";
 import { authMiddleware } from "../middleware/auth";
 import type { SmsScene } from "../services/auth/smsRateLimit.service";
 
@@ -90,16 +91,20 @@ function mapAuthError(res: Response, error: unknown): boolean {
     res.status(400).json({ code, message: "请提供短信验证码" });
     return true;
   }
+  if (code === "database is locked" || code.includes("SQLITE_BUSY")) {
+    res.status(503).json({ code: "SERVICE_BUSY", message: "服务繁忙，请稍后再试" });
+    return true;
+  }
   if (code.startsWith("MISSING_ENV:")) {
     res.status(500).json({ code: "AUTH_PROVIDER_NOT_CONFIGURED", message: "登录服务未配置，请联系管理员" });
     return true;
   }
   const maybeAliyun = error as Error & { code?: string };
-  if (maybeAliyun.code === "SMS_VERIFY_FAILED") {
-    res.status(400).json({ code: "SMS_VERIFY_FAILED", message: "验证码错误或已过期，请重新获取" });
-    return true;
-  }
-  if (maybeAliyun.code) {
+  if (error instanceof AliyunSmsError || error.name === "AliyunSmsError") {
+    if (maybeAliyun.code === "SMS_VERIFY_FAILED") {
+      res.status(400).json({ code: "SMS_VERIFY_FAILED", message: "验证码错误或已过期，请重新获取" });
+      return true;
+    }
     res.status(502).json({ code: "AUTH_PROVIDER_ERROR", message: "短信服务暂不可用，请稍后再试" });
     return true;
   }

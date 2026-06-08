@@ -7,6 +7,7 @@
  */
 import { config as loadEnv } from "dotenv";
 import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 
 loadEnv();
 
@@ -24,7 +25,7 @@ function check(label: string, cond: boolean, detail?: unknown): void {
   }
 }
 
-const TEST_USER = `topic-tier6-${Date.now()}`;
+const TEST_USER = testUserId("topic-tier6");
 
 async function main(): Promise<void> {
   if (!process.env.OPENAI_API_KEY?.trim()) {

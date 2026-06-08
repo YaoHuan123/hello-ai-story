@@ -1,0 +1,123 @@
+.campaign-question-page {
+  padding: 0 16px 24px;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.campaign-question-page__video-name {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--shell-label-1);
+}
+
+.campaign-question-page__hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--shell-label-2);
+}
+
+.campaign-question-page__msg {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.campaign-question-page__msg--err {
+  color: var(--shell-danger);
+}
+
+.campaign-question-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.campaign-question-page__selected-count {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--shell-brand);
+}
+
+.campaign-question-page__generate-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.campaign-question-page__empty {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--shell-label-2);
+}
+
+.campaign-question-page__batch-label {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--shell-label-2);
+}
+
+.campaign-question-page__selected-list,
+.campaign-question-page__batch-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.campaign-question-page__selected-item,
+.campaign-question-page__batch-item {
+  width: 100%;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid var(--shell-separator);
+  background: var(--shell-bg-elevated, #fff);
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.campaign-question-page__selected-item {
+  cursor: default;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+}
+
+.campaign-question-page__batch-item--picked {
+  border-color: var(--shell-brand);
+  background: color-mix(in srgb, var(--shell-brand) 8%, var(--shell-bg-elevated, #fff));
+}
+
+.campaign-question-page__question-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--shell-label-1);
+}
+
+.campaign-question-page__question-points {
+  font-size: 12px;
+  color: var(--shell-label-2);
+}
+
+.campaign-question-page__remove-btn {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  border: none;
+  background: transparent;
+  color: var(--shell-danger);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0 4px 8px;
+}
+
+.campaign-question-page__done {
+  width: 100%;
+  margin-top: 8px;
+}

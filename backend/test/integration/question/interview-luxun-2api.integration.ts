@@ -49,6 +49,7 @@ async function main(): Promise<void> {
     "../../../src/services/interviewOrchestrator.service"
   );
   const { setupUserWithInterview } = await import("../../fixtures/interviewScope");
+  const { testUserId } = await import("../../helpers/testAccount");
 
   const startedAt = new Date();
   const runId = formatRunId(startedAt);
@@ -59,7 +60,7 @@ async function main(): Promise<void> {
   const bio = luxunSections();
   const knownProfile = bio.filter((s) => s.name === "基本档案");
 
-  const TEST_USER = `interview-luxun-${startedAt.getTime()}`;
+  const TEST_USER = testUserId("interview-luxun");
   const scope = setupUserWithInterview(TEST_USER);
   seedCommittedSections(scope, knownProfile);
   writeCurrentStage(scope, 1);

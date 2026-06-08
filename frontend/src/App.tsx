@@ -14,21 +14,40 @@ import { AppleLoginPage } from "./pages/AppleLoginPage";
 import { CreateHomePage } from "./pages/CreateHomePage";
 import { InterviewPage } from "./pages/InterviewPage";
 import { LoginPage } from "./pages/LoginPage";
+import { CampaignPlanCreatePage } from "./pages/CampaignPlanCreatePage";
+import { CampaignPlanQuestionSelectPage } from "./pages/CampaignPlanQuestionSelectPage";
 import { TextCreatePage } from "./pages/TextCreatePage";
 import { VideoCreatePage } from "./pages/VideoCreatePage";
+import { WatchVideoPage } from "./pages/WatchVideoPage";
+import { WatchQuizPage } from "./pages/WatchQuizPage";
 import type { AuthResult, MeResponse } from "./types/auth";
+
+import type { CampaignPlanDraft } from "./types/campaign";
 
 type Screen =
   | { kind: "shell"; tab: MainTab }
   | { kind: "create-home"; interviewId: string }
   | { kind: "interview"; interviewId: string }
   | { kind: "text-create"; interviewId: string }
-  | { kind: "video-create"; interviewId: string };
+  | { kind: "video-create"; interviewId: string }
+  | { kind: "campaign-plan-create" }
+  | { kind: "campaign-plan-questions" }
+  | { kind: "watch-video"; publishId: string }
+  | { kind: "watch-quiz"; publishId: string; videoTitle?: string | null };
 
 function App() {
   const [screen, setScreen] = useState<Screen>({ kind: "shell", tab: "story" });
   const [interviewTitles, setInterviewTitles] = useState<Record<string, string>>({});
   const [storyRefreshKey, setStoryRefreshKey] = useState(0);
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0);
+  const [activityNotice, setActivityNotice] = useState<string | null>(null);
+  const [watchRefreshKey, setWatchRefreshKey] = useState(0);
+  const [campaignPlanDraft, setCampaignPlanDraft] = useState<CampaignPlanDraft>(() => ({
+    endYear: String(new Date().getFullYear()),
+    budget: "20000",
+    selectedVideo: null,
+    selectedQuestions: [],
+  }));
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [authResult, setAuthResult] = useState<AuthResult | null>(null);
@@ -137,6 +156,20 @@ function App() {
     setScreen({ kind: "create-home", interviewId });
   };
 
+  const goCreateCampaignPlan = () => {
+    setCampaignPlanDraft({
+      endYear: String(new Date().getFullYear()),
+      budget: "20000",
+      selectedVideo: null,
+      selectedQuestions: [],
+    });
+    setScreen({ kind: "campaign-plan-create" });
+  };
+
+  const patchCampaignPlanDraft = (patch: Partial<CampaignPlanDraft>) => {
+    setCampaignPlanDraft((prev) => ({ ...prev, ...patch }));
+  };
+
   if (!hasToken) {
     return (
       <AppPageShell>
@@ -219,16 +252,97 @@ function App() {
     );
   }
 
+  if (screen.kind === "watch-video") {
+    return (
+      <AppPageShell>
+        <WatchVideoPage
+          publishId={screen.publishId}
+          onBack={() => setScreen({ kind: "shell", tab: "watch" })}
+          onStartQuiz={() =>
+            setScreen({
+              kind: "watch-quiz",
+              publishId: screen.publishId,
+            })
+          }
+          onNeedLogin={handleLoggedOut}
+        />
+      </AppPageShell>
+    );
+  }
+
+  if (screen.kind === "watch-quiz") {
+    return (
+      <AppPageShell>
+        <WatchQuizPage
+          publishId={screen.publishId}
+          videoTitle={screen.videoTitle}
+          onBack={() => setScreen({ kind: "watch-video", publishId: screen.publishId })}
+          onNeedLogin={handleLoggedOut}
+        />
+      </AppPageShell>
+    );
+  }
+
+  if (screen.kind === "campaign-plan-questions" && campaignPlanDraft.selectedVideo) {
+    return (
+      <AppPageShell>
+        <CampaignPlanQuestionSelectPage
+          video={campaignPlanDraft.selectedVideo}
+          selectedQuestions={campaignPlanDraft.selectedQuestions}
+          onBack={(questions) => {
+            patchCampaignPlanDraft({ selectedQuestions: questions });
+            setScreen({ kind: "campaign-plan-create" });
+          }}
+        />
+      </AppPageShell>
+    );
+  }
+
+  if (screen.kind === "campaign-plan-create" || screen.kind === "campaign-plan-questions") {
+    return (
+      <AppPageShell>
+        <CampaignPlanCreatePage
+          draft={campaignPlanDraft}
+          onDraftChange={patchCampaignPlanDraft}
+          onBack={() => setScreen({ kind: "shell", tab: "activity" })}
+          onOpenQuestionSelect={() => setScreen({ kind: "campaign-plan-questions" })}
+          onCreated={() => {
+            setActivityRefreshKey((k) => k + 1);
+            setWatchRefreshKey((k) => k + 1);
+            setActivityNotice(t("activity.createSuccess"));
+            setCampaignPlanDraft({
+              endYear: String(new Date().getFullYear()),
+              budget: "20000",
+              selectedVideo: null,
+              selectedQuestions: [],
+            });
+            setScreen({ kind: "shell", tab: "activity" });
+          }}
+        />
+      </AppPageShell>
+    );
+  }
+
   return (
     <MainTabShell
       activeTab={screen.tab}
-      onTabChange={(tab) => setScreen({ kind: "shell", tab })}
+      onTabChange={(tab) => {
+        setScreen({ kind: "shell", tab });
+        if (tab === "activity") {
+          setActivityRefreshKey((k) => k + 1);
+        }
+      }}
       me={me}
       onMeChange={setMe}
       onLoggedOut={handleLoggedOut}
       onOpenCreate={goCreateHome}
+      onOpenCreatePlan={goCreateCampaignPlan}
+      onOpenWatchVideo={(publishId) => setScreen({ kind: "watch-video", publishId })}
       onNeedLogin={handleLoggedOut}
       storyRefreshKey={storyRefreshKey}
+      activityRefreshKey={activityRefreshKey}
+      activityNotice={activityNotice}
+      watchRefreshKey={watchRefreshKey}
       health={health}
     />
   );

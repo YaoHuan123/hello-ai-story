@@ -9,6 +9,7 @@ import { config as loadEnv } from "dotenv";
 import type { InterviewScope } from "../../../src/services/interviewWorkspace.service";
 import { getInterviewRootDir } from "../../../src/services/interviewWorkspace.service";
 import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 
 loadEnv();
 
@@ -26,7 +27,7 @@ function check(label: string, cond: boolean, detail?: unknown): void {
   }
 }
 
-const TEST_USER = `interview-orch-${Date.now()}`;
+const TEST_USER = testUserId("interview-orch");
 
 function topicDir(scope: InterviewScope): string {
   return path.join(getInterviewRootDir(scope), "出题");

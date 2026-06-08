@@ -2,6 +2,7 @@ import type { ContentLocale } from "../../src/content/locale";
 import type { InterviewScope } from "../../src/services/interviewWorkspace.service";
 import { createInterview } from "../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../src/services/workspace.service";
+import { ensureTestUserId } from "../helpers/testAccount";
 
 export function interviewScope(userId: string, interviewId: string): InterviewScope {
   return { userId, interviewId };
@@ -29,7 +30,8 @@ export function setupUserWithInterview(
   userId: string,
   opts?: { title?: string; locale?: ContentLocale },
 ): InterviewScope {
-  createUserWorkspace(userId);
-  const meta = createInterview(userId, opts);
-  return { userId, interviewId: meta.id };
+  const id = ensureTestUserId(userId);
+  createUserWorkspace(id);
+  const meta = createInterview(id, opts);
+  return { userId: id, interviewId: meta.id };
 }

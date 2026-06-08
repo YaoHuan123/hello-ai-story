@@ -14,9 +14,15 @@ import { getUserRootDir } from "../../../dist/services/workspace.service.js";
 import { AuthService } from "../../../dist/services/auth/auth.service.js";
 import { AliyunSmsService, ALIYUN_SMS_DEV_MOCK_CODE } from "../../../dist/services/auth/aliyunSms.service.js";
 import { AuthAuditLogService } from "../../../dist/services/auth/authAuditLog.service.js";
-import { APPLE_AUTH_DEV_MOCK_TOKEN } from "../../../dist/services/auth/appleAuth.service.js";
+import { APPLE_AUTH_DEV_MOCK_SUB, APPLE_AUTH_DEV_MOCK_TOKEN } from "../../../dist/services/auth/appleAuth.service.js";
 import { normalizePhoneE164 } from "../../../dist/utils/phone.js";
 import { SmsRateLimitService } from "../../../dist/services/auth/smsRateLimit.service.js";
+import { WalletService } from "../../../dist/wallet/wallet.service.js";
+import { CampaignPlanService } from "../../../dist/campaign/campaignPlan.service.js";
+import { PlanPortionService } from "../../../dist/campaign/planPortion.service.js";
+import { PublishedVideoService } from "../../../dist/campaign/publishedVideo.service.js";
+import { QuizQuestionService } from "../../../dist/campaign/quizQuestion.service.js";
+import { registerTestAppleUser, registerTestPhoneUser, testPhone } from "../../helpers/testAccount";
 
 loadEnv();
 process.env.ALIYUN_DYPNSAPI_DEV_MOCK = "1";
@@ -41,11 +47,6 @@ function check(label: string, cond: boolean, detail?: unknown): void {
 
 function authHeader(token: string): HeadersInit {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-}
-
-function uniquePhone(suffix: string): string {
-  const tail = String(Date.now()).slice(-7) + suffix.padStart(3, "0");
-  return `138${tail.slice(-8)}`;
 }
 
 function canonicalPhone(phone: string): string {
@@ -75,7 +76,12 @@ async function main(): Promise<void> {
     new SmsRateLimitService(db),
     new AuthAuditLogService(db),
   );
-  const app = createApp(db, authService);
+  const walletService = new WalletService(db);
+  const publishedVideoService = new PublishedVideoService(db);
+  const planPortionService = new PlanPortionService(db, walletService);
+  const campaignPlanService = new CampaignPlanService(db, publishedVideoService, planPortionService);
+  const quizQuestionService = new QuizQuestionService(db);
+  const app = createApp(db, authService, walletService, campaignPlanService, quizQuestionService);
 
   const server: Server = await new Promise((resolve, reject) => {
     const s = app.listen(0, () => resolve(s));
@@ -87,9 +93,10 @@ async function main(): Promise<void> {
 
   try {
     console.log("\n=== 登录 + GET /me ===");
-    const phoneA = uniquePhone("1");
+    const { phone: phoneA, userId: userIdA } = registerTestPhoneUser(db, "auth-a");
     const loginA = await smsLogin(base, phoneA);
     check("POST /sms/login → 200", Boolean(loginA.token && loginA.userId));
+    check("login userId test prefix", loginA.userId === userIdA && loginA.userId.startsWith("test-"), loginA);
 
     const meRes = await fetch(`${base}/api/auth/me`, { headers: authHeader(loginA.token) });
     const meBody = (await meRes.json()) as { phone?: string; userId?: string; loginMethod?: string };
@@ -107,6 +114,7 @@ async function main(): Promise<void> {
     check("POST /sms/send overseas → 400", overseasRes.status === 400 && overseasBody.code === "DOMESTIC_PHONE_ONLY", overseasBody);
 
     console.log("\n=== Apple 登录 ===");
+    registerTestAppleUser(db, "auth-apple", APPLE_AUTH_DEV_MOCK_SUB, "dev@example.com");
     const appleRes = await fetch(`${base}/api/auth/apple/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -119,6 +127,7 @@ async function main(): Promise<void> {
       appleEmail?: string;
     };
     check("POST /apple/login → 200", appleRes.status === 200 && Boolean(appleBody.token), appleBody);
+    check("Apple userId test prefix", Boolean(appleBody.userId?.startsWith("test-")), appleBody);
     check("Apple loginMethod=apple", appleBody.loginMethod === "apple", appleBody);
 
     const appleMe = await fetch(`${base}/api/auth/me`, { headers: authHeader(appleBody.token!) });
@@ -126,7 +135,7 @@ async function main(): Promise<void> {
     check("GET /me apple user", appleMe.status === 200 && appleMeBody.loginMethod === "apple", appleMeBody);
 
     console.log("\n=== 换绑手机号 + token_version ===");
-    const phoneB = uniquePhone("2");
+    const phoneB = testPhone("auth-b");
     const changeRes = await fetch(`${base}/api/auth/phone`, {
       method: "PATCH",
       headers: authHeader(loginA.token),
@@ -165,7 +174,7 @@ async function main(): Promise<void> {
     );
 
     console.log("\n=== 换绑冲突 ===");
-    const phoneC = uniquePhone("3");
+    const { phone: phoneC } = registerTestPhoneUser(db, "auth-c");
     const loginC = await smsLogin(base, phoneC);
     const conflictRes = await fetch(`${base}/api/auth/phone`, {
       method: "PATCH",
@@ -176,8 +185,9 @@ async function main(): Promise<void> {
     check("PATCH /phone taken phone → 409", conflictRes.status === 409 && conflictBody.code === "PHONE_TAKEN", conflictBody);
 
     console.log("\n=== 删号（短信） ===");
-    const phoneD = uniquePhone("4");
+    const { phone: phoneD, userId: userIdD } = registerTestPhoneUser(db, "auth-d");
     const loginD = await smsLogin(base, phoneD);
+    check("delete user test prefix", loginD.userId === userIdD && userIdD.startsWith("test-"), loginD);
     const dataDir = getUserRootDir(loginD.userId);
     check("user workspace exists before delete", fs.existsSync(dataDir));
 

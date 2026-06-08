@@ -12,6 +12,7 @@ import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
 import { resolveVideoTestLocale, setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 import { videoDemoSections } from "../../fixtures/sections.videoDemo";
 import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import {
@@ -110,7 +111,7 @@ async function main(): Promise<void> {
   const useSeed = !wantFullRun() && isVideoBioSeedReady(seedRoot);
   const fromStep = resolveFromStep(useSeed);
 
-  const userId = `video-bio-230-${Date.now()}`;
+  const userId = testUserId("video-bio-230");
   const scope = setupUserWithInterview(userId, {
     title: "传记230集成测试",
     locale: resolveVideoTestLocale(),

@@ -285,3 +285,75 @@
   color: var(--shell-label-2);
   font-size: 15px;
 }
+
+.me-wallet-balance-card {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.me-wallet-balance-label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--shell-label-2);
+}
+
+.me-wallet-balance-value {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--shell-brand);
+  line-height: 1.1;
+}
+
+.me-wallet-balance-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--shell-label-3);
+}
+
+.me-wallet-tx-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.me-wallet-tx-item {
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--shell-bg-elevated, #fff);
+  border: 1px solid var(--shell-separator);
+}
+
+.me-wallet-tx-item__main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.me-wallet-tx-item__type {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--shell-label-1);
+}
+
+.me-wallet-tx-item__amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--shell-label-2);
+}
+
+.me-wallet-tx-item__amount--in {
+  color: var(--shell-brand);
+}
+
+.me-wallet-tx-item__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--shell-label-3);
+}

@@ -5,6 +5,7 @@ import { config as loadEnv } from "dotenv";
 import { countCommittedAnswers, seedCommittedSections } from "../../../src/services/answeredSections.service";
 import { createInterview } from "../../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../../src/services/workspace.service";
+import { testUserId } from "../../helpers/testAccount";
 import type { AnsweredSection } from "../../../src/topic/types";
 import {
   INTERVIEW_COMPLETE_MIN_ANSWERS,
@@ -51,7 +52,7 @@ function main() {
     isInterviewCompleteByRules(50, [{ tier: 1, kind: "catalog", title: "Childhood", reason: "r" }]) === false,
   );
 
-  const userId = `interview-complete-count-${Date.now()}`;
+  const userId = testUserId("interview-complete-count");
   createUserWorkspace(userId);
   const interview = createInterview(userId, { title: "count测试" });
   const scope = { userId, interviewId: interview.id };

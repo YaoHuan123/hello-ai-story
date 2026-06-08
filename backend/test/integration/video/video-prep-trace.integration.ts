@@ -11,6 +11,7 @@ import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
 import { resolveVideoTestLocale, setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 import { videoDemoSections } from "../../fixtures/sections.videoDemo";
 import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import {
@@ -33,7 +34,7 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const scope = setupUserWithInterview(`video-prep-${throughStep}-${Date.now()}`, {
+  const scope = setupUserWithInterview(testUserId(`video-prep-${throughStep}`), {
     title: `prep至step${throughStep}`,
     locale: resolveVideoTestLocale(),
   });

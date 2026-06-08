@@ -11,9 +11,25 @@ import type { AuthService } from "./services/auth/auth.service";
 import { APP_LOCALE } from "./config";
 import { describeAliyunSmsMode } from "./services/auth/aliyunSms.service";
 import { describeAppleAuthMode } from "./services/auth/appleAuth.service";
+import { createWalletRouter } from "./routes/wallet.routes";
+import { createCampaignRouter } from "./routes/campaign.routes";
+import { createWatchRouter } from "./routes/watch.routes";
+import type { CampaignPlanService } from "./campaign/campaignPlan.service";
+import type { QuizQuestionService } from "./campaign/quizQuestion.service";
+import { PublishedVideoService } from "./campaign/publishedVideo.service";
+import { WatchFeedService } from "./watch/watchFeed.service";
+import { WatchQuizService } from "./watch/watchQuiz.service";
+import type { WalletService } from "./wallet/wallet.service";
+import { isMockRechargeEnabled } from "./wallet/wallet.service";
 import { listPublicStyles } from "./video/biography/llm/steps/videoStyles.js";
 
-export function createApp(db: DatabaseSync, authService: AuthService): Express {
+export function createApp(
+  db: DatabaseSync,
+  authService: AuthService,
+  walletService: WalletService,
+  campaignPlanService: CampaignPlanService,
+  quizQuestionService: QuizQuestionService,
+): Express {
   initAuthMiddleware(db);
 
   const app = express();
@@ -43,6 +59,9 @@ export function createApp(db: DatabaseSync, authService: AuthService): Express {
         forcedMock: apple.forcedMock,
         missingEnvCount: apple.missingEnv.length,
       },
+      wallet: {
+        mockRechargeEnabled: isMockRechargeEnabled(),
+      },
     });
   });
 
@@ -56,6 +75,12 @@ export function createApp(db: DatabaseSync, authService: AuthService): Express {
   });
 
   app.use("/api/auth", createAuthRouter(authService));
+  app.use("/api/wallet", createWalletRouter(walletService));
+  app.use("/api/campaigns", createCampaignRouter(db, campaignPlanService, quizQuestionService));
+  const watchFeedService = new WatchFeedService(db);
+  const publishedVideoService = new PublishedVideoService(db);
+  const watchQuizService = new WatchQuizService(db, watchFeedService, publishedVideoService);
+  app.use("/api/watch", createWatchRouter(watchFeedService, watchQuizService));
   // 生产子路由须先于 /api/interviews：否则访谈 router 的全局 auth 会挡住 cover?token= 等媒体 GET
   app.use("/api/interviews/:interviewId", createProductionRouter());
   app.use("/api/interviews", createInterviewRouter());

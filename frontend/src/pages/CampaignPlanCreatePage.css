@@ -1,0 +1,210 @@
+.campaign-plan-page {
+  padding: 0 16px 24px;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.campaign-plan-page__desc {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--shell-label-2);
+}
+
+.campaign-plan-page__balance {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--shell-brand);
+}
+
+.campaign-plan-page__form {
+  display: grid;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.campaign-plan-page__field {
+  display: grid;
+  gap: 6px;
+}
+
+.campaign-plan-page__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--shell-label-2);
+}
+
+.campaign-plan-page__field input {
+  margin-top: 6px;
+}
+
+.campaign-plan-page__field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--shell-label-2);
+}
+
+.campaign-plan-page__field input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid var(--shell-separator);
+  padding: 12px 14px;
+  font-size: 16px;
+  font-family: inherit;
+  background: var(--shell-bg-elevated, #fff);
+}
+
+.campaign-plan-page__submit {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.campaign-plan-page__msg {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.campaign-plan-page__msg--err {
+  color: var(--shell-danger);
+}
+
+.campaign-plan-page__msg--ok {
+  color: var(--shell-brand);
+}
+
+.campaign-plan-page__section-label {
+  margin: 16px 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--shell-label-2);
+}
+
+.campaign-plan-page__empty {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--shell-label-2);
+}
+
+.campaign-plan-page__video-list {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.campaign-plan-page__video-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border-radius: 14px;
+  padding: 10px;
+  border: 2px solid var(--shell-separator);
+  background: var(--shell-bg-elevated, #fff);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.campaign-plan-page__video-item--selected {
+  border-color: var(--shell-brand);
+  background: color-mix(in srgb, var(--shell-brand) 8%, var(--shell-bg-elevated, #fff));
+}
+
+.campaign-plan-page__video-cover {
+  flex-shrink: 0;
+  width: 72px;
+  height: 48px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--shell-separator);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.campaign-plan-page__video-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.campaign-plan-page__video-cover-fallback {
+  font-size: 11px;
+  color: var(--shell-label-2);
+  padding: 4px;
+  text-align: center;
+}
+
+.campaign-plan-page__video-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.campaign-plan-page__video-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--shell-label-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campaign-plan-page__video-meta {
+  font-size: 12px;
+  color: var(--shell-label-2);
+}
+
+.campaign-plan-page__questions-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border-radius: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--shell-separator);
+  background: var(--shell-bg-elevated, #fff);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  margin-bottom: 20px;
+}
+
+.campaign-plan-page__questions-entry:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.campaign-plan-page__questions-entry-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.campaign-plan-page__questions-entry-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--shell-label-1);
+}
+
+.campaign-plan-page__questions-entry-desc {
+  font-size: 13px;
+  color: var(--shell-label-2);
+}
+
+.campaign-plan-page__questions-entry-chevron {
+  flex-shrink: 0;
+  color: var(--shell-label-3, var(--shell-label-2));
+}

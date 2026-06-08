@@ -12,6 +12,7 @@ import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
 import { resolveVideoTestLocale, setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 import { videoDemoSections } from "../../fixtures/sections.videoDemo";
 import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import {
@@ -133,7 +134,7 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const userId = `video-studio-${Date.now()}`;
+  const userId = testUserId("video-studio-tts");
   const scope = setupUserWithInterview(userId, {
     title: "演播室集成测试",
     locale: resolveVideoTestLocale(),

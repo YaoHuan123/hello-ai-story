@@ -8,6 +8,7 @@ import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
 import { createInterview } from "../../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../../src/services/workspace.service";
+import { testUserId } from "../../helpers/testAccount";
 import type { AnsweredSection } from "../../../src/topic/types";
 import { createTextTask, runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import { TEXT_ARTICLE_OUTPUT_FILE } from "../../../dist/text/constants/textFilenames.js";
@@ -44,7 +45,7 @@ function check(label: string, cond: boolean, detail?: unknown): void {
 }
 
 async function main() {
-  const userId = `text-pipeline-test-${Date.now()}`;
+  const userId = testUserId("text-pipeline");
   createUserWorkspace(userId);
   const interview = createInterview(userId, { title: "文本流水线测试" });
   const scope = { userId, interviewId: interview.id };

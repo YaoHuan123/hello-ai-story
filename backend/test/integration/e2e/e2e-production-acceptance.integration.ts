@@ -16,6 +16,7 @@ import { spawnSync } from "node:child_process";
 import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
 import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 import { videoDemoSections } from "../../fixtures/sections.videoDemo";
 import { runTextPipeline, createTextTask } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import { TEXT_ARTICLE_OUTPUT_FILE } from "../../../dist/text/constants/textFilenames.js";
@@ -259,7 +260,7 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  const scope = setupUserWithInterview(`e2e-accept-${Date.now()}`, { title: "E2E非stub验收" });
+  const scope = setupUserWithInterview(testUserId("e2e-accept"), { title: "E2E非stub验收" });
   seedCommittedSections(scope, videoDemoSections());
 
   const overallStarted = Date.now();

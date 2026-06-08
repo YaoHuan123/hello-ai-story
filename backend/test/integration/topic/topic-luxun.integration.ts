@@ -9,6 +9,7 @@
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 import { getInterviewRootDir } from "../../../src/services/interviewWorkspace.service";
 
 loadEnv();
@@ -27,7 +28,7 @@ function check(label: string, cond: boolean, detail?: unknown): void {
   }
 }
 
-const TEST_USER = `topic-luxun-${Date.now()}`;
+const TEST_USER = testUserId("topic-luxun");
 
 async function main(): Promise<void> {
   if (!process.env.OPENAI_API_KEY?.trim()) {

@@ -16,7 +16,14 @@ import { AuthService } from "../../../dist/services/auth/auth.service.js";
 import { AliyunSmsService } from "../../../dist/services/auth/aliyunSms.service.js";
 import { AuthAuditLogService } from "../../../dist/services/auth/authAuditLog.service.js";
 import { SmsRateLimitService } from "../../../dist/services/auth/smsRateLimit.service.js";
+import { WalletService } from "../../../dist/wallet/wallet.service.js";
+import { CampaignPlanService } from "../../../dist/campaign/campaignPlan.service.js";
+import { PlanPortionService } from "../../../dist/campaign/planPortion.service.js";
+import { PublishedVideoService } from "../../../dist/campaign/publishedVideo.service.js";
+import { QuizQuestionService } from "../../../dist/campaign/quizQuestion.service.js";
 import type { AnsweredSection } from "../../../dist/topic/types.js";
+import { testPhone, testUserId } from "../../helpers/testAccount";
+import { normalizePhoneE164 } from "../../../dist/utils/phone.js";
 
 loadEnv();
 process.env.TEXT_ARTICLE_STUB = "1";
@@ -57,7 +64,12 @@ async function main(): Promise<void> {
     new SmsRateLimitService(db),
     new AuthAuditLogService(db),
   );
-  const app = createApp(db, authService);
+  const walletService = new WalletService(db);
+  const publishedVideoService = new PublishedVideoService(db);
+  const planPortionService = new PlanPortionService(db, walletService);
+  const campaignPlanService = new CampaignPlanService(db, publishedVideoService, planPortionService);
+  const quizQuestionService = new QuizQuestionService(db);
+  const app = createApp(db, authService, walletService, campaignPlanService, quizQuestionService);
 
   const server: Server = await new Promise((resolve, reject) => {
     const s = app.listen(0, () => resolve(s));
@@ -67,8 +79,8 @@ async function main(): Promise<void> {
   const port = typeof address === "object" && address ? address.port : 0;
   const base = `http://127.0.0.1:${port}`;
 
-  const userId = `prod-http-${Date.now()}`;
-  const phone = `138${String(Date.now()).slice(-8)}`;
+  const userId = testUserId("prod-http");
+  const phone = normalizePhoneE164(testPhone("prod-http"))!;
   createUserWorkspace(userId);
   const dataDir = getUserRootDir(userId);
   db.prepare("INSERT INTO users (id, phone, data_dir, token_version) VALUES (?, ?, ?, 1)").run(

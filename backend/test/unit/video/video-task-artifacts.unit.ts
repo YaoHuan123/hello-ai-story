@@ -7,6 +7,7 @@ import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
 import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 import { videoDemoSections } from "../../fixtures/sections.videoDemo";
 import { createBiographyVideoTask } from "../../../dist/video/biography/orchestrator/runBiographyVideoPipeline.js";
 import {
@@ -42,7 +43,7 @@ function expectThrow(label: string, fn: () => void): void {
 }
 
 async function main(): Promise<void> {
-  const scope = setupUserWithInterview(`video-artifacts-${Date.now()}`);
+  const scope = setupUserWithInterview(testUserId("video-artifacts"));
   seedCommittedSections(scope, videoDemoSections());
   const handle = createBiographyVideoTask(scope);
   const taskRoot = handle.paths.taskRoot;

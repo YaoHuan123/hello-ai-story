@@ -5,6 +5,7 @@ import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
 import { createInterview } from "../../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../../src/services/workspace.service";
+import { testUserId } from "../../helpers/testAccount";
 import type { AnsweredSection } from "../../../src/topic/types";
 import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import { createStudioVideoTask } from "../../../dist/video/studio/orchestrator/runStudioVideoPipeline.js";
@@ -45,7 +46,7 @@ function check(label: string, cond: boolean, detail?: unknown): void {
 }
 
 async function main() {
-  const userId = `video-query-test-${Date.now()}`;
+  const userId = testUserId("video-query");
   createUserWorkspace(userId);
   const interview = createInterview(userId, { title: "query测试" });
   const scope = { userId, interviewId: interview.id };

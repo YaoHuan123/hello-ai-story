@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 import { getInterviewRootDir } from "../../../src/services/interviewWorkspace.service";
 
 loadEnv();
@@ -76,7 +77,7 @@ async function main(): Promise<void> {
     writeCurrentStage,
   } = await import("../../../src/services/topicSelection.service");
 
-  const TEST_USER = `topic-luxun-trace-${startedAt.getTime()}`;
+  const TEST_USER = testUserId("topic-luxun-trace");
   const sections = luxunSections();
 
   fs.mkdirSync(traceDir, { recursive: true });

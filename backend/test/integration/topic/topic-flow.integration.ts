@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { setupUserWithInterview } from "../../fixtures/interviewScope";
+import { testUserId } from "../../helpers/testAccount";
 import type { InterviewScope } from "../../../src/services/interviewWorkspace.service";
 import { getInterviewRootDir } from "../../../src/services/interviewWorkspace.service";
 import { pendingPath, writePending } from "../../../src/topic/tierPending";
@@ -31,7 +32,7 @@ function check(label: string, cond: boolean, detail?: unknown): void {
   }
 }
 
-const TEST_USER = `topic-flow-test-${Date.now()}`;
+const TEST_USER = testUserId("topic-flow");
 
 function writeJsonSimple(filePath: string, data: unknown): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });

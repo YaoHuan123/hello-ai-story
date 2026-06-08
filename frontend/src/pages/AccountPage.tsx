@@ -1,10 +1,12 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { changePhone, deleteAccount, getMe, sendSms } from "../api/auth";
+import { getWalletBalance, listWalletTransactions, mockRechargeWallet } from "../api/wallet";
 import { authTokenStore } from "../lib/authToken";
 import { signInWithAppleNative } from "../lib/appleSignIn";
 import type { HealthResponse } from "../api/health";
 import type { MeResponse } from "../types/auth";
+import type { WalletTransaction } from "../types/wallet";
 import { displayError, t } from "../i18n";
 import {
   IconChevronLeft,
@@ -15,6 +17,7 @@ import {
   IconRefresh,
   IconShield,
   IconTrash,
+  IconWallet,
 } from "../components/icons";
 import "./AccountPage.css";
 
@@ -25,7 +28,7 @@ type Props = {
   health?: HealthResponse | null;
 };
 
-type MeScreen = "home" | "phone" | "delete" | "about";
+type MeScreen = "home" | "phone" | "delete" | "about" | "wallet" | "wallet-recharge" | "wallet-history";
 
 function maskPhone(phone: string): string {
   if (phone.length < 7) return phone;
@@ -37,6 +40,19 @@ function accountLabel(me: MeResponse): string {
     return me.appleEmail || t("account.appleId");
   }
   return me.phone ? maskPhone(me.phone) : t("common.emDash");
+}
+
+function formatPoints(n: number): string {
+  return n.toLocaleString();
+}
+
+function txTypeLabel(type: WalletTransaction["type"]): string {
+  return t(`wallet.txType.${type}`);
+}
+
+function formatTxAmount(amount: number): string {
+  const prefix = amount > 0 ? "+" : "";
+  return `${prefix}${formatPoints(amount)}`;
 }
 
 function MeListRow({
@@ -95,6 +111,12 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
   const [newCode, setNewCode] = useState("");
   const [deleteCode, setDeleteCode] = useState("");
 
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletUpdatedAt, setWalletUpdatedAt] = useState<string | null>(null);
+  const [rechargeAmount, setRechargeAmount] = useState("100");
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [txNextCursor, setTxNextCursor] = useState<string | undefined>();
+
   const isPhoneUser = me?.loginMethod === "phone";
 
   const clearFeedback = () => {
@@ -125,6 +147,44 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
       const profile = await getMe();
       onMeChange(profile);
       setMessage(t("account.profileUpdated"));
+    });
+  };
+
+  const refreshWalletBalance = useCallback(async () => {
+    const bal = await getWalletBalance();
+    setWalletBalance(bal.balance);
+    setWalletUpdatedAt(bal.updatedAt);
+  }, []);
+
+  const loadTransactions = useCallback(async (append = false, cursor?: string) => {
+    const page = await listWalletTransactions({
+      limit: 30,
+      cursor: append ? cursor : undefined,
+    });
+    setTransactions((prev) => (append ? [...prev, ...page.items] : page.items));
+    setTxNextCursor(page.nextCursor);
+  }, []);
+
+  useEffect(() => {
+    if (screen !== "wallet" && screen !== "wallet-recharge" && screen !== "wallet-history") return;
+    void refreshWalletBalance().catch(() => {
+      setWalletBalance(null);
+    });
+  }, [screen, refreshWalletBalance]);
+
+  useEffect(() => {
+    if (screen !== "wallet-history") return;
+    void loadTransactions(false).catch(() => setTransactions([]));
+  }, [screen, loadTransactions]);
+
+  const handleMockRecharge = () => {
+    const amount = Number.parseInt(rechargeAmount.trim(), 10);
+    if (!Number.isInteger(amount) || amount <= 0) return;
+    void run(async () => {
+      const result = await mockRechargeWallet(amount);
+      setWalletBalance(result.balance);
+      setWalletUpdatedAt(result.updatedAt);
+      setMessage(t("wallet.rechargeSuccess", { amount: formatPoints(amount) }));
     });
   };
 
@@ -195,6 +255,122 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
 
   if (!me) {
     return <p className="me-empty">{t("account.loginRequired")}</p>;
+  }
+
+  if (screen === "wallet") {
+    return (
+      <div className="me-page me-subpage">
+        <button type="button" className="me-subpage__back" onClick={() => goScreen("home")}>
+          <IconChevronLeft size={18} />
+          {t("tab.me")}
+        </button>
+        <h2 className="me-subpage__title">{t("wallet.title")}</h2>
+        <Feedback loading={loading} error={error} message={message} />
+        <div className="me-form-card me-wallet-balance-card">
+          <p className="me-wallet-balance-label">{t("wallet.balanceLabel")}</p>
+          <p className="me-wallet-balance-value">{walletBalance !== null ? formatPoints(walletBalance) : t("common.emDash")}</p>
+          {walletUpdatedAt ? (
+            <p className="me-wallet-balance-hint">{t("wallet.updatedAt", { time: new Date(walletUpdatedAt).toLocaleString() })}</p>
+          ) : null}
+        </div>
+        <div className="me-group">
+          <MeListRow
+            icon={<IconWallet size={18} />}
+            label={t("wallet.recharge")}
+            hint={t("wallet.rechargeHint")}
+            onClick={() => goScreen("wallet-recharge")}
+            disabled={loading}
+          />
+          <MeListRow
+            icon={<IconRefresh size={18} />}
+            iconTone="muted"
+            label={t("wallet.history")}
+            hint={t("wallet.historyHint")}
+            onClick={() => goScreen("wallet-history")}
+            disabled={loading}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "wallet-recharge") {
+    return (
+      <div className="me-page me-subpage">
+        <button type="button" className="me-subpage__back" onClick={() => goScreen("wallet")}>
+          <IconChevronLeft size={18} />
+          {t("wallet.title")}
+        </button>
+        <h2 className="me-subpage__title">{t("wallet.recharge")}</h2>
+        <p className="me-subpage__desc">{t("wallet.rechargeDesc")}</p>
+        <Feedback loading={loading} error={error} message={message} />
+        <div className="me-form-card">
+          <label className="me-field">
+            <span className="me-field__label">{t("wallet.rechargeAmount")}</span>
+            <input
+              value={rechargeAmount}
+              onChange={(e) => setRechargeAmount(e.target.value)}
+              placeholder="100"
+              inputMode="numeric"
+              disabled={loading}
+            />
+          </label>
+          <button
+            type="button"
+            className="hs-btn hs-btn--primary"
+            style={{ width: "100%" }}
+            onClick={handleMockRecharge}
+            disabled={loading || !rechargeAmount.trim()}
+          >
+            {t("wallet.confirmRecharge")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "wallet-history") {
+    return (
+      <div className="me-page me-subpage">
+        <button type="button" className="me-subpage__back" onClick={() => goScreen("wallet")}>
+          <IconChevronLeft size={18} />
+          {t("wallet.title")}
+        </button>
+        <h2 className="me-subpage__title">{t("wallet.history")}</h2>
+        <Feedback loading={loading} error={error} message={message} />
+        {transactions.length === 0 && !loading ? (
+          <p className="me-empty">{t("wallet.historyEmpty")}</p>
+        ) : (
+          <ul className="me-wallet-tx-list">
+            {transactions.map((tx) => (
+              <li key={tx.id} className="me-wallet-tx-item">
+                <div className="me-wallet-tx-item__main">
+                  <span className="me-wallet-tx-item__type">{txTypeLabel(tx.type)}</span>
+                  <span className={`me-wallet-tx-item__amount${tx.amount >= 0 ? " me-wallet-tx-item__amount--in" : ""}`}>
+                    {formatTxAmount(tx.amount)}
+                  </span>
+                </div>
+                <div className="me-wallet-tx-item__meta">
+                  <span>{new Date(tx.createdAt).toLocaleString()}</span>
+                  <span>{t("wallet.balanceAfter", { balance: formatPoints(tx.balanceAfter) })}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {txNextCursor ? (
+          <button
+            type="button"
+            className="hs-btn hs-btn--secondary"
+            style={{ width: "100%", marginTop: 12 }}
+            disabled={loading}
+            onClick={() => void run(async () => loadTransactions(true, txNextCursor))}
+          >
+            {t("wallet.loadMore")}
+          </button>
+        ) : null}
+      </div>
+    );
   }
 
   if (screen === "phone" && isPhoneUser) {
@@ -364,6 +540,13 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
 
       <p className="me-group-label">{t("account.sectionAccount")}</p>
       <div className="me-group">
+        <MeListRow
+          icon={<IconWallet size={18} />}
+          label={t("wallet.title")}
+          hint={t("wallet.entryHint")}
+          onClick={() => goScreen("wallet")}
+          disabled={loading}
+        />
         <MeListRow
           icon={<IconPhone size={18} />}
           label={isPhoneUser ? t("account.phone") : t("account.appleId")}
