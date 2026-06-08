@@ -73,6 +73,11 @@ function mapInterviewError(res: Response, error: unknown): boolean {
     res.status(400).json({ code, message: "所选主题不存在或已失效，请重新获取题目" });
     return true;
   }
+  if (code === "INTERVIEW_COMPLETE") {
+    const detail = msg.split(":").slice(1).join(":").trim();
+    res.status(409).json({ code, message: detail || "采访已结束" });
+    return true;
+  }
   if (
     code === "QUESTION_ENGINE_NO_SESSION" ||
     code === "QUESTION_ENGINE_COMPLETE" ||

@@ -2,7 +2,7 @@ export type InterviewFieldType = "text" | "select" | "yearMonth";
 
 /** 与后端 `interviewOrchestrator.service` 的 `InterviewQuestion` 对齐。 */
 export type InterviewQuestion = {
-  type: "topic" | "normal";
+  type: "topic" | "normal" | "complete";
   title: string | null;
   key: string;
   text: string;
@@ -14,6 +14,8 @@ export type InterviewQuestion = {
   fieldChoices?: string[];
   /** 选填 / 扩展 / 非 catalog 题可跳过 */
   skippable?: boolean;
+  /** `type === "complete"` 时：触发完成时的已答条数 */
+  answerCount?: number;
 };
 
 export const INTERVIEW_SKIP_LABEL = "（跳过）";
@@ -44,6 +46,9 @@ export type InterviewMeta = {
   title?: string;
   /** 内容语言，创建时由后端 APP_LOCALE 写入 */
   locale?: "zh" | "en";
+  interviewStatus?: "active" | "complete";
+  completedAt?: string;
+  answerCountAtComplete?: number;
 };
 
 export type InterviewListResponse = {

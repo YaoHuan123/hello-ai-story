@@ -16,9 +16,6 @@ import type {
   VideoTaskProgress,
   ProductionReadiness,
   VideoStylesCatalog,
-  InterviewPlaceImagesIndex,
-  InterviewPlaceImageItem,
-  UploadPlaceImagePayload,
 } from "../types/production";
 
 function productionPath(interviewId: string, suffix: string): string {
@@ -200,40 +197,6 @@ export async function getProductionReadiness(interviewId: string) {
 
 export async function listVideoStyles() {
   return apiRequest<VideoStylesCatalog>("/api/production/video-styles", { method: "GET" }, true);
-}
-
-export async function listPlaceImages(interviewId: string) {
-  return apiRequest<InterviewPlaceImagesIndex>(
-    productionPath(interviewId, "/assets/place-images"),
-    { method: "GET" },
-    true,
-  );
-}
-
-export async function uploadPlaceImage(interviewId: string, payload: UploadPlaceImagePayload) {
-  return apiRequest<{ item: InterviewPlaceImageItem; index: InterviewPlaceImagesIndex }>(
-    productionPath(interviewId, "/assets/place-images"),
-    { method: "POST", body: JSON.stringify(payload) },
-    true,
-  );
-}
-
-export async function deletePlaceImage(interviewId: string, imageId: string) {
-  const id = encodeURIComponent(imageId);
-  return apiRequest<InterviewPlaceImagesIndex>(
-    productionPath(interviewId, `/assets/place-images/${id}`),
-    { method: "DELETE" },
-    true,
-  );
-}
-
-export function placeImageFileUrl(interviewId: string, imageId: string): string {
-  const id = encodeURIComponent(imageId);
-  return productionPath(interviewId, `/assets/place-images/${id}/file`);
-}
-
-export async function fetchPlaceImageBlob(interviewId: string, imageId: string): Promise<Blob> {
-  return fetchAuthenticatedBlob(placeImageFileUrl(interviewId, imageId));
 }
 
 export async function fetchVideoArtifactBlob(

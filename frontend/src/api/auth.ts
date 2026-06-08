@@ -18,6 +18,15 @@ export async function smsLogin(phone: string, code: string): Promise<AuthResult>
   return result;
 }
 
+export async function appleLogin(identityToken: string): Promise<AuthResult> {
+  const result = await apiRequest<AuthResult>("/api/auth/apple/login", {
+    method: "POST",
+    body: JSON.stringify({ identityToken }),
+  });
+  authTokenStore.set(result.token);
+  return result;
+}
+
 export async function getMe(): Promise<MeResponse> {
   return apiRequest<MeResponse>("/api/auth/me", { method: "GET" }, true);
 }
@@ -34,10 +43,10 @@ export async function changePhone(payload: {
   );
 }
 
-export async function deleteAccount(code: string): Promise<void> {
+export async function deleteAccount(payload: { code?: string; identityToken?: string }): Promise<void> {
   await apiRequest<{ ok: true }>(
     "/api/auth/me",
-    { method: "DELETE", body: JSON.stringify({ code }) },
+    { method: "DELETE", body: JSON.stringify(payload) },
     true,
   );
 }

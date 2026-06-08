@@ -1,4 +1,5 @@
-import { commitSection, getSections } from "./answeredSections.service";
+import { commitSection, countCommittedAnswers, getSections } from "./answeredSections.service";
+import { appendTierCommit } from "./tierCommitLedger.service";
 import { runWithQuestionTrace, traceQuestionStep } from "../question/questionTrace";
 import {
   answeredSectionFromTopic,
@@ -13,6 +14,7 @@ import {
 import {
   getInterviewDisplayLocale,
   getDisplayLocale,
+  interviewCompletePrompt,
   interviewSkipLabel,
   selectTopicPrompt,
 } from "../content/displayLocale";
@@ -40,7 +42,11 @@ import {
 import { toCanonicalYesNo } from "../content/translate/yesNo";
 import { normalizeFieldAnswer } from "../topic/fieldAnswer";
 import type { InterviewFieldType } from "../topic/fieldMeta";
-import type { InterviewScope } from "./interviewWorkspace.service";
+import {
+  markInterviewComplete,
+  readInterviewMeta,
+  type InterviewScope,
+} from "./interviewWorkspace.service";
 import type { CurrentStage, QuestionSet, TopicPick } from "../topic/types";
 
 function basicProfileQuestionSet(): QuestionSet {
@@ -71,13 +77,19 @@ export type {
 /** 选主题阶段的固定题目 key。 */
 export const SELECT_TOPIC_KEY = "__select_topic__";
 
+/** 采访完成态题目 key。 */
+export const INTERVIEW_COMPLETE_KEY = "__interview_complete__";
+
+/** 判定「采访完成」所需的最少已答条数。 */
+export const INTERVIEW_COMPLETE_MIN_ANSWERS = 50;
+
 /**
- * 统一「题目」：可能是选主题，也可能是普通问答，由 `type` 区分。
+ * 统一「题目」：可能是选主题、普通问答或采访完成，由 `type` 区分。
  * 客户端始终拿到一个题目对象，按 `type` 渲染、把用户输入经 `submit` 交回。
  */
 export type InterviewQuestion = {
-  /** "topic" = 选主题；"normal" = 普通问答 */
-  type: "topic" | "normal";
+  /** "topic" = 选主题；"normal" = 普通问答；"complete" = 采访已结束 */
+  type: "topic" | "normal" | "complete";
   /** 普通问答=当前主题标题；选主题=null */
   title: string | null;
   /** 题目 key：普通问答=题目 key；选主题=`SELECT_TOPIC_KEY` */
@@ -94,7 +106,24 @@ export type InterviewQuestion = {
   fieldChoices?: string[];
   /** 选填 / 扩展 / 非 catalog 题可跳过 */
   skippable?: boolean;
+  /** `type === "complete"` 时：触发完成时的已答条数 */
+  answerCount?: number;
 };
+
+export function isInterviewCompleteByRules(answerCount: number, topicsAfterFullTierRound: TopicPick[]): boolean {
+  return topicsAfterFullTierRound.length === 0 && answerCount >= INTERVIEW_COMPLETE_MIN_ANSWERS;
+}
+
+function buildCompleteQuestion(scope: InterviewScope, answerCount: number): InterviewQuestion {
+  return {
+    type: "complete",
+    title: null,
+    key: INTERVIEW_COMPLETE_KEY,
+    text: interviewCompletePrompt(getInterviewDisplayLocale(scope)),
+    options: [],
+    answerCount,
+  };
+}
 
 function toNormalQuestion(
   questionSet: QuestionSet | null,
@@ -173,7 +202,21 @@ export async function getCurrentQuestion(scope: InterviewScope): Promise<Intervi
     clearTopicDir(scope);
   }
 
+  const interviewMeta = readInterviewMeta(scope);
+  if (interviewMeta?.interviewStatus === "complete") {
+    return buildCompleteQuestion(
+      scope,
+      interviewMeta.answerCountAtComplete ?? countCommittedAnswers(scope),
+    );
+  }
+
   const topics = await pendingWithAutoPromote(scope);
+  const answerCount = countCommittedAnswers(scope);
+  if (isInterviewCompleteByRules(answerCount, topics)) {
+    markInterviewComplete(scope, answerCount);
+    return buildCompleteQuestion(scope, answerCount);
+  }
+
   return {
     type: "topic",
     title: null,
@@ -190,6 +233,10 @@ export async function getCurrentQuestion(scope: InterviewScope): Promise<Intervi
  * - 普通问答阶段：`value` 作为答案落盘；答完由 `getCurrentQuestion` 自动 commit
  */
 export function submit(scope: InterviewScope, input: SubmitInput): void {
+  if (readInterviewMeta(scope)?.interviewStatus === "complete") {
+    throw new Error("INTERVIEW_COMPLETE: 采访已结束，无法继续作答");
+  }
+
   if (input.key === SELECT_TOPIC_KEY) {
     // 选主题阶段：value 为所选主题标题。
     // 守卫：已有进行中主题时拒绝，避免 initQuestion 清空其答案（客户端状态过期/重复提交）。
@@ -300,6 +347,13 @@ export function commitTopic(scope: InterviewScope): void {
   const questionSet = readQuestionSet(scope);
   const title = questionSet?.title.trim() ?? "";
   commitSection(scope, answeredSectionFromTopic(scope));
+  if (questionSet && title && !isBasicProfileTopicName(title)) {
+    appendTierCommit(scope, {
+      tier: questionSet.tier,
+      kind: questionSet.kind,
+      title,
+    });
+  }
   clearTopicDir(scope);
   if (title && !isBasicProfileTopicName(title)) {
     advanceStage(scope);

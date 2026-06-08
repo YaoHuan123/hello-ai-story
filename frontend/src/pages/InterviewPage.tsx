@@ -29,7 +29,12 @@ function messagesWithCurrentQuestion(
   q: InterviewQuestion | null,
 ): ChatMessage[] {
   if (!q) return history;
-  const meta = q.type === "topic" ? t("interview.pickTopic") : q.title ?? undefined;
+  const meta =
+    q.type === "complete"
+      ? t("interview.completeMeta")
+      : q.type === "topic"
+        ? t("interview.pickTopic")
+        : (q.title ?? undefined);
   const id = `q-${q.key}`;
   if (history.some((m) => m.id === id)) return history;
   return [...history, { id, role: "ai", text: q.text, meta }];
@@ -187,6 +192,7 @@ export function InterviewPage({
     setError(null);
   };
 
+  const isInterviewComplete = question?.type === "complete";
   const isTopicQuestion = question?.type === "topic";
   const fieldType = question?.fieldType ?? "text";
   const choiceChips =
@@ -197,7 +203,7 @@ export function InterviewPage({
     !isTopicQuestion && fieldType !== "select" && (question?.options.length ?? 0) > 0
       ? question!.options
       : [];
-  const showComposer = !!question && !loading;
+  const showComposer = !!question && !loading && !isInterviewComplete;
 
   return (
     <div className="iv-layout">
@@ -213,6 +219,14 @@ export function InterviewPage({
             </div>
           ))}
           {!question && loading && <p className="iv-loading">{t("interview.loadingQuestion")}</p>}
+          {isInterviewComplete && !loading ? (
+            <div className="iv-complete-card" role="status">
+              <p className="iv-complete-card__hint">{t("interview.completeHint")}</p>
+              <button type="button" className="iv-complete-card__back" onClick={onBack}>
+                {t("interview.completeBack")}
+              </button>
+            </div>
+          ) : null}
           <div ref={messagesEndRef} />
         </section>
 

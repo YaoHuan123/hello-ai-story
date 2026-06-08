@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
 import { changePhone, deleteAccount, getMe, sendSms } from "../api/auth";
 import { authTokenStore } from "../lib/authToken";
+import { signInWithAppleNative } from "../lib/appleSignIn";
 import type { HealthResponse } from "../api/health";
 import type { MeResponse } from "../types/auth";
 import { displayError, t } from "../i18n";
@@ -29,6 +30,13 @@ type MeScreen = "home" | "phone" | "delete" | "about";
 function maskPhone(phone: string): string {
   if (phone.length < 7) return phone;
   return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
+}
+
+function accountLabel(me: MeResponse): string {
+  if (me.loginMethod === "apple") {
+    return me.appleEmail || t("account.appleId");
+  }
+  return me.phone ? maskPhone(me.phone) : t("common.emDash");
 }
 
 function MeListRow({
@@ -87,6 +95,8 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
   const [newCode, setNewCode] = useState("");
   const [deleteCode, setDeleteCode] = useState("");
 
+  const isPhoneUser = me?.loginMethod === "phone";
+
   const clearFeedback = () => {
     setError(null);
     setMessage(null);
@@ -121,7 +131,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
   const handleSendOldCode = () => {
     if (!me?.phone) return;
     void run(async () => {
-      await sendSms(me.phone, "change_phone_old");
+      await sendSms(me.phone!, "change_phone_old");
       setMessage(t("account.codeSentCurrent"));
     });
   };
@@ -154,7 +164,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
   const handleSendDeleteCode = () => {
     if (!me?.phone) return;
     void run(async () => {
-      await sendSms(me.phone, "delete_account");
+      await sendSms(me.phone!, "delete_account");
       setMessage(t("account.codeSent"));
     });
   };
@@ -164,7 +174,12 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
       return;
     }
     void run(async () => {
-      await deleteAccount(deleteCode.trim());
+      if (me?.loginMethod === "apple") {
+        const { identityToken } = await signInWithAppleNative();
+        await deleteAccount({ identityToken });
+      } else {
+        await deleteAccount({ code: deleteCode.trim() });
+      }
       authTokenStore.clear();
       onMeChange(null);
       setDeleteCode("");
@@ -182,7 +197,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
     return <p className="me-empty">{t("account.loginRequired")}</p>;
   }
 
-  if (screen === "phone") {
+  if (screen === "phone" && isPhoneUser) {
     return (
       <div className="me-page me-subpage">
         <button type="button" className="me-subpage__back" onClick={() => goScreen("home")}>
@@ -261,37 +276,41 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
           {t("tab.me")}
         </button>
         <h2 className="me-subpage__title">{t("account.deleteTitle")}</h2>
-        <p className="me-subpage__desc">{t("account.deleteDesc")}</p>
+        <p className="me-subpage__desc">
+          {isPhoneUser ? t("account.deleteDesc") : t("account.deleteDescApple")}
+        </p>
         <Feedback loading={loading} error={error} message={message} />
         <div className="me-form-card me-form-card--danger">
-          <label className="me-field">
-            <span className="me-field__label">{t("account.smsCode")}</span>
-            <div className="me-field-row">
-              <input
-                value={deleteCode}
-                onChange={(e) => setDeleteCode(e.target.value)}
-                placeholder={t("account.codePlaceholder")}
-                inputMode="numeric"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                className="hs-btn hs-btn--secondary"
-                onClick={handleSendDeleteCode}
-                disabled={loading}
-              >
-                {t("common.getCode")}
-              </button>
-            </div>
-          </label>
+          {isPhoneUser ? (
+            <label className="me-field">
+              <span className="me-field__label">{t("account.smsCode")}</span>
+              <div className="me-field-row">
+                <input
+                  value={deleteCode}
+                  onChange={(e) => setDeleteCode(e.target.value)}
+                  placeholder={t("account.codePlaceholder")}
+                  inputMode="numeric"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="hs-btn hs-btn--secondary"
+                  onClick={handleSendDeleteCode}
+                  disabled={loading}
+                >
+                  {t("common.getCode")}
+                </button>
+              </div>
+            </label>
+          ) : null}
           <button
             type="button"
             className="hs-btn hs-btn--primary"
             style={{ width: "100%", background: "var(--shell-danger)", boxShadow: "none" }}
             onClick={handleDeleteAccount}
-            disabled={loading || !deleteCode.trim()}
+            disabled={loading || (isPhoneUser && !deleteCode.trim())}
           >
-            {t("account.confirmDelete")}
+            {isPhoneUser ? t("account.confirmDelete") : t("account.confirmDeleteApple")}
           </button>
         </div>
       </div>
@@ -347,18 +366,20 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
       <div className="me-group">
         <MeListRow
           icon={<IconPhone size={18} />}
-          label={t("account.phone")}
-          value={maskPhone(me.phone)}
+          label={isPhoneUser ? t("account.phone") : t("account.appleId")}
+          value={accountLabel(me)}
           showChevron={false}
           disabled
         />
-        <MeListRow
-          icon={<IconShield size={18} />}
-          label={t("account.changePhone")}
-          hint={t("account.changePhoneHint")}
-          onClick={() => goScreen("phone")}
-          disabled={loading}
-        />
+        {isPhoneUser ? (
+          <MeListRow
+            icon={<IconShield size={18} />}
+            label={t("account.changePhone")}
+            hint={t("account.changePhoneHint")}
+            onClick={() => goScreen("phone")}
+            disabled={loading}
+          />
+        ) : null}
         <MeListRow
           icon={<IconRefresh size={18} />}
           iconTone="muted"

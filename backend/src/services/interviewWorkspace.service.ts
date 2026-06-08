@@ -24,6 +24,10 @@ export type InterviewMeta = {
   locale?: ContentLocale;
   /** 落盘格式版本；2 = canonical 英文节名 + 字段 key */
   schemaVersion?: number;
+  /** 采访是否已结束（选题器整轮 tier 耗尽且答题数达标） */
+  interviewStatus?: "active" | "complete";
+  completedAt?: string;
+  answerCountAtComplete?: number;
 };
 
 function interviewsDir(userId: string): string {
@@ -76,6 +80,23 @@ export function createInterview(
 /** 读取采访 meta（不存在或损坏返回 null）。 */
 export function readInterviewMeta(scope: InterviewScope): InterviewMeta | null {
   return readMeta(scope.userId, scope.interviewId);
+}
+
+export function writeInterviewMeta(scope: InterviewScope, meta: InterviewMeta): void {
+  writeJsonAtomic(path.join(getInterviewRootDir(scope), META_FILE), meta);
+}
+
+export function markInterviewComplete(scope: InterviewScope, answerCount: number): void {
+  const meta = readInterviewMeta(scope);
+  if (!meta || meta.interviewStatus === "complete") return;
+  const now = new Date().toISOString();
+  writeInterviewMeta(scope, {
+    ...meta,
+    interviewStatus: "complete",
+    completedAt: now,
+    answerCountAtComplete: answerCount,
+    updatedAt: now,
+  });
 }
 
 function readMeta(userId: string, interviewId: string): InterviewMeta | null {

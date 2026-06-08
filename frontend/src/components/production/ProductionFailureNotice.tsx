@@ -1,12 +1,11 @@
-import { formatTaskFailure } from "../../lib/formatProductionError";
+import { formatProductionError } from "../../lib/formatProductionError";
 
 type Props = {
   lastError?: string;
-  queueError?: { code: string; message: string };
 };
 
-export function ProductionFailureNotice({ lastError, queueError }: Props) {
-  const formatted = formatTaskFailure(lastError, queueError);
+export function ProductionFailureNotice({ lastError }: Props) {
+  const formatted = formatProductionError(lastError);
   if (!formatted) return null;
 
   return (

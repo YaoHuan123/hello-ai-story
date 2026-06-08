@@ -15,7 +15,7 @@ import { readJsonObjectFile } from "../shared/orchestrator/pipelineDisk.js";
 import { isVideoTaskDeleted, videoTaskDeletedPath } from "./videoTaskRequest.js";
 
 const HEARTBEAT_TIMEOUT_MS = (() => {
-  const raw = Number.parseInt(process.env.VIDEO_TASK_HEARTBEAT_TIMEOUT_SEC ?? process.env.VIDEO_QUEUE_HEARTBEAT_TIMEOUT_SEC ?? "120", 10);
+  const raw = Number.parseInt(process.env.VIDEO_TASK_HEARTBEAT_TIMEOUT_SEC ?? "120", 10);
   if (!Number.isFinite(raw) || raw < 10) return 120_000;
   return raw * 1000;
 })();

@@ -151,12 +151,7 @@ function mapProductionError(res: Response, error: unknown): boolean {
     res.status(409).json({ code, message: detail || "视频任务已在队列或生成中" });
     return true;
   }
-  if (
-    code === "VIDEO_TASK_RETRY_INVALID" ||
-    code === "VIDEO_TASK_REQUEST_INVALID" ||
-    code === "VIDEO_QUEUE_RETRY_INVALID" ||
-    code === "VIDEO_QUEUE_INVALID"
-  ) {
+  if (code === "VIDEO_TASK_RETRY_INVALID" || code === "VIDEO_TASK_REQUEST_INVALID") {
     res.status(409).json({ code, message: "任务状态不允许该操作" });
     return true;
   }

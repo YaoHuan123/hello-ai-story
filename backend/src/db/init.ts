@@ -7,6 +7,34 @@ const ensureDir = (dirPath: string): void => {
   fs.mkdirSync(dirPath, { recursive: true });
 };
 
+function migrateUsersDualAuth(db: DatabaseSync): void {
+  const cols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (cols.some((c) => c.name === "login_method")) {
+    return;
+  }
+
+  db.exec(`
+    CREATE TABLE users_new (
+      id TEXT PRIMARY KEY,
+      phone TEXT,
+      apple_sub TEXT,
+      login_method TEXT NOT NULL DEFAULT 'phone',
+      apple_email TEXT,
+      data_dir TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'viewer',
+      preferred_material_id TEXT,
+      token_version INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    INSERT INTO users_new (id, phone, data_dir, role, preferred_material_id, token_version, created_at, login_method)
+      SELECT id, phone, data_dir, role, preferred_material_id, token_version, created_at, 'phone' FROM users;
+    DROP TABLE users;
+    ALTER TABLE users_new RENAME TO users;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone IS NOT NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_apple_sub ON users(apple_sub) WHERE apple_sub IS NOT NULL;
+  `);
+}
+
 export const initDb = (): DatabaseSync => {
   ensureDir(DATA_ROOT);
   ensureDir(DATA_USERS_ROOT);
@@ -26,6 +54,8 @@ export const initDb = (): DatabaseSync => {
     );
   `);
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone);");
+
+  migrateUsersDualAuth(db);
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS sms_send_log (

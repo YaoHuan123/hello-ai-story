@@ -64,8 +64,16 @@ async function main() {
   const articlePath = path.join(handle.paths.outputDir, TEXT_ARTICLE_OUTPUT_FILE);
   check("article file written", fs.existsSync(articlePath));
   if (fs.existsSync(articlePath)) {
-    const raw = JSON.parse(fs.readFileSync(articlePath, "utf-8")) as { article?: string };
+    const raw = JSON.parse(fs.readFileSync(articlePath, "utf-8")) as {
+      article?: string;
+      videoCostEstimate?: { tierCount?: number; estimatedUsd?: number };
+    };
     check("article non-empty", typeof raw.article === "string" && raw.article.trim().length > 0);
+    check(
+      "video cost estimate written",
+      raw.videoCostEstimate?.tierCount === 1 && raw.videoCostEstimate?.estimatedUsd === 0.4,
+      raw.videoCostEstimate,
+    );
   }
 
   const snapshotPath = path.join(handle.paths.inputDir, "sections-snapshot.json");

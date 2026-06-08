@@ -154,6 +154,13 @@
   color: var(--shell-label-1);
 }
 
+.login-card__hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--shell-label-2);
+}
+
 .login-field {
   display: grid;
   gap: 6px;

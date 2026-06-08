@@ -303,7 +303,8 @@ export function submitAnswer(scope: InterviewScope, params: SubmitAnswerParams):
 
 /** 本节结束时合并进 sections.json。 */
 export function answeredSectionFromTopic(scope: InterviewScope): AnsweredSection {
-  const name = readQuestionSet(scope)?.title.trim();
+  const questionSet = readQuestionSet(scope);
+  const name = questionSet?.title.trim();
   if (!name) {
     throw new Error("QUESTION_ENGINE_NO_SESSION: 无进行中主题");
   }
@@ -311,7 +312,12 @@ export function answeredSectionFromTopic(scope: InterviewScope): AnsweredSection
   if (records.length === 0) {
     throw new Error(`QUESTION_ENGINE_NO_ANSWERS: 主题「${name}」无已答记录`);
   }
-  return answeredSectionFromRecords(name, records);
+  const section = answeredSectionFromRecords(name, records);
+  if (questionSet) {
+    section.tier = questionSet.tier;
+    section.kind = questionSet.kind;
+  }
+  return section;
 }
 
 export type {

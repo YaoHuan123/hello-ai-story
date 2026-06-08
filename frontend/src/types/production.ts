@@ -30,12 +30,20 @@ export type TextTaskListItem = {
   lastError?: string;
 };
 
+export type TextVideoCostEstimate = {
+  tierCount: number;
+  usdPerTier: number;
+  estimatedUsd: number;
+  usedLegacyFallback: boolean;
+};
+
 export type TextTaskOutputSnapshot = {
   articlePath: string;
   hasArticle: boolean;
   articleLength?: number;
   sectionCount?: number;
   skippedModel?: boolean;
+  videoCostEstimate?: TextVideoCostEstimate;
 };
 
 export type TextTaskProgress = TextTaskListItem & {
@@ -47,6 +55,7 @@ export type TextArticleResponse = {
   savedAt?: string;
   sectionCount?: number;
   skippedModel?: boolean;
+  videoCostEstimate?: TextVideoCostEstimate;
   article: string;
 };
 
@@ -166,25 +175,4 @@ export type PublicVideoStyle = {
 export type VideoStylesCatalog = {
   selectedStyleId: string;
   styles: PublicVideoStyle[];
-};
-
-export type InterviewPlaceImageItem = {
-  id: string;
-  placeKey: string;
-  relativePath: string;
-  mimeType: string;
-  savedAt: string;
-  originalName?: string;
-};
-
-export type InterviewPlaceImagesIndex = {
-  updatedAt: string;
-  items: InterviewPlaceImageItem[];
-};
-
-export type UploadPlaceImagePayload = {
-  placeKey: string;
-  mimeType: "image/jpeg" | "image/png" | "image/webp";
-  dataBase64: string;
-  originalName?: string;
 };

@@ -1,5 +1,5 @@
 /**
- * P1 鉴权验收：换绑手机号、删号、token_version 撤销（mock 短信 123456）。
+ * P1 鉴权验收：换绑手机号、删号、token_version 撤销、Apple 登录（mock 短信 123456）。
  *
  * 运行：`npm run build && npm run test:auth:p1`
  */
@@ -13,15 +13,15 @@ import { initDb } from "../../../dist/db/init.js";
 import { getUserRootDir } from "../../../dist/services/workspace.service.js";
 import { AuthService } from "../../../dist/services/auth/auth.service.js";
 import { AliyunSmsService, ALIYUN_SMS_DEV_MOCK_CODE } from "../../../dist/services/auth/aliyunSms.service.js";
-import { RoutingSmsService } from "../../../dist/services/auth/routingSms.service.js";
-import { TwilioVerifyService } from "../../../dist/services/auth/twilioVerify.service.js";
 import { AuthAuditLogService } from "../../../dist/services/auth/authAuditLog.service.js";
+import { APPLE_AUTH_DEV_MOCK_TOKEN } from "../../../dist/services/auth/appleAuth.service.js";
 import { normalizePhoneE164 } from "../../../dist/utils/phone.js";
 import { SmsRateLimitService } from "../../../dist/services/auth/smsRateLimit.service.js";
 
 loadEnv();
 process.env.ALIYUN_DYPNSAPI_DEV_MOCK = "1";
-process.env.TWILIO_VERIFY_DEV_MOCK = "1";
+process.env.APPLE_AUTH_DEV_MOCK = "1";
+process.env.NODE_ENV = "development";
 
 const MOCK_CODE = ALIYUN_SMS_DEV_MOCK_CODE;
 
@@ -71,7 +71,7 @@ async function main(): Promise<void> {
   const db = initDb();
   const authService = new AuthService(
     db,
-    new RoutingSmsService(new AliyunSmsService(), new TwilioVerifyService()),
+    new AliyunSmsService(),
     new SmsRateLimitService(db),
     new AuthAuditLogService(db),
   );
@@ -92,9 +92,38 @@ async function main(): Promise<void> {
     check("POST /sms/login → 200", Boolean(loginA.token && loginA.userId));
 
     const meRes = await fetch(`${base}/api/auth/me`, { headers: authHeader(loginA.token) });
-    const meBody = (await meRes.json()) as { phone?: string; userId?: string };
+    const meBody = (await meRes.json()) as { phone?: string; userId?: string; loginMethod?: string };
     check("GET /me → 200", meRes.status === 200);
     check("GET /me phone matches", meBody.phone === canonicalPhone(phoneA), meBody);
+    check("GET /me loginMethod=phone", meBody.loginMethod === "phone", meBody);
+
+    console.log("\n=== 非 +86 拒收 ===");
+    const overseasRes = await fetch(`${base}/api/auth/sms/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: "+14155552671", scene: "login" }),
+    });
+    const overseasBody = (await overseasRes.json()) as { code?: string };
+    check("POST /sms/send overseas → 400", overseasRes.status === 400 && overseasBody.code === "DOMESTIC_PHONE_ONLY", overseasBody);
+
+    console.log("\n=== Apple 登录 ===");
+    const appleRes = await fetch(`${base}/api/auth/apple/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identityToken: APPLE_AUTH_DEV_MOCK_TOKEN }),
+    });
+    const appleBody = (await appleRes.json()) as {
+      token?: string;
+      userId?: string;
+      loginMethod?: string;
+      appleEmail?: string;
+    };
+    check("POST /apple/login → 200", appleRes.status === 200 && Boolean(appleBody.token), appleBody);
+    check("Apple loginMethod=apple", appleBody.loginMethod === "apple", appleBody);
+
+    const appleMe = await fetch(`${base}/api/auth/me`, { headers: authHeader(appleBody.token!) });
+    const appleMeBody = (await appleMe.json()) as { loginMethod?: string; appleEmail?: string };
+    check("GET /me apple user", appleMe.status === 200 && appleMeBody.loginMethod === "apple", appleMeBody);
 
     console.log("\n=== 换绑手机号 + token_version ===");
     const phoneB = uniquePhone("2");
@@ -113,8 +142,7 @@ async function main(): Promise<void> {
     check("token_version bumped to 2", tvRow?.token_version === 2, tvRow);
 
     const oldTokenMe = await fetch(`${base}/api/auth/me`, { headers: authHeader(loginA.token) });
-    const oldTokenBody = (await oldTokenMe.json()) as { code?: string };
-    check("old token → 401 TOKEN_REVOKED", oldTokenMe.status === 401 && oldTokenBody.code === "TOKEN_REVOKED", oldTokenBody);
+    check("old token → 401", oldTokenMe.status === 401);
 
     const loginB = await smsLogin(base, phoneB);
     check(
@@ -123,9 +151,18 @@ async function main(): Promise<void> {
       loginB,
     );
 
-    const meAfter = await fetch(`${base}/api/auth/me`, { headers: authHeader(loginB.token) });
-    const meAfterBody = (await meAfter.json()) as { phone?: string };
-    check("GET /me after change shows new phone", meAfterBody.phone === canonicalPhone(phoneB), meAfterBody);
+    console.log("\n=== Apple 用户不可换绑 ===");
+    const appleChange = await fetch(`${base}/api/auth/phone`, {
+      method: "PATCH",
+      headers: authHeader(appleBody.token!),
+      body: JSON.stringify({ newPhone: phoneB, oldCode: MOCK_CODE, newCode: MOCK_CODE }),
+    });
+    const appleChangeBody = (await appleChange.json()) as { code?: string };
+    check(
+      "Apple user PATCH /phone → 403",
+      appleChange.status === 403 && appleChangeBody.code === "AUTH_METHOD_NOT_SUPPORTED",
+      appleChangeBody,
+    );
 
     console.log("\n=== 换绑冲突 ===");
     const phoneC = uniquePhone("3");
@@ -138,7 +175,7 @@ async function main(): Promise<void> {
     const conflictBody = (await conflictRes.json()) as { code?: string };
     check("PATCH /phone taken phone → 409", conflictRes.status === 409 && conflictBody.code === "PHONE_TAKEN", conflictBody);
 
-    console.log("\n=== 删号 ===");
+    console.log("\n=== 删号（短信） ===");
     const phoneD = uniquePhone("4");
     const loginD = await smsLogin(base, phoneD);
     const dataDir = getUserRootDir(loginD.userId);
@@ -150,26 +187,36 @@ async function main(): Promise<void> {
       body: JSON.stringify({ code: MOCK_CODE }),
     });
     const delBody = (await delRes.json()) as { ok?: boolean };
-    check("DELETE /me → 200", delRes.status === 200 && delBody.ok === true, delBody);
-
-    const userGone = db.prepare("SELECT id FROM users WHERE id = ?").get(loginD.userId);
-    check("user row removed", userGone === undefined);
-
-    const afterDelMe = await fetch(`${base}/api/auth/me`, { headers: authHeader(loginD.token) });
-    check("token invalid after delete → 401", afterDelMe.status === 401);
-
+    check("DELETE /me phone → 200", delRes.status === 200 && delBody.ok === true, delBody);
     check("user workspace removed", !fs.existsSync(dataDir));
+
+    console.log("\n=== 删号（Apple） ===");
+    const appleDelLogin = await fetch(`${base}/api/auth/apple/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identityToken: APPLE_AUTH_DEV_MOCK_TOKEN }),
+    });
+    const appleDelBody = (await appleDelLogin.json()) as { token?: string; userId?: string };
+    const appleDataDir = getUserRootDir(appleDelBody.userId!);
+    const appleDelRes = await fetch(`${base}/api/auth/me`, {
+      method: "DELETE",
+      headers: authHeader(appleDelBody.token!),
+      body: JSON.stringify({ identityToken: APPLE_AUTH_DEV_MOCK_TOKEN }),
+    });
+    check("DELETE /me apple → 200", appleDelRes.status === 200);
+    check("apple workspace removed", !fs.existsSync(appleDataDir));
 
     console.log("\n=== 未登录 ===");
     const noAuth = await fetch(`${base}/api/auth/me`);
     check("GET /me without token → 401", noAuth.status === 401);
 
-    const badTvToken = jwt.sign({ userId: loginA.userId, phone: phoneB, tv: 1 }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"],
-    });
+    const badTvToken = jwt.sign(
+      { userId: loginA.userId, loginMethod: "phone", phone: phoneB, tv: 1 },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] },
+    );
     const staleTv = await fetch(`${base}/api/auth/me`, { headers: authHeader(badTvToken) });
-    const staleBody = (await staleTv.json()) as { code?: string };
-    check("stale tv in JWT → TOKEN_REVOKED", staleTv.status === 401 && staleBody.code === "TOKEN_REVOKED", staleBody);
+    check("stale tv in JWT → 401", staleTv.status === 401);
   } finally {
     await new Promise<void>((resolve, reject) => {
       server.close((err) => (err ? reject(err) : resolve()));

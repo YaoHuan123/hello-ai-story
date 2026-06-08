@@ -17,10 +17,11 @@ import {
   isBasicProfileTopicName,
   resolveCanonicalTopicName,
 } from "../../topic/catalog";
+import { interviewCompletePrompt } from "../displayLocale";
 import type { InterviewFieldType } from "../../topic/fieldMeta";
 
 export type DisplayInterviewQuestion = {
-  type: "topic" | "normal";
+  type: "topic" | "normal" | "complete";
   title: string | null;
   key: string;
   text: string;
@@ -29,6 +30,7 @@ export type DisplayInterviewQuestion = {
   fieldType?: InterviewFieldType;
   fieldChoices?: string[];
   skippable?: boolean;
+  answerCount?: number;
 };
 
 const EN_BASIC_PROFILE_PROMPTS: Record<string, string> = {
@@ -93,6 +95,9 @@ export function toDisplayInterviewQuestion(
   locale: DisplayLocale,
   fieldMeta?: { fieldType?: InterviewFieldType; fieldChoices?: string[]; optionsKey?: string },
 ): DisplayInterviewQuestion {
+  if (q.type === "complete") {
+    return { ...q, text: interviewCompletePrompt(locale) };
+  }
   const title = q.title ? toDisplayTopicName(q.title, locale) : null;
   let text = q.type === "topic" ? selectTopicPrompt(locale) : toDisplayQuestionText(q.text, locale);
   if (q.type === "normal" && q.title && isBasicProfileTopicName(q.title)) {

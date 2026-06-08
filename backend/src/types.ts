@@ -1,6 +1,11 @@
+export type LoginMethod = "phone" | "apple";
+
 export interface UserRecord {
   id: string;
-  phone: string;
+  phone: string | null;
+  apple_sub: string | null;
+  login_method: LoginMethod;
+  apple_email: string | null;
   data_dir: string;
   created_at: string;
   role?: string;
@@ -10,15 +15,18 @@ export interface UserRecord {
 
 export interface JwtPayload {
   userId: string;
-  phone: string;
   tv: number;
+  loginMethod: LoginMethod;
+  phone?: string;
 }
 
 export interface AuthSuccessResponse {
   token: string;
   userId: string;
-  phone: string;
   dataDir: string;
+  loginMethod: LoginMethod;
+  phone?: string;
+  appleEmail?: string;
 }
 
 export interface ErrorResponse {

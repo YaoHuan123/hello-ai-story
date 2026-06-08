@@ -23,6 +23,13 @@ export type TextTaskListItem = {
   lastError?: string;
 };
 
+export type TextVideoCostEstimate = {
+  tierCount: number;
+  usdPerTier: number;
+  estimatedUsd: number;
+  usedLegacyFallback: boolean;
+};
+
 /** 产物侧快照（不含正文全文）。 */
 export type TextTaskOutputSnapshot = {
   articlePath: string;
@@ -30,12 +37,31 @@ export type TextTaskOutputSnapshot = {
   articleLength?: number;
   sectionCount?: number;
   skippedModel?: boolean;
+  videoCostEstimate?: TextVideoCostEstimate;
 };
 
 /** 单任务进度：meta + 可选产物快照（文本线无 worker 队列）。 */
 export type TextTaskProgress = TextTaskListItem & {
   output: TextTaskOutputSnapshot | null;
 };
+
+function parseVideoCostEstimate(raw: unknown): TextVideoCostEstimate | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const row = raw as Record<string, unknown>;
+  if (
+    typeof row.tierCount !== "number" ||
+    typeof row.usdPerTier !== "number" ||
+    typeof row.estimatedUsd !== "number"
+  ) {
+    return undefined;
+  }
+  return {
+    tierCount: row.tierCount,
+    usdPerTier: row.usdPerTier,
+    estimatedUsd: row.estimatedUsd,
+    usedLegacyFallback: row.usedLegacyFallback === true,
+  };
+}
 
 function metaToListItem(meta: TextTaskMeta): TextTaskListItem {
   return {
@@ -57,12 +83,14 @@ function readOutputSnapshot(paths: ReturnType<typeof getTextTaskPaths>): TextTas
   try {
     const raw = JSON.parse(fs.readFileSync(paths.articlePath, "utf-8")) as Record<string, unknown>;
     const article = typeof raw.article === "string" ? raw.article : "";
+    const videoCostEstimate = parseVideoCostEstimate(raw.videoCostEstimate);
     return {
       articlePath: rel,
       hasArticle: article.trim().length > 0,
       ...(article ? { articleLength: article.length } : {}),
       ...(typeof raw.sectionCount === "number" ? { sectionCount: raw.sectionCount } : {}),
       ...(typeof raw.skippedModel === "boolean" ? { skippedModel: raw.skippedModel } : {}),
+      ...(videoCostEstimate ? { videoCostEstimate } : {}),
     };
   } catch {
     return { articlePath: rel, hasArticle: false };

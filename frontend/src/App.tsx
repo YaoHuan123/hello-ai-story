@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
-import { getMe, sendSms, smsLogin } from "./api/auth";
+import { appleLogin, getMe, sendSms, smsLogin } from "./api/auth";
 import { getHealth, type HealthResponse } from "./api/health";
 import { listInterviews } from "./api/interviews";
 import { AppPageShell } from "./components/AppPageShell";
 import { MainTabShell, type MainTab } from "./layout/MainTabShell";
 import "./layout/MainTabShell.css";
 import { displayError, t } from "./i18n";
+import { signInWithAppleNative } from "./lib/appleSignIn";
 import { authTokenStore } from "./lib/authToken";
+import { isIosNative } from "./lib/platform";
+import { AppleLoginPage } from "./pages/AppleLoginPage";
 import { CreateHomePage } from "./pages/CreateHomePage";
 import { InterviewPage } from "./pages/InterviewPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -36,6 +39,7 @@ function App() {
   const [message, setMessage] = useState<string | null>(null);
 
   const hasToken = useMemo(() => Boolean(authTokenStore.get()), [authResult, me, screen]);
+  const useAppleLogin = isIosNative();
 
   useEffect(() => {
     void getHealth()
@@ -85,6 +89,15 @@ function App() {
     }
   };
 
+  const finishLogin = async (result: AuthResult) => {
+    setAuthResult(result);
+    const profile = await getMe();
+    setMe(profile);
+    setMessage(t("login.success"));
+    setScreen({ kind: "shell", tab: "story" });
+    setStoryRefreshKey((k) => k + 1);
+  };
+
   const handleSendSms = () => {
     void runAuthAction(async () => {
       await sendSms(phone, "login");
@@ -92,22 +105,26 @@ function App() {
     });
   };
 
-  const handleLogin = () => {
+  const handleSmsLogin = () => {
     void runAuthAction(async () => {
       const result = await smsLogin(phone, code);
-      setAuthResult(result);
-      const profile = await getMe();
-      setMe(profile);
-      setMessage(t("login.success"));
-      setScreen({ kind: "shell", tab: "story" });
-      setStoryRefreshKey((k) => k + 1);
+      await finishLogin(result);
+    });
+  };
+
+  const handleAppleLogin = () => {
+    void runAuthAction(async () => {
+      const { identityToken } = await signInWithAppleNative();
+      const result = await appleLogin(identityToken);
+      await finishLogin(result);
     });
   };
 
   const handleLoggedOut = () => {
+    authTokenStore.clear();
     setAuthResult(null);
     setMe(null);
-    setScreen({ kind: "shell", tab: "me" });
+    setScreen({ kind: "shell", tab: "story" });
     setMessage(t("login.loggedOut"));
   };
 
@@ -123,17 +140,26 @@ function App() {
   if (!hasToken) {
     return (
       <AppPageShell>
-        <LoginPage
-          phone={phone}
-          code={code}
-          loading={loading}
-          error={error}
-          message={message}
-          onPhoneChange={setPhone}
-          onCodeChange={setCode}
-          onSendSms={handleSendSms}
-          onLogin={handleLogin}
-        />
+        {useAppleLogin ? (
+          <AppleLoginPage
+            loading={loading}
+            error={error}
+            message={message}
+            onSignIn={handleAppleLogin}
+          />
+        ) : (
+          <LoginPage
+            phone={phone}
+            code={code}
+            loading={loading}
+            error={error}
+            message={message}
+            onPhoneChange={setPhone}
+            onCodeChange={setCode}
+            onSendSms={handleSendSms}
+            onLogin={handleSmsLogin}
+          />
+        )}
       </AppPageShell>
     );
   }

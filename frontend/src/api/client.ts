@@ -1,6 +1,7 @@
 import { NOT_LOGGED_IN, t } from "../i18n";
 import { resolveApiUrl } from "../lib/apiBase";
 import { authTokenStore } from "../lib/authToken";
+import { clientPlatformHeader } from "../lib/platform";
 
 interface ApiErrorPayload {
   code?: string;
@@ -39,6 +40,7 @@ export async function parseApiError(response: Response): Promise<Error> {
 export async function apiRequest<T>(url: string, init: RequestInit = {}, useAuth = false): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
+  headers.set("X-Client-Platform", clientPlatformHeader());
   if (useAuth) {
     const token = authTokenStore.get();
     if (!token) throw new ApiRequestError(t("api.NOT_LOGGED_IN"), 401, NOT_LOGGED_IN);

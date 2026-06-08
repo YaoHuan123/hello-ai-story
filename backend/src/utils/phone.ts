@@ -67,11 +67,6 @@ export function toAliyunLocalPhone(phone: string): string {
   throw new Error("NOT_CHINA_PHONE");
 }
 
-/** Twilio Verify 需要 +E.164。 */
-export function toTwilioE164(phone: string): string {
-  return `+${phone}`;
-}
-
 /** 查询用户时兼容旧库里的 11 位中国本地号。 */
 export function phoneLookupKeys(phone: string): string[] {
   const keys = [phone];

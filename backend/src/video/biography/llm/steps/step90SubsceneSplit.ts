@@ -47,12 +47,19 @@ function parseSegIdx(v: unknown): number | null {
   return null;
 }
 
-/** 模型偶发沿用步骤 80 键名或直接返回数组；归一为 `{ subsceneSplitTimelineSegments }`。 */
-function coerceSubsceneSplit90Root(parsed: unknown): Record<string, unknown> {
-  if (Array.isArray(parsed)) {
-    return { subsceneSplitTimelineSegments: parsed };
+function narrativeStringsFromUnknown(v: unknown): string[] {
+  if (typeof v === "string" && v.trim()) {
+    return [v.trim()];
   }
-  if (!parsed || typeof parsed !== "object") {
+  if (!Array.isArray(v)) {
+    return [];
+  }
+  return v.filter((n): n is string => typeof n === "string" && n.trim() !== "").map((n) => n.trim());
+}
+
+/** 模型偶发沿用步骤 80 键名；归一为 `{ subsceneSplitTimelineSegments }`（仍须满足对象数组形状）。 */
+function coerceSubsceneSplit90Root(parsed: unknown): Record<string, unknown> {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("SUBSCENE_SPLIT_90_INVALID: 模型输出须为对象");
   }
   const root = parsed as Record<string, unknown>;
@@ -60,39 +67,45 @@ function coerceSubsceneSplit90Root(parsed: unknown): Record<string, unknown> {
     return root;
   }
   if (Array.isArray(root.splitDedupedTimelineSegments)) {
-    return { subsceneSplitTimelineSegments: root.splitDedupedTimelineSegments };
-  }
-  if (typeof root.narrative === "string" || Array.isArray(root.narrative)) {
-    return { subsceneSplitTimelineSegments: [root] };
+    throw new Error(
+      "SUBSCENE_SPLIT_90_INVALID: 勿使用 splitDedupedTimelineSegments 作为输出键，须为 subsceneSplitTimelineSegments",
+    );
   }
   throw new Error("SUBSCENE_SPLIT_90_INVALID: 缺少 subsceneSplitTimelineSegments");
 }
 
-function assertSubsceneSplitShape(parsed: unknown): SubsceneSplitItem[] {
+/** 解析步骤 90 模型 JSON（严格形状；不含输入回填）。 */
+export function parseSubsceneSplit90ModelOutput(parsed: unknown): SubsceneSplitItem[] {
   const root = coerceSubsceneSplit90Root(parsed);
   const arr = root.subsceneSplitTimelineSegments;
   if (!Array.isArray(arr)) {
     throw new Error("SUBSCENE_SPLIT_90_INVALID: subsceneSplitTimelineSegments 须为数组");
   }
+  if (arr.length === 0) {
+    throw new Error("SUBSCENE_SPLIT_90_INVALID: subsceneSplitTimelineSegments 须为非空数组");
+  }
 
   const out: SubsceneSplitItem[] = [];
-  for (const item of arr) {
+  for (let i = 0; i < arr.length; i++) {
+    const item = arr[i];
     if (!item || typeof item !== "object" || Array.isArray(item)) {
-      throw new Error("SUBSCENE_SPLIT_90_INVALID: 数组项须为对象");
+      throw new Error(
+        `SUBSCENE_SPLIT_90_INVALID: subsceneSplitTimelineSegments[${i}] 须为对象（勿输出裸字符串或字符串数组，见 step-90 提示词）`,
+      );
     }
     const o = item as Record<string, unknown>;
-    const si = parseSegIdx(o.segmentIndex) ?? out.length + 1;
-    let narrative: string[] = [];
-    if (typeof o.narrative === "string" && o.narrative.trim()) {
-      narrative = [o.narrative.trim()];
-    } else if (Array.isArray(o.narrative)) {
-      narrative = o.narrative.filter((n): n is string => typeof n === "string" && n.trim() !== "").map((n) => n.trim());
+    const si = parseSegIdx(o.segmentIndex);
+    if (si === null) {
+      throw new Error(`SUBSCENE_SPLIT_90_INVALID: subsceneSplitTimelineSegments[${i}].segmentIndex 无效`);
     }
+    const narrative = narrativeStringsFromUnknown(o.narrative);
     if (narrative.length === 0) {
-      throw new Error("SUBSCENE_SPLIT_90_INVALID: narrative 须为非空字符串或非空字符串数组");
+      throw new Error(
+        `SUBSCENE_SPLIT_90_INVALID: subsceneSplitTimelineSegments[${i}].narrative 须为非空字符串数组`,
+      );
     }
     if (typeof o.timeLabel !== "string" || !o.timeLabel.trim()) {
-      throw new Error("SUBSCENE_SPLIT_90_INVALID: timeLabel 须为非空字符串");
+      throw new Error(`SUBSCENE_SPLIT_90_INVALID: subsceneSplitTimelineSegments[${i}].timeLabel 须为非空字符串`);
     }
     out.push({
       segmentIndex: si,
@@ -162,7 +175,7 @@ export async function runSubsceneSplitFromPipelineJson(
     throw new Error(`SUBSCENE_SPLIT_90_INVALID: 模型调用或 JSON 解析失败。${msg}`);
   }
 
-  const result = assertSubsceneSplitShape(parsed);
+  const result = parseSubsceneSplit90ModelOutput(parsed);
   const merged = mergeSubsceneSplitFromInput(result, pipeline);
   for (let i = 0; i < merged.length; i++) {
     if (!merged[i]!.timeLabel.trim()) {

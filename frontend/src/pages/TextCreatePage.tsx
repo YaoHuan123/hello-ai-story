@@ -10,7 +10,7 @@ import { AppPageShell } from "../components/AppPageShell";
 import { SubpageHeader } from "../components/SubpageHeader";
 import { ProductionFailureNotice } from "../components/production/ProductionFailureNotice";
 import { t } from "../i18n";
-import type { ProductionReadiness, TextTaskListItem } from "../types/production";
+import type { ProductionReadiness, TextTaskListItem, TextVideoCostEstimate } from "../types/production";
 import "./production/ProductionSubpage.css";
 import "./production/production-components.css";
 import { defaultPolishMode } from "./production/productCopy";
@@ -29,7 +29,16 @@ type ArticleDetail = {
   savedAt: string;
   article: string;
   sectionCount?: number;
+  videoCostEstimate?: TextVideoCostEstimate;
 };
+
+function formatVideoEstimate(estimate: TextVideoCostEstimate): string {
+  return t("textCreate.videoEstimate", {
+    amount: estimate.estimatedUsd.toFixed(2),
+    tierCount: String(estimate.tierCount),
+    perTier: estimate.usdPerTier.toFixed(2),
+  });
+}
 
 export function TextCreatePage({ interviewId, interviewTitle, onBack, onNeedLogin }: Props) {
   const { loading, error, run } = useProductionRunner(onNeedLogin);
@@ -37,6 +46,7 @@ export function TextCreatePage({ interviewId, interviewTitle, onBack, onNeedLogi
   const [readiness, setReadiness] = useState<ProductionReadiness | null>(null);
   const [detail, setDetail] = useState<ArticleDetail | null>(null);
   const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [videoEstimates, setVideoEstimates] = useState<Record<string, TextVideoCostEstimate>>({});
 
   const canProduce = readiness?.ready === true;
   const polishMode = defaultPolishMode();
@@ -54,13 +64,24 @@ export function TextCreatePage({ interviewId, interviewTitle, onBack, onNeedLogi
       successTasks.map(async (task) => {
         try {
           const res = await getTextArticle(interviewId, task.taskId);
-          return [task.taskId, summarizeText(res.article)] as const;
+          return {
+            taskId: task.taskId,
+            preview: summarizeText(res.article),
+            videoCostEstimate: res.videoCostEstimate,
+          };
         } catch {
-          return [task.taskId, ""] as const;
+          return { taskId: task.taskId, preview: "" };
         }
       }),
     );
-    setPreviews(Object.fromEntries(entries));
+    setPreviews(Object.fromEntries(entries.map((row) => [row.taskId, row.preview])));
+    setVideoEstimates(
+      Object.fromEntries(
+        entries
+          .filter((row) => row.videoCostEstimate)
+          .map((row) => [row.taskId, row.videoCostEstimate!]),
+      ),
+    );
   }, [interviewId]);
 
   useEffect(() => {
@@ -78,6 +99,7 @@ export function TextCreatePage({ interviewId, interviewTitle, onBack, onNeedLogi
         savedAt: articleRes.savedAt ?? new Date().toISOString(),
         article: articleRes.article,
         sectionCount: articleRes.sectionCount,
+        videoCostEstimate: articleRes.videoCostEstimate,
       });
     });
   };
@@ -90,6 +112,7 @@ export function TextCreatePage({ interviewId, interviewTitle, onBack, onNeedLogi
         savedAt: articleRes.savedAt ?? taskId,
         article: articleRes.article,
         sectionCount: articleRes.sectionCount,
+        videoCostEstimate: articleRes.videoCostEstimate,
       });
     });
   };
@@ -148,6 +171,11 @@ export function TextCreatePage({ interviewId, interviewTitle, onBack, onNeedLogi
                         ? t("textCreate.generateFailed")
                         : previews[task.taskId] || t("textCreate.tapToView")}
                     </span>
+                    {videoEstimates[task.taskId] ? (
+                      <span className="prod-text-card__estimate">
+                        {formatVideoEstimate(videoEstimates[task.taskId]!)}
+                      </span>
+                    ) : null}
                   </button>
                   <button
                     type="button"
@@ -197,6 +225,9 @@ export function TextCreatePage({ interviewId, interviewTitle, onBack, onNeedLogi
                 ? ` · ${t("textCreate.sectionCount", { count: String(detail.sectionCount) })}`
                 : ""}
               {` · ${t("textCreate.charCount", { count: String(detail.article.length) })}`}
+              {detail.videoCostEstimate
+                ? ` · ${formatVideoEstimate(detail.videoCostEstimate)}`
+                : ""}
             </p>
             <div className="prod-detail-sheet__body">{detail.article}</div>
           </div>

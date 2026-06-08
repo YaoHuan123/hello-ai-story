@@ -75,3 +75,14 @@ export function commitSection(scope: InterviewScope, section: AnsweredSection): 
 export function seedCommittedSections(scope: InterviewScope, sections: AnsweredSection[]): void {
   writeJsonAtomic(sectionsPath(scope), sections);
 }
+
+/** 已写入 `sections.json` 的有效问答条数（q、a 均非空）。 */
+export function countCommittedAnswers(scope: InterviewScope): number {
+  let n = 0;
+  for (const sec of getSections(scope)) {
+    for (const pair of sec.qa ?? []) {
+      if (String(pair.q ?? "").trim() && String(pair.a ?? "").trim()) n += 1;
+    }
+  }
+  return n;
+}

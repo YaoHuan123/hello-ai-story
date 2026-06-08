@@ -25,8 +25,7 @@ function codeHint(code: string): string | undefined {
     TEXT_PIPELINE_NO_SECTIONS: t("production.errorNoSections"),
     VIDEO_STYLE_NOT_FOUND: t("production.errorStyleNotFound"),
     AI_SERVICE_UNAVAILABLE: t("production.errorAiUnavailable"),
-    VIDEO_QUEUE_RETRY_INVALID: t("production.errorRetryInvalid"),
-    VIDEO_QUEUE_TASK_NOT_FAILED: t("production.errorRetryNotFailed"),
+    VIDEO_TASK_RETRY_INVALID: t("production.errorRetryInvalid"),
   };
   return hints[code];
 }
@@ -94,14 +93,3 @@ export function formatProductionError(input: string | undefined | null): {
   };
 }
 
-/** 合并 meta.lastError 与 queue.error。 */
-export function formatTaskFailure(
-  lastError?: string,
-  queueError?: { code: string; message: string },
-): { title: string; detail: string; hint?: string } | null {
-  if (queueError?.message) {
-    const fromQueue = formatProductionError(`${queueError.code}: ${queueError.message}`);
-    if (fromQueue) return fromQueue;
-  }
-  return formatProductionError(lastError);
-}

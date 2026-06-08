@@ -4,6 +4,8 @@ export type AuthAuditEvent =
   | "sms_send"
   | "sms_login_success"
   | "sms_login_failed"
+  | "apple_login_success"
+  | "apple_login_failed"
   | "change_phone_success"
   | "change_phone_failed"
   | "delete_account";

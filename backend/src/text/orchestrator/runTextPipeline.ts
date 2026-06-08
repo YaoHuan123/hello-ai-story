@@ -3,6 +3,8 @@ import path from "node:path";
 import type { InterviewScope } from "../../services/interviewWorkspace.service";
 import type { AnsweredSection } from "../../topic/types";
 import { getSections } from "../../services/answeredSections.service";
+import { readTierCommits } from "../../services/tierCommitLedger.service";
+import { estimateVideoCostForSections } from "../videoCostEstimate.js";
 import { TEXT_PIPELINE_STEPS } from "../constants/textStepIds.js";
 import { TEXT_ARTICLE_OUTPUT_FILE, TEXT_SECTIONS_SNAPSHOT_FILE, TEXT_TASK_INPUT_DIR, TEXT_TASK_OUTPUT_DIR } from "../constants/textFilenames.js";
 import { generateFormalArticleFromSections, type TextArticleMode } from "../llm/generateArticle.js";
@@ -15,6 +17,7 @@ import {
   writeTextTaskMeta,
   type TextTaskHandle,
   type TextTaskMeta,
+  type TextVideoCostEstimate,
 } from "./textTaskWorkspace.js";
 
 export type TextPipelineStepResult = {
@@ -24,6 +27,7 @@ export type TextPipelineStepResult = {
   sectionCount: number;
   articleLength: number;
   skippedModel: boolean;
+  videoCostEstimate: TextVideoCostEstimate;
 };
 
 export type RunTextPipelineOptions = {
@@ -82,6 +86,9 @@ async function runTextPipelineInner(
   writeJsonAtomic(path.join(handle.paths.inputDir, TEXT_SECTIONS_SNAPSHOT_FILE), sections);
 
   try {
+    const tierCommitCount = readTierCommits(scope).length;
+    const videoCostEstimate = estimateVideoCostForSections(sections, tierCommitCount);
+
     const { article, skippedModel } = await generateFormalArticleFromSections(sections, {
       mode: opts?.mode,
     });
@@ -91,6 +98,7 @@ async function runTextPipelineInner(
       sectionCount: sections.length,
       article,
       skippedModel,
+      videoCostEstimate,
     });
 
     const savedAt = new Date().toISOString();
@@ -101,6 +109,7 @@ async function runTextPipelineInner(
       sectionCount: sections.length,
       articleLength: article.length,
       skippedModel,
+      videoCostEstimate,
     };
 
     opts?.onStepComplete?.(stepResult);

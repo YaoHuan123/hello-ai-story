@@ -23,6 +23,10 @@ export type AnsweredSection = {
     /** 用户提交的答案 */
     a: string;
   }>;
+  /** 选题档位（commit 时写入；旧数据可能缺失） */
+  tier?: TopicPick["tier"];
+  /** 话题来源（commit 时写入；旧数据可能缺失） */
+  kind?: TopicPickKind;
 };
 
 // ─── Tier1 / Tier2：catalog 模板话题推荐 ─────────────────────

@@ -224,6 +224,14 @@
   color: var(--shell-label-2);
 }
 
+.prod-text-card__estimate {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--shell-brand);
+}
+
 .prod-detail-sheet {
   position: fixed;
   inset: 0;

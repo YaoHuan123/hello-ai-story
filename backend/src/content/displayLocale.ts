@@ -43,6 +43,12 @@ export function selectTopicPrompt(locale: DisplayLocale = getDisplayLocale()): s
   return locale === "en" ? "Choose a topic to explore" : "请选择一个主题";
 }
 
+export function interviewCompletePrompt(locale: DisplayLocale = getDisplayLocale()): string {
+  return locale === "en"
+    ? "You've covered a rich set of memories for now. You can create story text or video from the studio."
+    : "这一轮能聊的主题都已经聊过了。你可以返回创作台，去生成故事文本或视频。";
+}
+
 /** LLM 口语化 / refine 问句长度上限（canonical 英文）。 */
 export const QUESTION_TEXT_MAX_CHARS = 180;
 

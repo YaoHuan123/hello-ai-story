@@ -69,7 +69,7 @@ HTTP 创建任务（`POST /video/biography|studio`）后，实际 LLM + TTS + �
 |------|------|------|
 | `VIDEO_WORKER_POLL_MS` | 3000 | 无任务时轮询间隔 |
 | `VIDEO_WORKER_HEARTBEAT_MS` | 15000 | 执行中写心跳间隔 |
-| `VIDEO_TASK_HEARTBEAT_TIMEOUT_SEC` | 120 | 超时后可 reclaim `running` 任务（兼容旧名 `VIDEO_QUEUE_HEARTBEAT_TIMEOUT_SEC`） |
+| `VIDEO_TASK_HEARTBEAT_TIMEOUT_SEC` | 120 | 超时后可 reclaim `running` 任务 |
 
 长步骤（TTS、文生图）可把 timeout 调到 **300+**，避免误判僵死。
 

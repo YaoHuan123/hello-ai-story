@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import type { DatabaseSync, StatementSync } from "node:sqlite";
 import { JWT_SECRET } from "../config";
-import type { JwtPayload } from "../types";
+import type { JwtPayload, LoginMethod } from "../types";
 
 declare global {
   namespace Express {
@@ -23,11 +23,16 @@ function resolvePayloadFromToken(token: string): JwtPayload | null {
     throw new Error("authMiddleware not initialized: call initAuthMiddleware(db) at startup");
   }
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    const row = tokenVersionLookup.get(payload.userId) as { token_version?: number } | undefined;
+    const raw = jwt.verify(token, JWT_SECRET) as JwtPayload & { phone?: string; loginMethod?: LoginMethod };
+    const row = tokenVersionLookup.get(raw.userId) as { token_version?: number } | undefined;
     if (!row) return null;
-    if (typeof payload.tv !== "number" || payload.tv !== row.token_version) return null;
-    return payload;
+    if (typeof raw.tv !== "number" || raw.tv !== row.token_version) return null;
+    return {
+      userId: raw.userId,
+      tv: raw.tv,
+      loginMethod: raw.loginMethod ?? "phone",
+      phone: raw.phone,
+    };
   } catch {
     return null;
   }
@@ -59,6 +64,6 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
     return;
   }
 
-  req.user = { userId: payload.userId, phone: payload.phone, tv: payload.tv };
+  req.user = payload;
   next();
 };

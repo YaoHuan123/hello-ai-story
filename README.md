@@ -118,7 +118,7 @@ npm run pm2:start
 
 Token 存在 `localStorage` 键 `auth_token`。
 
-登录为全球统一的 **手机号 + 短信验证码**（`+86` 走阿里云，其他号码走 Twilio Verify，见 [backend/docs/overseas-sms.md](backend/docs/overseas-sms.md)）。开发环境验证码固定 `123456`。
+登录：**Android / Web 测试** 为 +86 短信（阿里云）；**iOS** 为 Sign in with Apple（国内+海外）。详见 [backend/docs/dual-auth.md](backend/docs/dual-auth.md)。开发环境短信验证码固定 `123456`，Apple mock token 为 `dev-apple-mock-token`。
 
 ### 界面语言（i18n）
 

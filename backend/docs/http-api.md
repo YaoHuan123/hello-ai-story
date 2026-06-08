@@ -34,7 +34,7 @@ Content-Type: application/json
 |------|------|------|------|
 | `GET` | `/api/health` | 无 | 服务状态、时间戳、`locale`、短信模式（国内/海外 mock 或 real） |
 
-**响应示例字段：** `ok`, `message`, `timestamp`, `locale` (`zh` \| `en`), `sms`（`mode`, `china`, `overseas`）
+**响应示例字段：** `ok`, `message`, `timestamp`, `locale` (`zh` \| `en`), `sms`（`mode`, `provider`）, `apple`（`mode`）
 
 ---
 

@@ -107,12 +107,20 @@ export function resolveTextTask(scope: InterviewScope, taskId?: string): TextTas
   return taskId ? openTextTask(scope, taskId) : createTextTask(scope);
 }
 
+export type TextVideoCostEstimate = {
+  tierCount: number;
+  usdPerTier: number;
+  estimatedUsd: number;
+  usedLegacyFallback: boolean;
+};
+
 export type TextArticleFile = {
   savedAt: string;
   inputSectionsSnapshotFile: string;
   sectionCount: number;
   article: string;
   skippedModel: boolean;
+  videoCostEstimate: TextVideoCostEstimate;
 };
 
 export function writeTextArticleFile(
