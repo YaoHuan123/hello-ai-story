@@ -6,6 +6,7 @@ import { seedCommittedSections } from "../../../src/services/answeredSections.se
 import { createInterview } from "../../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../../src/services/workspace.service";
 import type { AnsweredSection } from "../../../src/topic/types";
+import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
 import { createStudioVideoTask } from "../../../dist/video/studio/orchestrator/runStudioVideoPipeline.js";
 import {
   getVideoTaskProgress,
@@ -15,6 +16,7 @@ import { scheduleStudioVideoTask } from "../../../dist/video/worker/videoTaskSch
 import { runVideoWorkerOnce } from "../../../dist/video/worker/videoTaskWorker.js";
 
 loadEnv();
+process.env.TEXT_ARTICLE_STUB = "1";
 process.env.VIDEO_INPUT_STUB = "1";
 process.env.STUDIO_SCRIPT_STUB = "1";
 
@@ -48,17 +50,15 @@ async function main() {
   const interview = createInterview(userId, { title: "query测试" });
   const scope = { userId, interviewId: interview.id };
   seedCommittedSections(scope, FIXTURE);
+  await runTextPipeline(scope, { createTask: true, mode: "stub", sections: FIXTURE });
 
   const pending = createStudioVideoTask(scope);
-  check("list empty-ish: only pending task", listVideoTasks(scope).length === 1);
+  check("list includes pending task", listVideoTasks(scope).length === 1);
 
   const pendingProgress = getVideoTaskProgress(scope, pending.taskId);
   check("pending meta status", pendingProgress.status === "pending");
-  check("pending has no queue", pendingProgress.queue === null);
 
   const scheduled = scheduleStudioVideoTask(scope, {
-    hostVoice: "stub-host",
-    guestVoice: "stub-guest",
     polishMode: "stub",
     throughStep: "iv_script",
   });
@@ -69,14 +69,11 @@ async function main() {
 
   const queuedProgress = getVideoTaskProgress(scope, scheduled.videoTaskId);
   check("queued meta status", queuedProgress.status === "queued");
-  check("queued queue status", queuedProgress.queue?.status === "queued");
-  check("queue kind studio", queuedProgress.queue?.kind === "create_video_studio");
 
   await runVideoWorkerOnce();
 
   const doneProgress = getVideoTaskProgress(scope, scheduled.videoTaskId);
   check("success meta status", doneProgress.status === "success");
-  check("success queue status", doneProgress.queue?.status === "success");
   check("completedSteps non-empty", (doneProgress.completedSteps?.length ?? 0) > 0);
 
   if (failed > 0) {

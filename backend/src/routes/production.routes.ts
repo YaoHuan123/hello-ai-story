@@ -141,22 +141,23 @@ function mapProductionError(res: Response, error: unknown): boolean {
     res.status(403).json({ code, message: "无权访问该任务" });
     return true;
   }
-  if (code === "TEXT_TASK_DELETE_BUSY" || code === "VIDEO_TASK_DELETE_BUSY") {
+  if (code === "TEXT_TASK_DELETE_BUSY") {
     const detail = msg.split(":").slice(1).join(":").trim();
     res.status(409).json({ code, message: detail || "任务进行中，暂不可删除" });
     return true;
   }
-  if (
-    code === "VIDEO_QUEUE_RETRY_INVALID" ||
-    code === "VIDEO_QUEUE_INVALID" ||
-    code === "VIDEO_QUEUE_TASK_NOT_FAILED" ||
-    code === "VIDEO_QUEUE_TASK_NOT_FOUND"
-  ) {
-    res.status(409).json({ code, message: "任务状态不允许该操作" });
+  if (code === "VIDEO_TASK_ALREADY_ACTIVE") {
+    const detail = msg.split(":").slice(1).join(":").trim();
+    res.status(409).json({ code, message: detail || "视频任务已在队列或生成中" });
     return true;
   }
-  if (code === "VIDEO_QUEUE_NOT_FOUND") {
-    res.status(404).json({ code, message: "队列任务不存在" });
+  if (
+    code === "VIDEO_TASK_RETRY_INVALID" ||
+    code === "VIDEO_TASK_REQUEST_INVALID" ||
+    code === "VIDEO_QUEUE_RETRY_INVALID" ||
+    code === "VIDEO_QUEUE_INVALID"
+  ) {
+    res.status(409).json({ code, message: "任务状态不允许该操作" });
     return true;
   }
   if (code === "VIDEO_TTS_VOICE_LOCALE_MISMATCH") {
@@ -404,9 +405,8 @@ export function createProductionRouter(): Router {
       const scheduled = scheduleBiographyVideoTask(scope, parsed.data);
       res.status(202).json({
         taskId: scheduled.videoTaskId,
-        queueTaskId: scheduled.queueTaskId,
-        kind: scheduled.queueRecord.kind,
-        status: scheduled.queueRecord.status,
+        kind: scheduled.kind,
+        status: scheduled.status,
       });
     } catch (error) {
       if (mapProductionError(res, error)) return;
@@ -433,9 +433,8 @@ export function createProductionRouter(): Router {
       const scheduled = scheduleStudioVideoTask(scope, parsed.data);
       res.status(202).json({
         taskId: scheduled.videoTaskId,
-        queueTaskId: scheduled.queueTaskId,
-        kind: scheduled.queueRecord.kind,
-        status: scheduled.queueRecord.status,
+        kind: scheduled.kind,
+        status: scheduled.status,
       });
     } catch (error) {
       if (mapProductionError(res, error)) return;
@@ -474,7 +473,6 @@ export function createProductionRouter(): Router {
       const rec = retryScheduledVideoTask(scope, taskId);
       res.status(200).json({
         taskId: rec.videoTaskId,
-        queueTaskId: rec.queueTaskId,
         status: rec.status,
       });
     } catch (error) {

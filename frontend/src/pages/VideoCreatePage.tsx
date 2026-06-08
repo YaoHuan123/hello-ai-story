@@ -413,10 +413,7 @@ export function VideoCreatePage({ interviewId, interviewTitle, onBack, onNeedLog
                       {isExpanded && detail ? (
                         <div className="prod-video-detail">
                           {detail.status === "failed" ? (
-                            <ProductionFailureNotice
-                              lastError={detail.lastError}
-                              queueError={detail.queue?.error}
-                            />
+                            <ProductionFailureNotice lastError={detail.lastError} />
                           ) : null}
                         </div>
                       ) : null}

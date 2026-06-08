@@ -26,6 +26,12 @@ export type VideoTaskMeta = {
   updatedAt: string;
   completedSteps: string[];
   lastError?: string;
+  /** worker 认领令牌（仅 running 时有效） */
+  runToken?: string;
+  heartbeatAt?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  deletedAt?: string;
 };
 
 export type VideoTaskPaths = {

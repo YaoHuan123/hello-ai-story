@@ -112,16 +112,16 @@ Content-Type: application/json
 
 ## 6. 视频生产（`/api/interviews/:interviewId/video/...`）
 
-视频生成 **异步入队**，由 worker 执行。
+视频生成 **异步**：API 在 `成片/{taskId}/` 创建任务，由 worker 扫描执行。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | `GET` | `.../video/tasks` | 列出视频任务 → `{ tasks: [...] }` |
-| `GET` | `.../video/tasks/:taskId` | 任务进度 + 队列状态 |
+| `GET` | `.../video/tasks/:taskId` | 任务进度（`meta.json`） |
 | `POST` | `.../video/biography` | 创建传记纪录片任务 → `202` |
 | `POST` | `.../video/studio` | 创建对话访谈片任务 → `202` |
 | `POST` | `.../video/tasks/:taskId/retry` | 重试失败任务 |
-| `DELETE` | `.../video/tasks/:taskId` | 删除任务（进行中不可删）→ `204` |
+| `DELETE` | `.../video/tasks/:taskId` | 标记删除（写 `.deleted`，worker 异步清目录）→ `204` |
 | `GET` | `.../video/tasks/:taskId/artifacts` | 产物清单（含 `primaryVideo.available`） |
 | `GET` | `.../video/tasks/:taskId/artifacts/file?rel=` | 按相对路径下载单个产物 |
 | `GET` | `.../video/tasks/:taskId/video` | 流式播放完整成片（`Content-Disposition: inline`） |
@@ -152,7 +152,7 @@ Content-Type: application/json
 }
 ```
 
-**调度响应（`202`）：** `taskId`, `queueTaskId`, `kind`, `status`
+**调度响应（`202`）：** `taskId`, `kind`, `status`
 
 ---
 

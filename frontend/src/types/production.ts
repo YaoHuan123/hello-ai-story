@@ -11,23 +11,10 @@ export type VideoTaskListItem = {
   lastError?: string;
 };
 
-export type VideoQueueTaskStatus = "queued" | "running" | "success" | "failed";
-export type VideoQueueTaskKind = "create_video_biography" | "create_video_studio";
-
-export type VideoTaskQueueSnapshot = {
-  queueTaskId: string;
-  status: VideoQueueTaskStatus;
-  kind: VideoQueueTaskKind;
-  createdAt: string;
-  updatedAt: string;
-  startedAt?: string;
-  finishedAt?: string;
-  heartbeatAt?: string;
-  error?: { code: string; message: string };
-};
+export type VideoTaskRequestKind = "create_video_biography" | "create_video_studio";
 
 export type VideoTaskProgress = VideoTaskListItem & {
-  queue: VideoTaskQueueSnapshot | null;
+  heartbeatAt?: string;
 };
 
 export type TextProductionMode = "biography_formal_article";
@@ -65,9 +52,8 @@ export type TextArticleResponse = {
 
 export type ScheduleVideoTaskResponse = {
   taskId: string;
-  queueTaskId: string;
-  kind: VideoQueueTaskKind;
-  status: VideoQueueTaskStatus;
+  kind: VideoTaskRequestKind;
+  status: "queued";
 };
 
 export type CreateTextTaskResponse = {

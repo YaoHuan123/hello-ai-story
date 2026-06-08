@@ -48,6 +48,7 @@
     "worker:video:once": "ts-node --transpile-only -r ./scripts/register-js-to-ts.cjs src/video/worker/cli.ts -- --once",
     "test:video:worker": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/video-worker.unit.ts",
     "test:video:query": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/video-task-query.unit.ts",
+    "test:video:delete": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/video-task-delete.unit.ts",
     "test:video:artifacts": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/video-task-artifacts.unit.ts",
     "test:video:biography:230": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/integration/video/video-biography-230.integration.ts",
     "test:video:studio:tts": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/integration/video/video-studio-tts.integration.ts",

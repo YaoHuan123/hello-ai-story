@@ -21,4 +21,4 @@ export {
   listVideoTasks,
   getVideoTaskProgress,
 } from "./worker/index.js";
-export type { VideoTaskListItem, VideoTaskProgress, VideoTaskQueueSnapshot } from "./worker/videoTaskQuery.js";
+export type { VideoTaskListItem, VideoTaskProgress } from "./worker/videoTaskQuery.js";

@@ -1,14 +1,19 @@
 /**
- * 视频 worker smoke：schedule → worker once（stub 模式）。
+ * 成片删除 tombstone：API 打标 → worker 清目录。
  */
+import fs from "node:fs";
 import { config as loadEnv } from "dotenv";
 import { seedCommittedSections } from "../../../src/services/answeredSections.service";
 import { createInterview } from "../../../src/services/interviewWorkspace.service";
 import { createUserWorkspace } from "../../../src/services/workspace.service";
 import type { AnsweredSection } from "../../../src/topic/types";
 import { runTextPipeline } from "../../../dist/text/orchestrator/runTextPipeline.js";
-import { readVideoTaskMeta, getVideoTaskPaths } from "../../../dist/video/shared/orchestrator/videoTaskWorkspace.js";
-import { readVideoTaskRequest } from "../../../dist/video/worker/videoTaskRequest.js";
+import { getVideoTaskPaths } from "../../../dist/video/shared/orchestrator/videoTaskWorkspace.js";
+import { deleteVideoTask } from "../../../dist/video/worker/deleteVideoTask.js";
+import {
+  getVideoTaskProgress,
+  listVideoTasks,
+} from "../../../dist/video/worker/videoTaskQuery.js";
 import { scheduleStudioVideoTask } from "../../../dist/video/worker/videoTaskScheduler.js";
 import { runVideoWorkerOnce } from "../../../dist/video/worker/videoTaskWorker.js";
 
@@ -42,35 +47,37 @@ function check(label: string, cond: boolean, detail?: unknown): void {
 }
 
 async function main() {
-  const userId = `video-worker-test-${Date.now()}`;
+  const userId = `video-delete-test-${Date.now()}`;
   createUserWorkspace(userId);
-  const interview = createInterview(userId, { title: "worker测试" });
+  const interview = createInterview(userId, { title: "delete测试" });
   const scope = { userId, interviewId: interview.id };
   seedCommittedSections(scope, FIXTURE);
   await runTextPipeline(scope, { createTask: true, mode: "stub", sections: FIXTURE });
 
-  const scheduled = scheduleStudioVideoTask(scope, {
-    polishMode: "stub",
-    throughStep: "iv_script",
-  });
+  const scheduled = scheduleStudioVideoTask(scope, { polishMode: "stub", throughStep: "iv_script" });
+  const paths = getVideoTaskPaths(scope, scheduled.videoTaskId);
+  check("task dir exists", fs.existsSync(paths.taskRoot));
 
-  check("scheduled status queued", scheduled.status === "queued");
+  deleteVideoTask(scope, scheduled.videoTaskId);
+  check("deleted marker exists", fs.existsSync(paths.taskRoot + "/.deleted"));
 
-  const request = readVideoTaskRequest(scope, scheduled.videoTaskId);
-  check("request.json written", request?.kind === "create_video_studio");
+  let progressErr = "";
+  try {
+    getVideoTaskProgress(scope, scheduled.videoTaskId);
+  } catch (e) {
+    progressErr = e instanceof Error ? e.message : String(e);
+  }
+  check("progress 404 after delete", progressErr.includes("VIDEO_TASK_NOT_FOUND"));
+  check("list excludes deleted", !listVideoTasks(scope).some((t) => t.taskId === scheduled.videoTaskId));
 
-  const workerResult = await runVideoWorkerOnce();
-  check("worker processed task", workerResult.processed === true);
-  check("worker matched task id", workerResult.taskId === scheduled.videoTaskId);
-
-  const meta = readVideoTaskMeta(getVideoTaskPaths(scope, scheduled.videoTaskId));
-  check("video meta success", meta?.status === "success");
+  await runVideoWorkerOnce();
+  check("worker purged task dir", !fs.existsSync(paths.taskRoot));
 
   if (failed > 0) {
-    console.error(`\ntest:video:worker FAILED (${passed} ok, ${failed} fail)`);
+    console.error(`\ntest:video:delete FAILED (${passed} ok, ${failed} fail)`);
     process.exit(1);
   }
-  console.log(`\ntest:video:worker OK (${passed} checks)`);
+  console.log(`\ntest:video:delete OK (${passed} checks)`);
 }
 
 main().catch((e) => {

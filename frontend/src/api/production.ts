@@ -67,7 +67,7 @@ export async function scheduleStudioVideo(
 
 export async function retryVideoTask(interviewId: string, taskId: string) {
   const tid = encodeURIComponent(taskId);
-  return apiRequest<{ taskId: string; queueTaskId: string; status: string }>(
+  return apiRequest<{ taskId: string; status: string }>(
     productionPath(interviewId, `/video/tasks/${tid}/retry`),
     { method: "POST" },
     true,
