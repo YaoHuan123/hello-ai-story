@@ -1,5 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { DisplayLocale } from "../content/displayLocale";
+import { toCanonicalTopicNameFromDisplay, toDisplayTopicName } from "../content/translate/display";
+import {
+  lookupCanonicalEnFromDisplayCache,
+  translateTextsForDisplay,
+} from "../content/translate/runtime";
 import type { InterviewScope } from "./interviewWorkspace.service";
 import { getInterviewRootDir } from "./interviewWorkspace.service";
 import { getTopicFieldKeys } from "../topic/catalog";
@@ -8,9 +14,11 @@ import {
   gapQuestionText,
   MATERIAL_INNER_SUGGESTIONS,
 } from "../topic/materialCopy";
+import { splitIntoSingleQuestions } from "../topic/parse";
 import { pendingRowsToPicks } from "../topic/pendingPickRow";
 import { selectTopics } from "../topic/selectTopics";
 import { deletePending, readPending, writePending } from "../topic/tierPending";
+import { canEnterAdvancedTiers, markTier1Exhausted } from "./catalogGates.service";
 import type {
   AnsweredSection,
   CurrentStage,
@@ -97,13 +105,20 @@ function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
         kind: pick.kind,
         questions: getTopicFieldKeys(pick.title),
       };
-    case "generated":
+    case "generated": {
+      const flat: string[] = [];
+      for (const raw of row.questions ?? []) {
+        for (const q of splitIntoSingleQuestions(String(raw))) {
+          if (q && !flat.includes(q)) flat.push(q);
+        }
+      }
       return {
         title: pick.title,
         tier: pick.tier,
         kind: pick.kind,
-        questions: row.questions ?? [],
+        questions: flat.length > 0 ? flat.slice(0, 3) : [],
       };
+    }
     case "hot_topic":
       return {
         title: pick.title,
@@ -199,11 +214,19 @@ export async function getPendingTopics(
   const { tier } = readCurrentStage(scope);
   const existing = readPendingForTier(scope, tier);
   if (existing) {
-    return pendingRowsToPicks(existing.picks);
+    const picks = pendingRowsToPicks(existing.picks);
+    if (tier === 1 && picks.length === 0) {
+      markTier1Exhausted(scope);
+    }
+    return picks;
   }
 
   try {
-    return await selectAndPersist(scope, { tier, sections });
+    const picks = await selectAndPersist(scope, { tier, sections });
+    if (tier === 1 && picks.length === 0) {
+      markTier1Exhausted(scope);
+    }
+    return picks;
   } catch (err) {
     if (isNoCandidateError(err) || isMaterialMinEntriesError(err) || isMissingInputError(err)) {
       const pending: PendingSelection = {
@@ -212,9 +235,76 @@ export async function getPendingTopics(
         picks: [],
       };
       writePendingForTier(scope, pending);
+      if (tier === 1) {
+        markTier1Exhausted(scope);
+      }
       return [];
     }
     throw err;
+  }
+}
+
+/**
+ * 选主题提交：将用户点选的展示标题还原为 pending 中的 canonical `pick.title`。
+ * catalog 走中英文名映射；generated / hot_topic 等走缓存或展示翻译对齐。
+ */
+export function resolveTopicTitleFromPendingSync(
+  scope: InterviewScope,
+  displayValue: string,
+  locale: DisplayLocale,
+): string | null {
+  const value = displayValue.trim();
+  if (!value) return null;
+
+  const { tier } = readCurrentStage(scope);
+  const pending = readPendingForTier(scope, tier);
+  if (!pending) return null;
+
+  for (const row of pending.picks) {
+    const title = row.pick.title.trim();
+    if (title === value) return title;
+    if (toDisplayTopicName(title, locale) === value) return title;
+    if (locale === "zh") {
+      const fromCache = lookupCanonicalEnFromDisplayCache(scope, value);
+      if (fromCache === title) return title;
+    }
+  }
+  return null;
+}
+
+/**
+ * 选主题提交：优先 pending 同步匹配，必要时复用展示翻译管道（与 getCurrentQuestion 一致）。
+ *
+ * @throws TOPIC_PICK_NOT_FOUND 待选轮中无匹配主题
+ * @throws CATALOG_TOPIC_NOT_FOUND 无 pending 且非 catalog 名
+ */
+export async function resolveTopicTitleForSubmit(
+  scope: InterviewScope,
+  displayValue: string,
+  locale: DisplayLocale,
+): Promise<string> {
+  const value = displayValue.trim();
+  if (!value) {
+    throw new Error("TOPIC_PICK_NOT_FOUND: 空主题名");
+  }
+
+  const sync = resolveTopicTitleFromPendingSync(scope, value, locale);
+  if (sync) return sync;
+
+  const { tier } = readCurrentStage(scope);
+  const pending = readPendingForTier(scope, tier);
+  if (pending && pending.picks.length > 0 && locale === "zh") {
+    const titles = pending.picks.map((r) => r.pick.title.trim()).filter(Boolean);
+    const displayed = await translateTextsForDisplay(scope, titles, locale);
+    for (let i = 0; i < titles.length; i++) {
+      if (displayed[i] === value) return titles[i]!;
+    }
+  }
+
+  try {
+    return toCanonicalTopicNameFromDisplay(value, locale);
+  } catch {
+    throw new Error(`TOPIC_PICK_NOT_FOUND: 待选轮中无主题「${displayValue}」`);
   }
 }
 
@@ -249,4 +339,26 @@ export function advanceStage(scope: InterviewScope): CurrentStage {
   deletePending(scope);
   const next: StageTier = tier === 8 ? 1 : ((tier + 1) as StageTier);
   return writeCurrentStage(scope, next);
+}
+
+function nextTierWithGates(scope: InterviewScope, tier: StageTier): StageTier {
+  if (tier === 1) return 2;
+  if (tier === 2) return canEnterAdvancedTiers(scope) ? 3 : 1;
+  if (tier === 8) return 1;
+  return (tier + 1) as StageTier;
+}
+
+/**
+ * 带 Tier3～8 解锁门槛的升档：Tier2 答完/跳过后，未解锁则回到 Tier1 而非 Tier3。
+ */
+export function advanceStageWithGates(scope: InterviewScope): CurrentStage {
+  const { tier } = readCurrentStage(scope);
+  deletePending(scope);
+  return writeCurrentStage(scope, nextTierWithGates(scope, tier));
+}
+
+/** Tier3～8 未解锁时，将阶段重置回 Tier1（不触发 LLM）。 */
+export function resetToCatalogPhase(scope: InterviewScope): CurrentStage {
+  deletePending(scope);
+  return writeCurrentStage(scope, 1);
 }

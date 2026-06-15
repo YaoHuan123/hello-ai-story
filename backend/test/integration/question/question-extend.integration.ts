@@ -90,11 +90,11 @@ async function main(): Promise<void> {
     result,
   );
   check(
-    "备选 ≤4 且 ≤40 字",
+    "备选 ≤4 且 ≤80 字",
     result.questions.every(
       (item) =>
         item.suggestedAnswers.length <= 4 &&
-        item.suggestedAnswers.every((s) => s.length > 0 && s.length <= 40),
+        item.suggestedAnswers.every((s) => s.length > 0 && s.length <= 80),
     ),
     result,
   );

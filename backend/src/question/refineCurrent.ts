@@ -1,7 +1,15 @@
 import { QUESTION_TEXT_MAX_CHARS } from "../content/displayLocale";
 import { chatJson, type ChatMessage } from "../topic/llm";
+import {
+  isSchoolLastYearField,
+  resolveCanonicalFieldKey,
+  resolveCanonicalTopicName,
+  SCHOOL_NAME_FIELD,
+  schoolLastYearQuestionEn,
+} from "../topic/catalog";
 import { loadRefinePrompt } from "./loadPrompt";
 import { narratorProfileFromSections } from "./narratorProfile";
+import { personCentricPromptFields } from "./personCentricPrompt";
 import { parseRefine } from "./parseRefine";
 import type { RefineCurrentQuestionParams, RefineCurrentQuestionResult } from "./types";
 import { isRefineNotApplicable, isRefineSkipped } from "./types";
@@ -16,6 +24,30 @@ function isRefineQuestionTooLongError(err: unknown): boolean {
 
 async function callRefineLlm(messages: ChatMessage[]): Promise<unknown> {
   return chatJson<unknown>(messages);
+}
+
+function trySchoolLastYearQuestion(
+  params: RefineCurrentQuestionParams,
+): RefineCurrentQuestionResult | null {
+  if (!isSchoolLastYearField(params.questionSet.title, params.currentQuestion)) {
+    return null;
+  }
+  const topic = resolveCanonicalTopicName(params.questionSet.title);
+  for (const row of params.answeredInTopic) {
+    try {
+      if (resolveCanonicalFieldKey(topic, row.question) !== SCHOOL_NAME_FIELD) continue;
+      const schoolName = String(row.answer ?? "").trim();
+      if (!schoolName) return null;
+      return {
+        mode: "open",
+        questionText: schoolLastYearQuestionEn(schoolName),
+        reason: "school-last-year-template",
+      };
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 /**
@@ -82,6 +114,9 @@ export async function refineCurrentQuestion(
     };
   }
 
+  const schoolLastYear = trySchoolLastYearQuestion(params);
+  if (schoolLastYear) return schoolLastYear;
+
   const promptInput = {
     title: questionSet.title, // 本轮主题名，如「小学」
     narratorProfile: narratorProfileFromSections(params.sections),
@@ -95,6 +130,7 @@ export async function refineCurrentQuestion(
       answer: String(row.answer ?? "").trim(),
     })),
     sections: params.sections,
+    ...personCentricPromptFields(questionSet.title),
   };
 
   const { system, userTemplate } = loadRefinePrompt();

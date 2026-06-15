@@ -51,11 +51,13 @@ async function main(): Promise<void> {
   const {
     getCurrentStage,
     advanceStage,
+    advanceStageWithGates,
     getPendingTopics,
     getTopicQuestions,
     readPendingSelection,
     writeCurrentStage,
   } = await import("../../../src/services/topicSelection.service");
+  const { seedCatalogGates } = await import("../../../src/services/catalogGates.service");
   const { getTopicFieldKeys } = await import("../../../src/topic/catalog");
 
   const scope = setupUserWithInterview(TEST_USER);
@@ -75,6 +77,14 @@ async function main(): Promise<void> {
   check("advance → tier7", advanceStage(scope).tier === 7);
   check("advance → tier8", advanceStage(scope).tier === 8);
   check("advance → tier1（循环）", advanceStage(scope).tier === 1);
+
+  console.log("\n=== advanceStageWithGates：Tier2 门槛 ===");
+  const scopeGates = setupUserWithInterview(`${TEST_USER}-gates`);
+  writeCurrentStage(scopeGates, 2);
+  check("未解锁 tier2 → tier1", advanceStageWithGates(scopeGates).tier === 1);
+  seedCatalogGates(scopeGates, { tier1Exhausted: true, tier2Skipped: true });
+  writeCurrentStage(scopeGates, 2);
+  check("已解锁 tier2 → tier3", advanceStageWithGates(scopeGates).tier === 3);
 
   console.log("\n=== tier8→tier1 清空 pending ===");
   writePendingFile(scope, 8, [

@@ -145,7 +145,7 @@ async function main(): Promise<void> {
         options: q.options,
         submitted: chosen,
       });
-      submit(scope, { key: SELECT_TOPIC_KEY, text: q.text, value: chosen });
+      await submit(scope, { key: SELECT_TOPIC_KEY, text: q.text, value: chosen });
       continue;
     }
 
@@ -165,7 +165,7 @@ async function main(): Promise<void> {
       options: q.options,
       submitted: answer,
     });
-    submit(scope, { key: q.key, text: q.text, value: answer });
+    await submit(scope, { key: q.key, text: q.text, value: answer });
 
     if (answers >= MAX_ANSWERS) {
       stopReason = `已作答 ${answers} 题（达到上限）`;

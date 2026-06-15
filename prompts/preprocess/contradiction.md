@@ -21,6 +21,7 @@ Each contradiction must cite at least two material **`id`** values in **`involve
 - Each `needsUserFix`: `yes` | `maybe` | `no` (use `maybe` when unverifiable).
 - Every id in **`involvedIds` must appear in input `polishedEventSummaries` keys**; do not invent ids.
 - **`summary`**: one short English sentence (~60 chars) stating contradiction type or logic; no ids, exact dates, place names, or verbatim quotes.
+- **`userQuestion`**: one short conversational English open question (~80 chars) to ask the user directly, like a chat clarification (e.g. *"Were you majoring in communications engineering or journalism?"*). No section names, ids, excerpts, or data dumps.
 - **`reconciliationHypotheses`**: 0–2 short English concrete resolution hints; no filler or vague "wrong year" only.
 
 ---

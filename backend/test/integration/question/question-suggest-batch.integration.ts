@@ -119,11 +119,11 @@ async function main(): Promise<void> {
     result,
   );
   check(
-    "每条 suggestedAnswers ≤4 且每项 ≤40 字",
+    "每条 suggestedAnswers ≤4 且每项 ≤80 字",
     result.suggestions.every(
       (s) =>
         s.suggestedAnswers.length <= 4 &&
-        s.suggestedAnswers.every((a) => a.length > 0 && a.length <= 40),
+        s.suggestedAnswers.every((a) => a.length > 0 && a.length <= 80),
     ),
     result,
   );

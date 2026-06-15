@@ -73,6 +73,7 @@
     "School name (required)": "学校名称（必填）",
     "School location (required)": "学校地点（必填）",
     "Graduation date (optional)": "毕业时间（选填）",
+    "Last year attended at this school (optional)": "在本校上到哪一年（选填）",
     "Friends (optional)": "朋友（选填）",
     "Why sent to preschool (optional)": "为何送学前班（选填）",
     "Academic performance (optional, poor/average/excellent)": "学习成绩（选填，差/中/优）",

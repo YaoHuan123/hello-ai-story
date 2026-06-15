@@ -15,7 +15,9 @@ import {
   getSubCategoryIdByTopicName,
   getTopicNameBySubCategoryId,
   isBasicProfileTopicName,
+  parseSchoolLastYearQuestionEn,
   resolveCanonicalTopicName,
+  schoolLastYearQuestionZh,
 } from "../../topic/catalog";
 import { interviewCompletePrompt } from "../displayLocale";
 import type { InterviewFieldType } from "../../topic/fieldMeta";
@@ -128,6 +130,11 @@ export async function toDisplayInterviewQuestionAsync(
 ): Promise<DisplayInterviewQuestion> {
   const base = toDisplayInterviewQuestion(q, locale, fieldMeta);
   if (locale !== "zh") return base;
+
+  const schoolFromLastYear = parseSchoolLastYearQuestionEn(base.text);
+  if (schoolFromLastYear) {
+    return { ...base, text: schoolLastYearQuestionZh(schoolFromLastYear) };
+  }
 
   let optionReasons = base.optionReasons;
   if (base.type === "topic" && base.optionReasons?.length) {

@@ -59,6 +59,7 @@ You are the topic advisor for a personal biography interview assistant. From can
 ## Failure
 
 - Empty `sections`: `{ "error": "MISSING_INPUT" }`.
+- No topic worth recommending from candidate `topics`: `{ "error": "NO_CANDIDATE" }`.
 
 ## User
 

@@ -1,6 +1,7 @@
 import { chatJson } from "../topic/llm";
 import { loadDedupePrompt } from "./loadPrompt";
 import { parseDedupe } from "./parseDedupe";
+import { personCentricPromptFields, filterPersonCentricDedupeDecisions } from "./personCentricPrompt";
 import type { DedupeDecision, DedupeQuestionsParams, DedupeQuestionsResult } from "./types";
 import { isDedupeNotApplicable, isDedupeSkipped } from "./types";
 
@@ -40,6 +41,7 @@ export async function dedupeQuestions(params: DedupeQuestionsParams): Promise<De
     title: questionSet.title,
     sections: params.sections,
     questions,
+    ...personCentricPromptFields(questionSet.title),
   };
 
   const { system, userTemplate } = loadDedupePrompt();
@@ -50,6 +52,10 @@ export async function dedupeQuestions(params: DedupeQuestionsParams): Promise<De
     { role: "user", content: userContent },
   ]);
 
-  const decisions = parseDedupe(parsed, questions);
+  const decisions = filterPersonCentricDedupeDecisions(
+    questionSet.title,
+    params.sections,
+    parseDedupe(parsed, questions),
+  );
   return toResult(decisions);
 }

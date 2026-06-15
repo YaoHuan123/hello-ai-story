@@ -72,7 +72,7 @@ async function main(): Promise<void> {
     } else if (expectTier === 2) {
       check("tier2 至多 6 条", picks.length <= 6, picks.length);
     } else if (expectTier === 3) {
-      check("tier3 至多 10 条", picks.length <= 10, picks.length);
+      check("tier3 至多 6 条", picks.length <= 6, picks.length);
     } else {
       check("tier4 至多 6 条", picks.length <= 6, picks.length);
     }

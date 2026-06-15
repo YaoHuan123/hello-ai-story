@@ -66,7 +66,7 @@ async function main(): Promise<void> {
         p.reason.trim().length > 0 &&
         p.questions.length >= 1 &&
         p.questions.length <= 3 &&
-        p.questions.every((q) => q.trim().length > 0),
+        p.questions.every((q) => q.trim().length > 0 && (q.match(/[?？]/gu) ?? []).length === 1),
     ),
   );
   check(

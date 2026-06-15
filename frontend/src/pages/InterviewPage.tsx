@@ -29,15 +29,9 @@ function messagesWithCurrentQuestion(
   q: InterviewQuestion | null,
 ): ChatMessage[] {
   if (!q) return history;
-  const meta =
-    q.type === "complete"
-      ? t("interview.completeMeta")
-      : q.type === "topic"
-        ? t("interview.pickTopic")
-        : (q.title ?? undefined);
   const id = `q-${q.key}`;
   if (history.some((m) => m.id === id)) return history;
-  return [...history, { id, role: "ai", text: q.text, meta }];
+  return [...history, { id, role: "ai", text: q.text }];
 }
 
 export function InterviewPage({
@@ -213,7 +207,6 @@ export function InterviewPage({
           {messages.map((m) => (
             <div key={m.id} className={`iv-msg iv-msg--${m.role}`}>
               <div className="iv-card">
-                {m.role === "ai" && m.meta ? <div className="iv-meta">{m.meta}</div> : null}
                 <div>{formatChatText(m.text)}</div>
               </div>
             </div>

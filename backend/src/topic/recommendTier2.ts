@@ -48,6 +48,9 @@ export async function recommendTier2(
   ]);
 
   if (out.error) {
+    if (out.error === "NO_CANDIDATE") {
+      throw new Error("TOPIC_NO_CANDIDATE: Tier2 无剩余 catalog 候选");
+    }
     throw new Error(`TOPIC_LLM_INVALID: 模型返回错误：${out.error}`);
   }
   const rows = Array.isArray(out.picks) ? out.picks : [];

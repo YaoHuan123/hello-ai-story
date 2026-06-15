@@ -65,7 +65,7 @@ export type GeneratedTopicPick = {
 export type RecommendTier3Params = {
   /** 全量已答小节，供模型判断哪些方向值得生成 */
   sections: AnsweredSection[];
-  /** 最多返回条数，默认 10，合法范围 1～10 */
+  /** 最多返回条数，默认 6，合法范围 1～6 */
   maxPicks?: number;
 };
 

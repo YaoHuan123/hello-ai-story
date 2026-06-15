@@ -34,6 +34,35 @@ export function mapPickRow(
   };
 }
 
+/** 将可能含多个问号的复合问句拆成单问数组。 */
+export function splitIntoSingleQuestions(raw: string): string[] {
+  const text = raw.trim();
+  if (!text) return [];
+
+  const markCount = (text.match(/[?？]/gu) ?? []).length;
+  if (markCount <= 1) {
+    return [ensureQuestionMark(text)];
+  }
+
+  const parts = text
+    .split(/(?<=[?？])/u)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (parts.length <= 1) {
+    return [ensureQuestionMark(text)];
+  }
+  return parts.map((p) => ensureQuestionMark(p.replace(/[?？]+$/u, "")));
+}
+
+function ensureQuestionMark(q: string): string {
+  const t = q.trim();
+  if (!t) return t;
+  if (/[?？]$/u.test(t)) {
+    return t.replace(/？$/u, "?");
+  }
+  return `${t}?`;
+}
+
 /** 将 LLM 返回的一条 Tier3 创意主题映射为 {@link GeneratedTopicPick}。 */
 export function mapGeneratedPickRow(
   row: { title?: string; reason?: string; questions?: unknown },
@@ -52,18 +81,35 @@ export function mapGeneratedPickRow(
   }
   const questions: string[] = [];
   for (let i = 0; i < row.questions.length; i++) {
-    const q = String(row.questions[i] ?? "").trim();
-    if (!q) {
+    const raw = String(row.questions[i] ?? "").trim();
+    if (!raw) {
       throw new Error(`TOPIC_LLM_INVALID: ${label}.questions[${i}] 为空`);
     }
-    questions.push(q);
+    for (const q of splitIntoSingleQuestions(raw)) {
+      if (q && !questions.includes(q)) {
+        questions.push(q);
+      }
+    }
   }
-  if (questions.length < TIER3_MIN_QUESTIONS || questions.length > TIER3_MAX_QUESTIONS) {
-    throw new Error(
-      `TOPIC_LLM_INVALID: ${label}.questions 须 ${TIER3_MIN_QUESTIONS}～${TIER3_MAX_QUESTIONS} 条，实际 ${questions.length} 条`,
-    );
+  if (questions.length === 0) {
+    throw new Error(`TOPIC_LLM_INVALID: ${label}.questions 解析后为空`);
+  }
+  if (questions.length > TIER3_MAX_QUESTIONS) {
+    questions.length = TIER3_MAX_QUESTIONS;
   }
   return { title, reason, questions };
+}
+
+function truncateTier4Question(q: string, maxLen: number): string {
+  if (q.length <= maxLen) return q;
+  let cut = q.slice(0, maxLen).trimEnd();
+  const lastSpace = cut.lastIndexOf(" ");
+  if (lastSpace >= Math.floor(maxLen * 0.55)) {
+    cut = cut.slice(0, lastSpace).trimEnd();
+  }
+  cut = cut.replace(/[?,;:\s]+$/, "").trimEnd();
+  if (!cut) return q.slice(0, maxLen).trimEnd();
+  return cut.endsWith("?") ? cut : `${cut}?`;
 }
 
 /**
@@ -92,12 +138,12 @@ export function mapHotTopicRow(
   if (!domainName) {
     throw new Error(`TOPIC_LLM_INVALID: ${label}.domainName 缺失`);
   }
-  const q = String(row.q ?? "").trim();
+  let q = String(row.q ?? "").trim();
   if (!q) {
     throw new Error(`TOPIC_LLM_INVALID: ${label}.q 缺失`);
   }
   if (q.length > TIER4_Q_MAX_LEN) {
-    throw new Error(`TOPIC_LLM_INVALID: ${label}.q 超过 ${TIER4_Q_MAX_LEN} 字`);
+    q = truncateTier4Question(q, TIER4_Q_MAX_LEN);
   }
   if (seenInBatch.has(q)) {
     throw new Error(`TOPIC_LLM_INVALID: ${label}.q 与本批问句重复`);

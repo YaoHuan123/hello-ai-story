@@ -78,7 +78,7 @@ async function main(): Promise<void> {
   const coldMax = 12;
   let qCold = qCold0;
   while (qCold.type === "normal" && coldSteps < coldMax) {
-    submit(coldScope, {
+    await submit(coldScope, {
       key: qCold.key,
       text: qCold.text,
       value: sampleAnswer(qCold, `冷启动答${coldSteps + 1}`),
@@ -99,22 +99,22 @@ async function main(): Promise<void> {
   const scopeField = setupUserWithInterview(`${TEST_USER}-field`);
   let qField = await getCurrentQuestion(scopeField);
   if (qField.type === "normal") {
-    submit(scopeField, { key: qField.key, text: qField.text, value: sampleAnswer(qField, "测试") });
+    await submit(scopeField, { key: qField.key, text: qField.text, value: sampleAnswer(qField, "测试") });
     qField = await getCurrentQuestion(scopeField);
   }
   if (qField.type === "normal" && qField.fieldType === "select") {
     let rejected = false;
     try {
-      submit(scopeField, { key: qField.key, text: qField.text, value: "非法选项" });
+      await submit(scopeField, { key: qField.key, text: qField.text, value: "非法选项" });
     } catch (e) {
       rejected = e instanceof Error && e.message.startsWith("INVALID_FIELD_ANSWER:");
     }
     check("select 非法选项被拒绝", rejected);
-    submit(scopeField, { key: qField.key, text: qField.text, value: qField.fieldChoices![0]! });
+    await submit(scopeField, { key: qField.key, text: qField.text, value: qField.fieldChoices![0]! });
     const qAfterGender = await getCurrentQuestion(scopeField);
     check("性别合法提交后进入下一题", qAfterGender.type === "normal" && qAfterGender.key !== qField.key, qAfterGender);
     if (qAfterGender.type === "normal" && qAfterGender.fieldType === "yearMonth") {
-      submit(scopeField, { key: qAfterGender.key, text: qAfterGender.text, value: "1992年8月" });
+      await submit(scopeField, { key: qAfterGender.key, text: qAfterGender.text, value: "1992年8月" });
       const stored = readAnswers(scopeField).find((r) => r.key === qAfterGender.key);
       check("出生年月落盘为 YYYY-MM", stored?.answer === "1992-08", stored);
     }
@@ -126,12 +126,12 @@ async function main(): Promise<void> {
   const scope8 = setupUserWithInterview(`${TEST_USER}-8th`);
   let q8 = await getCurrentQuestion(scope8);
   for (let i = 0; i < 7 && q8.type === "normal"; i++) {
-    submit(scope8, { key: q8.key, text: q8.text, value: sampleAnswer(q8, `答${i + 1}`) });
+    await submit(scope8, { key: q8.key, text: q8.text, value: sampleAnswer(q8, `答${i + 1}`) });
     q8 = await getCurrentQuestion(scope8);
   }
   check("第 8 题仍为普通问答", q8.type === "normal", q8);
   if (q8.type === "normal") {
-    submit(scope8, { key: q8.key, text: q8.text, value: "浙江省杭州市余杭区" });
+    await submit(scope8, { key: q8.key, text: q8.text, value: "浙江省杭州市余杭区" });
     check("第 8 题 submit 后出题器已清空", readQuestionSet(scope8) === null);
     const basic8 = getSections(scope8).find((s) => s.name === "Basic profile");
     check("第 8 题 submit 后 sections 含 8 问", basic8?.qa.length === 8, basic8);
@@ -257,7 +257,7 @@ async function main(): Promise<void> {
     q1,
   );
 
-  submit(scope2, { key: q1.key, text: q1.text, value: "童年趣事" });
+  await submit(scope2, { key: q1.key, text: q1.text, value: "童年趣事" });
   const q2 = await getCurrentQuestion(scope2);
   check(
     "交(选主题)后读=普通问答",
@@ -265,7 +265,7 @@ async function main(): Promise<void> {
     q2,
   );
 
-  submit(scope2, { key: q2.key, text: q2.text, value: "考了第一名" });
+  await submit(scope2, { key: q2.key, text: q2.text, value: "考了第一名" });
   check(
     "答完自动 commit 进 sections",
     getSections(scope2).some((s) => s.name === "童年趣事" && s.qa.length === 1),
@@ -367,7 +367,7 @@ async function main(): Promise<void> {
   });
   const qSkipGen = await getCurrentQuestion(scopeSkipGen);
   check("非 catalog 题 skippable", qSkipGen.type === "normal" && qSkipGen.skippable === true, qSkipGen);
-  submit(scopeSkipGen, { key: qSkipGen.key, text: qSkipGen.text, value: "", skip: true });
+  await submit(scopeSkipGen, { key: qSkipGen.key, text: qSkipGen.text, value: "", skip: true });
   check(
     "非 catalog 跳过后 commit",
     getSections(scopeSkipGen).some(
@@ -380,7 +380,7 @@ async function main(): Promise<void> {
   check("基本档案首题不可跳过", qReq.skippable !== true, qReq);
   let reqRejected = false;
   try {
-    submit(scopeSkipReq, { key: qReq.key, text: qReq.text, value: "", skip: true });
+    await submit(scopeSkipReq, { key: qReq.key, text: qReq.text, value: "", skip: true });
   } catch (e) {
     reqRejected = e instanceof Error && e.message.includes("QUESTION_NOT_SKIPPABLE");
   }
@@ -402,7 +402,7 @@ async function main(): Promise<void> {
   });
   const qSkipOpt = await getCurrentQuestion(scopeSkipOpt);
   check("选填题 skippable", qSkipOpt.skippable === true, qSkipOpt);
-  submit(scopeSkipOpt, { key: qSkipOpt.key, text: qSkipOpt.text, value: "", skip: true });
+  await submit(scopeSkipOpt, { key: qSkipOpt.key, text: qSkipOpt.text, value: "", skip: true });
   check(
     "选填跳过落盘",
     readAnswers(scopeSkipOpt).some(
@@ -434,7 +434,7 @@ async function main(): Promise<void> {
   });
   const qSkipExt = await getCurrentQuestion(scopeSkipExt);
   check("扩展题 skippable", qSkipExt.skippable === true && qSkipExt.key === "__extend_0", qSkipExt);
-  submit(scopeSkipExt, { key: qSkipExt.key, text: qSkipExt.text, value: "", skip: true });
+  await submit(scopeSkipExt, { key: qSkipExt.key, text: qSkipExt.text, value: "", skip: true });
   check(
     "扩展跳过 commit 进 sections",
     getSections(scopeSkipExt).some(
@@ -453,7 +453,7 @@ async function main(): Promise<void> {
     kind: "generated" as const,
     questions: ["你小时候最开心的一件事是什么？"],
   });
-  submit(scopeHist, {
+  await submit(scopeHist, {
     key: "你小时候最开心的一件事是什么？",
     text: "你小时候最开心的一件事是什么？",
     value: "考了第一名",

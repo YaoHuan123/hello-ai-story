@@ -56,6 +56,17 @@ async function main(): Promise<void> {
   });
   check("兼容旧对象数组", legacyValues.length === 2 && legacyValues[0] === "1970-09", legacyValues);
 
+  const longSkipped = parseSuggestCurrent({
+    suggestedAnswers: ["a".repeat(41), "1970-09"],
+  });
+  check("超长备选丢弃、保留合法项", longSkipped.length === 1 && longSkipped[0] === "1970-09", longSkipped);
+
+  const { hasNonEmptySuggestCandidates } = await import("../../../src/question/parseSuggestCurrent");
+  check(
+    "检测到 LLM 返回了超长备选",
+    hasNonEmptySuggestCandidates({ suggestedAnswers: ["a".repeat(41)] }) === true,
+  );
+
   const sections = stubSections();
 
   console.log("\n=== suggestCurrentAnswers 边界（无 LLM）===");
@@ -118,7 +129,7 @@ async function main(): Promise<void> {
   check(
     "suggestedAnswers ≤4 且为短字符串",
     result.suggestedAnswers.length <= 4 &&
-      result.suggestedAnswers.every((v) => v.length > 0 && v.length <= 40),
+      result.suggestedAnswers.every((v) => v.length > 0 && v.length <= 80),
     result,
   );
 

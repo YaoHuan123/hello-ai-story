@@ -7,7 +7,7 @@ const LIFE_MEMORY_REASON_RE = /^Life memory:\s*(.+)$/;
 /** Tier5～8 落盘用英文文案（展示层再翻译）。 */
 
 export function contradictionQuestionFallback(title: string): string {
-  return `Please clarify this inconsistency: ${title.trim()}`;
+  return `Please clarify: ${title.trim()}`;
 }
 
 export function gapQuestionText(missingPoint: string): string {

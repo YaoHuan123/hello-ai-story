@@ -26,7 +26,7 @@ function assertSections(sections: RecommendTier4Params["sections"]): void {
 /**
  * Tier4：根据已填 `sections` 与生活记忆 `topicMap`，调用 LLM 返回 **1～maxPicks 条**热点开放问句。
  *
- * 用户点选的是问句本身（`q`），不是 catalog 子类名；选中后由编排层处理 `gen_*` 等持久化。
+ * 用户点选的是问句本身（`q`），不是 catalog 子类名。
  *
  * @param params.maxPicks 默认 6
  * @throws TOPIC_MISSING_INPUT | TOPIC_LLM_INVALID
@@ -69,7 +69,16 @@ export async function recommendTier4(
   const seenInBatch = new Set<string>();
   const result: HotTopicPick[] = [];
   for (let i = 0; i < rows.length; i++) {
-    result.push(mapHotTopicRow(rows[i], `questions[${i}]`, seenInBatch));
+    try {
+      result.push(mapHotTopicRow(rows[i], `questions[${i}]`, seenInBatch));
+    } catch {
+      /* 跳过非法/重复行，避免整批作废 */
+    }
   }
-  return result;
+  if (result.length < TIER4_MIN_PICKS) {
+    throw new Error(
+      `TOPIC_LLM_INVALID: Tier4 有效问句不足 ${TIER4_MIN_PICKS} 条，实际 ${result.length} 条`,
+    );
+  }
+  return result.slice(0, maxPicks);
 }

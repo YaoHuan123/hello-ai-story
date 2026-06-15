@@ -9,7 +9,7 @@ import {
   listInterviews,
   type InterviewScope,
 } from "../services/interviewWorkspace.service";
-import { getInterviewDisplayLocale, runWithDisplayLocaleSync } from "../content/displayLocale";
+import { getInterviewDisplayLocale, runWithDisplayLocale } from "../content/displayLocale";
 import { getInterviewChatHistoryForDisplay } from "../services/interviewChatHistory.service";
 import { getCurrentQuestionTraced, submit } from "../services/interviewOrchestrator.service";
 
@@ -71,6 +71,10 @@ function mapInterviewError(res: Response, error: unknown): boolean {
   }
   if (code === "TOPIC_PICK_NOT_FOUND") {
     res.status(400).json({ code, message: "所选主题不存在或已失效，请重新获取题目" });
+    return true;
+  }
+  if (code === "CATALOG_TOPIC_NOT_FOUND") {
+    res.status(400).json({ code, message: "主题名称无法识别，请重新获取题目后再试" });
     return true;
   }
   if (code === "INTERVIEW_COMPLETE") {
@@ -199,7 +203,7 @@ export const createInterviewRouter = (): Router => {
     }
   });
 
-  router.post("/:interviewId/submit", (req, res) => {
+  router.post("/:interviewId/submit", async (req, res) => {
     const user = req.user;
     if (!user) {
       res.status(401).json({ code: "UNAUTHORIZED", message: "Unauthorized" });
@@ -216,7 +220,7 @@ export const createInterviewRouter = (): Router => {
     try {
       assertInterviewExists(scope);
       const locale = getInterviewDisplayLocale(scope);
-      runWithDisplayLocaleSync(locale, () => submit(scope, parsed.data));
+      await runWithDisplayLocale(locale, async () => submit(scope, parsed.data));
       res.status(200).json({ ok: true as const });
     } catch (error) {
       if (mapInterviewError(res, error)) return;

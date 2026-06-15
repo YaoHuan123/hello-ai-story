@@ -1,5 +1,4 @@
 import { chatJson } from "./llm";
-import { buildContradictionQuestion } from "./contradictionQuestion";
 import { materialContradictionPickReason } from "./materialCopy";
 import { toPendingRow } from "./pendingPickRow";
 import { parseFactContradictions } from "./parseContradiction";
@@ -18,7 +17,7 @@ export type RecommendTier5Params = {
 /**
  * Tier5：根据 `sections` 调 LLM 检测矛盾，返回待用户确认项。
  *
- * 题面写入 row 的 `questions`（各节摘录 + 请说明），无 `contradictionId` / `involvedIds`。
+ * 题面写入 row 的 `questions`（LLM `userQuestion` 单问句），无 `contradictionId` / `involvedIds`。
  *
  * @throws TOPIC_MISSING_INPUT | MATERIAL_MIN_ENTRIES
  */
@@ -51,7 +50,7 @@ export async function recommendTier5(params: RecommendTier5Params): Promise<Pend
           reason: materialContradictionPickReason(c.involvedIds.length),
         },
         {
-          questions: [buildContradictionQuestion(c, polishedEventSummaries)],
+          questions: [c.userQuestion],
           suggestedAnswers:
             c.reconciliationHypotheses.length > 0 ? c.reconciliationHypotheses : undefined,
         },

@@ -1,6 +1,7 @@
 import { chatJson } from "../topic/llm";
 import { loadColloquializePrompt } from "./loadPrompt";
 import { parseColloquialize } from "./parseColloquialize";
+import { personCentricPromptFields } from "./personCentricPrompt";
 import type {
   ColloquializeItem,
   ColloquializeQuestionsParams,
@@ -51,6 +52,7 @@ export async function colloquializeQuestions(
     title: questionSet.title,
     sections: params.sections,
     questions,
+    ...personCentricPromptFields(questionSet.title),
   };
 
   const { system, userTemplate } = loadColloquializePrompt();

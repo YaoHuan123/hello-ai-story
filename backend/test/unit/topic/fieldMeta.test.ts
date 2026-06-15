@@ -2,7 +2,14 @@
  * 字段元数据与答案规范化单元测试。
  * 运行：`npm run test:field-meta`
  */
-import { getTopicFieldMeta } from "../../../src/topic/catalog";
+import {
+  getTopicFieldKeys,
+  getTopicFieldMeta,
+  isSchoolLastYearField,
+  parseSchoolLastYearQuestionEn,
+  schoolLastYearQuestionEn,
+  schoolLastYearQuestionZh,
+} from "../../../src/topic/catalog";
 import { normalizeFieldAnswer } from "../../../src/topic/fieldAnswer";
 import { normalizeYearMonthInRange } from "../../../src/topic/yearMonth";
 
@@ -39,6 +46,20 @@ function main(): void {
   console.log("\n=== 学业时间字段 ===");
   const schoolMeta = getTopicFieldMeta("Elementary school", "Enrollment date (required)");
   check("小学入学时间=yearMonth", schoolMeta?.fieldType === "yearMonth", schoolMeta);
+
+  console.log("\n=== K12 上到哪一年 ===");
+  const elemKeys = getTopicFieldKeys("Elementary school");
+  check("小学含 Last year 字段", elemKeys.includes("Last year attended at this school (optional)"));
+  check("小学不含 Graduation date", !elemKeys.includes("Graduation date (optional)"));
+  check(
+    "高中 Last year 字段识别",
+    isSchoolLastYearField("High school", "Last year attended at this school (optional)"),
+  );
+  check("大学仍用 Graduation date", getTopicFieldKeys("College").includes("Graduation date (optional)"));
+  const enQ = schoolLastYearQuestionEn("城关第一小学");
+  check("英文问句含校名", enQ === "What year did you attend 城关第一小学 until?");
+  check("中文问句", schoolLastYearQuestionZh("城关第一小学") === "你在城关第一小学上到哪一年？");
+  check("英文问句解析", parseSchoolLastYearQuestionEn(enQ) === "城关第一小学");
 
   console.log("\n=== 年月规范化 ===");
   check("1992年3月", normalizeYearMonthInRange("1992年3月") === "1992-03");
