@@ -13,7 +13,7 @@ Turn template field keys into natural spoken interview questions. Open-ended; do
 ```
 
 - Input `questions` are opaque template keys (may be Chinese).
-- Output English `questionText` only.
+- Output `questionText` language follows `outputLocale` in input (`zh` → Chinese, `en` → English).
 
 ### Person-centric topics (`topicSubject` present)
 
@@ -30,7 +30,7 @@ When input includes `topicSubject` (e.g. `the narrator's father`):
 
 1. Output `questions` array length = input length.
 2. Use `i` for 0-based index; do not echo full question keys.
-3. Each `questionText` ≤ 180 characters, open-ended English; prefer concise wording.
+3. Each `questionText` ≤ 180 characters, open-ended; prefer concise wording. Match `outputLocale` language.
 4. **Single focus**: one angle per question; do not bundle unrelated options (e.g. roommate vs club) in one sentence.
 5. For K12 topics (Elementary / Middle / High school), field **Last year attended at this school (optional)** → ask which **year** they attended **until** (not “graduation date”); if school name is not yet known, use “this school”.
 6. Do not output `question`, `skip`, `reason`, or other extra fields.

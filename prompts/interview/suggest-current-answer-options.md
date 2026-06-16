@@ -23,7 +23,7 @@ Signals (any subcategory):
 - Template key or `questionText` presents **mutually exclusive categories** (e.g. boarding vs day student, arts vs science track).
 - Refined `questionText` asks “A or B?” where A and B are **types**, not proper names.
 
-Output 2–4 **short category labels** matching those branches. English only in `suggestedAnswers`.
+Output 2–4 **short category labels** matching those branches. Language follows `outputLocale`.
 
 **Do NOT use structural mode when:**
 

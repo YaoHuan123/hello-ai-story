@@ -40,9 +40,11 @@ async function main(): Promise<void> {
   const { stubSections } = await import("../../fixtures/sections.stub");
   const { readQuestionSet } = await import("../../../src/question/topicPersist");
   const { seedCommittedSections } = await import("../../../src/services/answeredSections.service");
+  const { seedCatalogGates } = await import("../../../src/services/catalogGates.service");
 
   const scope = setupUserWithInterview(`topic-submit-${Date.now()}`);
   seedCommittedSections(scope, stubSections());
+  seedCatalogGates(scope, { tier1Exhausted: true, tier2Skipped: true });
   writeCurrentStage(scope, 3);
 
   const enTitle = "Rural childhood memories in Tongmiao Village, Gushi County";

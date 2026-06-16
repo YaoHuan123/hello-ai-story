@@ -42,9 +42,9 @@ function asksNarratorSelf(text: string): boolean {
   return false;
 }
 
-/** 问句是否指向父亲。 */
+/** 问句是否指向父亲（英/中）。 */
 function mentionsFather(text: string): boolean {
-  return /father|dad|your father|his occupation|his name|he was born/i.test(text);
+  return /father|dad|your father|his occupation|his name|he was born|父亲|爸爸|爹/.test(text);
 }
 
 async function main(): Promise<void> {
@@ -139,8 +139,8 @@ async function main(): Promise<void> {
 
   for (const q of askAfterDedupe) {
     const text = colloq.questionTexts[q] ?? "";
-    if (/occupation/i.test(q) || text.toLowerCase().includes("occupation") || text.toLowerCase().includes("job")) {
-      check(`职业题 ${q} 不问「你的职业」`, !asksNarratorSelf(text) && (mentionsFather(text) || /occupation|job|work/i.test(text)), text);
+    if (/occupation/i.test(q) || /occupation|job|work|职业/.test(text)) {
+      check(`职业题 ${q} 不问「你的职业」`, !asksNarratorSelf(text) && (mentionsFather(text) || /occupation|job|work|职业/.test(text)), text);
     }
   }
 
@@ -191,7 +191,7 @@ async function main(): Promise<void> {
     askQuestions: schoolKeys,
   });
   const schoolFirst = schoolColloq.questionTexts[schoolKeys[0]] ?? "";
-  check("学校首题含 you / school 语境", /you|school|elementary/i.test(schoolFirst), schoolFirst);
+  check("学校首题含 you / school / 小学 语境", /you|school|elementary|小学|入学/.test(schoolFirst), schoolFirst);
   check("学校题无 father 误注入", !mentionsFather(schoolFirst), schoolFirst);
 
   console.log(`\n=== 结果：${passed} passed, ${failed} failed ===`);

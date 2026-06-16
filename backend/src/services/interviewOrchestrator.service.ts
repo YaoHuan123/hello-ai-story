@@ -13,9 +13,9 @@ import {
 } from "./questionEngine.service";
 import {
   getInterviewDisplayLocale,
-  getDisplayLocale,
   interviewCompletePrompt,
   interviewSkipLabel,
+  runWithDisplayLocale,
   selectTopicPrompt,
 } from "../content/displayLocale";
 import {
@@ -177,16 +177,18 @@ export type SubmitInput = {
 /** 对外：带 trace 的 getCurrentQuestion（HTTP 层调用）。 */
 export async function getCurrentQuestionTraced(scope: InterviewScope): Promise<InterviewQuestion> {
   const displayLocale = getInterviewDisplayLocale(scope);
-  const q = await runWithQuestionTrace(scope, "getCurrentQuestion", () => getCurrentQuestion(scope));
-  const questionSet = readQuestionSet(scope);
-  const def =
-    q.type === "normal" && q.title && isCatalogQuestionSet(questionSet)
-      ? getTopicFieldDef(q.title, q.key)
-      : undefined;
-  return toDisplayInterviewQuestionAsync(scope, q, displayLocale, {
-    fieldType: q.fieldType,
-    fieldChoices: q.fieldChoices,
-    optionsKey: def?.optionsKey,
+  return runWithDisplayLocale(displayLocale, async () => {
+    const q = await runWithQuestionTrace(scope, "getCurrentQuestion", () => getCurrentQuestion(scope));
+    const questionSet = readQuestionSet(scope);
+    const def =
+      q.type === "normal" && q.title && isCatalogQuestionSet(questionSet)
+        ? getTopicFieldDef(q.title, q.key)
+        : undefined;
+    return toDisplayInterviewQuestionAsync(scope, q, displayLocale, {
+      fieldType: q.fieldType,
+      fieldChoices: q.fieldChoices,
+      optionsKey: def?.optionsKey,
+    });
   });
 }
 
@@ -277,7 +279,7 @@ export async function submit(scope: InterviewScope, input: SubmitInput): Promise
       advanceStageWithGates(scope);
       return;
     }
-    const displayLocale = getDisplayLocale();
+    const displayLocale = getInterviewDisplayLocale(scope);
     const resolvedTitle = await resolveTopicTitleForSubmit(
       scope,
       input.value.trim(),
@@ -291,7 +293,7 @@ export async function submit(scope: InterviewScope, input: SubmitInput): Promise
       throw new Error("QUESTION_ENGINE_NO_SESSION: 无进行中主题");
     }
 
-    const displayLocale = getDisplayLocale();
+    const displayLocale = getInterviewDisplayLocale(scope);
 
     let topicTitle: string;
     let answerKey: string;

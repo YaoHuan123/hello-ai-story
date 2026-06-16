@@ -1,5 +1,6 @@
 import { chatJson } from "../topic/llm";
 import { loadColloquializePrompt } from "./loadPrompt";
+import { systemWithOutputLocale, withOutputLocale } from "../content/interviewOutputLocale";
 import { parseColloquialize } from "./parseColloquialize";
 import { personCentricPromptFields } from "./personCentricPrompt";
 import type {
@@ -48,18 +49,18 @@ export async function colloquializeQuestions(
     }
   }
 
-  const promptInput = {
+  const promptInput = withOutputLocale({
     title: questionSet.title,
     sections: params.sections,
     questions,
     ...personCentricPromptFields(questionSet.title),
-  };
+  });
 
   const { system, userTemplate } = loadColloquializePrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
 
   const parsed = await chatJson<unknown>([
-    { role: "system", content: system },
+    { role: "system", content: systemWithOutputLocale(system) },
     { role: "user", content: userContent },
   ]);
 

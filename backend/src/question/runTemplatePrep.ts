@@ -1,4 +1,6 @@
-import { getCatalogFieldDisplayText } from "../topic/catalog";
+import { getDisplayLocale } from "../content/displayLocale";
+import { toDisplayCatalogFieldText } from "../content/translate/display";
+import { getCatalogFieldDisplayText, isBasicProfileTopicName } from "../topic/catalog";
 import { colloquializeQuestions } from "./colloquialize";
 import { dedupeQuestions } from "./dedupe";
 import { suggestBatchAnswers } from "./suggestBatch";
@@ -7,9 +9,14 @@ import { isCatalogPrepNotApplicable, isCatalogPrepSkipped } from "./types";
 import { traceQuestionStep, runWithLlmTraceLabel } from "./questionTrace";
 
 function passthroughQuestionTexts(questions: string[], title: string): Record<string, string> {
+  const locale = getDisplayLocale();
   const questionTexts: Record<string, string> = {};
   for (const q of questions) {
-    questionTexts[q] = getCatalogFieldDisplayText(title, q);
+    if (isBasicProfileTopicName(title)) {
+      questionTexts[q] = toDisplayCatalogFieldText(title, q, locale);
+    } else {
+      questionTexts[q] = getCatalogFieldDisplayText(title, q);
+    }
   }
   return questionTexts;
 }

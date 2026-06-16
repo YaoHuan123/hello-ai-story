@@ -2,6 +2,7 @@ import { mapPickRow } from "./parse";
 import { prepareCandidates } from "./prepare";
 import { loadTier2Prompt } from "./prompt";
 import { chatJson } from "./llm";
+import { topicInputLlmMessages } from "./localeLlm";
 import type { RecommendTierParams, TopicRecommendation } from "./types";
 
 const TIER2_MAX_PICKS = 6;
@@ -37,15 +38,9 @@ export async function recommendTier2(
 
   const { candidates, input } = prepareCandidates(params);
   const { system, userTemplate } = loadTier2Prompt();
-  const userContent = userTemplate.replace(
-    "{{INPUT_JSON}}",
-    JSON.stringify({ ...input, maxPicks }),
+  const out = await chatJson<Tier2LlmOutput>(
+    topicInputLlmMessages(system, userTemplate, { ...input, maxPicks }),
   );
-
-  const out = await chatJson<Tier2LlmOutput>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
 
   if (out.error) {
     if (out.error === "NO_CANDIDATE") {

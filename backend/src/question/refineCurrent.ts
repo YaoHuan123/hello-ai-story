@@ -1,4 +1,5 @@
-import { QUESTION_TEXT_MAX_CHARS } from "../content/displayLocale";
+import { QUESTION_TEXT_MAX_CHARS, getDisplayLocale } from "../content/displayLocale";
+import { systemWithOutputLocale, withOutputLocale } from "../content/interviewOutputLocale";
 import { chatJson, type ChatMessage } from "../topic/llm";
 import {
   isSchoolLastYearField,
@@ -6,6 +7,7 @@ import {
   resolveCanonicalTopicName,
   SCHOOL_NAME_FIELD,
   schoolLastYearQuestionEn,
+  schoolLastYearQuestionZh,
 } from "../topic/catalog";
 import { loadRefinePrompt } from "./loadPrompt";
 import { narratorProfileFromSections } from "./narratorProfile";
@@ -38,9 +40,13 @@ function trySchoolLastYearQuestion(
       if (resolveCanonicalFieldKey(topic, row.question) !== SCHOOL_NAME_FIELD) continue;
       const schoolName = String(row.answer ?? "").trim();
       if (!schoolName) return null;
+      const locale = getDisplayLocale();
       return {
         mode: "open",
-        questionText: schoolLastYearQuestionEn(schoolName),
+        questionText:
+          locale === "zh"
+            ? schoolLastYearQuestionZh(schoolName)
+            : schoolLastYearQuestionEn(schoolName),
         reason: "school-last-year-template",
       };
     } catch {
@@ -117,7 +123,7 @@ export async function refineCurrentQuestion(
   const schoolLastYear = trySchoolLastYearQuestion(params);
   if (schoolLastYear) return schoolLastYear;
 
-  const promptInput = {
+  const promptInput = withOutputLocale({
     title: questionSet.title, // 本轮主题名，如「小学」
     narratorProfile: narratorProfileFromSections(params.sections),
     currentQuestion: {
@@ -131,12 +137,12 @@ export async function refineCurrentQuestion(
     })),
     sections: params.sections,
     ...personCentricPromptFields(questionSet.title),
-  };
+  });
 
   const { system, userTemplate } = loadRefinePrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
   const messages: ChatMessage[] = [
-    { role: "system", content: system },
+    { role: "system", content: systemWithOutputLocale(system) },
     { role: "user", content: userContent },
   ];
 

@@ -2,6 +2,7 @@ import { hotTopicMapForPrompt } from "./hotTopicMap";
 import { mapHotTopicRow } from "./parse";
 import { loadTier4Prompt } from "./prompt";
 import { chatJson } from "./llm";
+import { topicInputLlmMessages } from "./localeLlm";
 import type { HotTopicPick, RecommendTier4Params } from "./types";
 
 const TIER4_MAX_PICKS = 6;
@@ -48,12 +49,7 @@ export async function recommendTier4(
   };
 
   const { system, userTemplate } = loadTier4Prompt();
-  const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(input));
-
-  const out = await chatJson<Tier4LlmOutput>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
+  const out = await chatJson<Tier4LlmOutput>(topicInputLlmMessages(system, userTemplate, input));
 
   if (out.error) {
     throw new Error(`TOPIC_LLM_INVALID: 模型返回错误：${out.error}`);

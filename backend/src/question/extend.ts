@@ -1,4 +1,5 @@
 import { EXTEND_QUESTION_MAX_CHARS } from "../content/displayLocale";
+import { systemWithOutputLocale, withOutputLocale } from "../content/interviewOutputLocale";
 import { chatJson, type ChatMessage } from "../topic/llm";
 import { loadExtendPrompt } from "./loadPrompt";
 import { narratorProfileFromSections } from "./narratorProfile";
@@ -49,17 +50,17 @@ export async function extendSubCategoryQuestions(
   if (Object.keys(templateAnswered).length === 0) {
     throw new Error("EXTEND_MISSING_INPUT: templateAnswered 不能为空");
   }
-  const promptInput = {
+  const promptInput = withOutputLocale({
     title: questionSet.title,
     narratorProfile: narratorProfileFromSections(params.sections),
     templateAnswered,
     sections: params.sections,
-  };
+  });
 
   const { system, userTemplate } = loadExtendPrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
   const messages: ChatMessage[] = [
-    { role: "system", content: system },
+    { role: "system", content: systemWithOutputLocale(system) },
     { role: "user", content: userContent },
   ];
 

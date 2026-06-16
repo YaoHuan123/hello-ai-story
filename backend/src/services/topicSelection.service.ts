@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { DisplayLocale } from "../content/displayLocale";
+import { getInterviewDisplayLocale } from "../content/displayLocale";
+import { shouldUseLegacyDisplayTranslation } from "../content/interviewOutputLocale";
 import { toCanonicalTopicNameFromDisplay, toDisplayTopicName } from "../content/translate/display";
+import { toDisplayYesNo } from "../content/translate/yesNo";
 import {
   lookupCanonicalEnFromDisplayCache,
   translateTextsForDisplay,
@@ -95,7 +98,7 @@ export function writeCurrentStage(scope: InterviewScope, tier: StageTier): Curre
   return stage;
 }
 
-function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
+function buildQuestionSetFromRow(row: PendingPickRow, locale: DisplayLocale): QuestionSet {
   const pick = row.pick;
   switch (pick.kind) {
     case "catalog":
@@ -138,7 +141,7 @@ function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
         questions:
           row.questions && row.questions.length > 0
             ? row.questions
-            : [contradictionQuestionFallback(pick.title)],
+            : [contradictionQuestionFallback(pick.title, locale)],
         suggestedAnswers:
           row.suggestedAnswers && row.suggestedAnswers.length > 0
             ? row.suggestedAnswers
@@ -149,7 +152,7 @@ function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
         title: pick.title,
         tier: pick.tier,
         kind: pick.kind,
-        questions: [gapQuestionText(pick.title)],
+        questions: [gapQuestionText(pick.title, locale)],
       };
     case "material_turn":
       return {
@@ -165,7 +168,7 @@ function buildQuestionSetFromRow(row: PendingPickRow): QuestionSet {
         tier: pick.tier,
         kind: pick.kind,
         questions: [pick.title],
-        suggestedAnswers: [...MATERIAL_INNER_SUGGESTIONS],
+        suggestedAnswers: MATERIAL_INNER_SUGGESTIONS.map((s) => toDisplayYesNo(s, locale)),
       };
     default:
       throw new Error(`TOPIC_INVALID_KIND: ${(pick as TopicPick).kind}`);
@@ -295,9 +298,12 @@ export async function resolveTopicTitleForSubmit(
   const pending = readPendingForTier(scope, tier);
   if (pending && pending.picks.length > 0 && locale === "zh") {
     const titles = pending.picks.map((r) => r.pick.title.trim()).filter(Boolean);
-    const displayed = await translateTextsForDisplay(scope, titles, locale);
-    for (let i = 0; i < titles.length; i++) {
-      if (displayed[i] === value) return titles[i]!;
+    const legacyTitles = titles.filter((t) => shouldUseLegacyDisplayTranslation(t, locale));
+    if (legacyTitles.length > 0) {
+      const displayed = await translateTextsForDisplay(scope, legacyTitles, locale);
+      for (let i = 0; i < legacyTitles.length; i++) {
+        if (displayed[i] === value) return legacyTitles[i]!;
+      }
     }
   }
 
@@ -325,7 +331,7 @@ export function getTopicQuestions(scope: InterviewScope, title: string): Questio
   if (!row) {
     throw new Error(`TOPIC_PICK_NOT_FOUND: 待选轮中无主题「${title}」`);
   }
-  return buildQuestionSetFromRow(row);
+  return buildQuestionSetFromRow(row, getInterviewDisplayLocale(scope));
 }
 
 /** 接口3：查询当前处于 tier1～8 哪个阶段。 */

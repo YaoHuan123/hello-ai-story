@@ -1,5 +1,6 @@
 import { chatJson } from "../topic/llm";
 import { loadSuggestBatchPrompt } from "./loadPrompt";
+import { systemWithOutputLocale, withOutputLocale } from "../content/interviewOutputLocale";
 import { narratorProfileFromSections } from "./narratorProfile";
 import { parseSuggestBatch } from "./parseSuggestBatch";
 import type {
@@ -52,7 +53,7 @@ export async function suggestBatchAnswers(
   }
 
   const narratorProfile = narratorProfileFromSections(params.sections);
-  const promptInput = {
+  const promptInput = withOutputLocale({
     narratorProfile,
     currentDate: new Date().toISOString().slice(0, 10),
     title: questionSet.title,
@@ -61,13 +62,13 @@ export async function suggestBatchAnswers(
       question,
       questionText: params.questionTexts[question]!.trim(),
     })),
-  };
+  });
 
   const { system, userTemplate } = loadSuggestBatchPrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
 
   const parsed = await chatJson<unknown>([
-    { role: "system", content: system },
+    { role: "system", content: systemWithOutputLocale(system) },
     { role: "user", content: userContent },
   ]);
 

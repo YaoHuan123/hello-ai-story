@@ -1,6 +1,7 @@
 import { mapGeneratedPickRow } from "./parse";
 import { loadTier3Prompt } from "./prompt";
 import { chatJson } from "./llm";
+import { topicInputLlmMessages } from "./localeLlm";
 import type { GeneratedTopicPick, RecommendTier3Params } from "./types";
 
 const TIER3_MAX_PICKS = 6;
@@ -38,12 +39,7 @@ export async function recommendTier3(
 
   const input = { sections: params.sections, maxPicks };
   const { system, userTemplate } = loadTier3Prompt();
-  const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(input));
-
-  const out = await chatJson<Tier3LlmOutput>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
+  const out = await chatJson<Tier3LlmOutput>(topicInputLlmMessages(system, userTemplate, input));
 
   if (out.error) {
     throw new Error(`TOPIC_LLM_INVALID: 模型返回错误：${out.error}`);

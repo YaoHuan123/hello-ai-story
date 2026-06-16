@@ -1,5 +1,6 @@
 import { chatJson, type ChatMessage } from "../topic/llm";
 import { loadSuggestCurrentPrompt } from "./loadPrompt";
+import { systemWithOutputLocale, withOutputLocale } from "../content/interviewOutputLocale";
 import { narratorProfileFromSections } from "./narratorProfile";
 import {
   hasNonEmptySuggestCandidates,
@@ -68,7 +69,7 @@ export async function suggestCurrentAnswers(
     return { suggestedAnswers: [] };
   }
 
-  const promptInput = {
+  const promptInput = withOutputLocale({
     title: questionSet.title,
     narratorProfile: narratorProfileFromSections(params.sections),
     currentQuestion: {
@@ -81,13 +82,13 @@ export async function suggestCurrentAnswers(
       answer: String(row.answer ?? "").trim(),
     })),
     sections: params.sections,
-  };
+  });
 
   const { system, userTemplate } = loadSuggestCurrentPrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
 
   const messages: ChatMessage[] = [
-    { role: "system", content: system },
+    { role: "system", content: systemWithOutputLocale(system) },
     { role: "user", content: userContent },
   ];
 

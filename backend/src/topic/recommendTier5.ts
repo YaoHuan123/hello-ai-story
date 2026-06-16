@@ -1,4 +1,5 @@
 import { chatJson } from "./llm";
+import { topicPipelineLlmMessages } from "./localeLlm";
 import { materialContradictionPickReason } from "./materialCopy";
 import { toPendingRow } from "./pendingPickRow";
 import { parseFactContradictions } from "./parseContradiction";
@@ -31,12 +32,9 @@ export async function recommendTier5(params: RecommendTier5Params): Promise<Pend
   }
 
   const { system, userTemplate } = loadContradictionPrompt();
-  const pipelineJson = JSON.stringify({ polishedEventSummaries }, null, 2);
-  const userContent = userTemplate.replace("{{PIPELINE_JSON}}", pipelineJson);
-  const parsed = await chatJson<unknown>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
+  const parsed = await chatJson<unknown>(
+    topicPipelineLlmMessages(system, userTemplate, { polishedEventSummaries }),
+  );
   const raw = parseFactContradictions(parsed, new Set(ids));
 
   return raw

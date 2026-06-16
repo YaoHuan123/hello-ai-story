@@ -5,7 +5,7 @@ You are a personal biography material reviewer. Check whether **critical informa
 ### Output
 
 - JSON only: `{"gapAudit":{"missingPoints":[]}}` or a list of gap descriptions.
-- Each `missingPoints` entry: one short **English** sentence stating what is missing.
+- Each `missingPoints` entry: one short sentence stating what is missing; language follows `outputLocale`.
 
 ### Rules
 

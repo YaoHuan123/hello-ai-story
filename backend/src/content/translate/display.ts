@@ -8,7 +8,8 @@ import {
 } from "../displayCatalog";
 import type { InterviewScope } from "../../services/interviewWorkspace.service";
 import { toDisplayFieldChoices } from "./options";
-import { needsEnToZhTranslation, translateTextsForDisplay } from "./runtime";
+import { shouldUseLegacyDisplayTranslation } from "../interviewOutputLocale";
+import { translateTextsForDisplay } from "./runtime";
 import { toDisplayMaterialPickReason } from "../../topic/materialCopy";
 import { toDisplayYesNo } from "./yesNo";
 import {
@@ -121,7 +122,7 @@ export function toDisplayInterviewQuestion(
   };
 }
 
-/** 结构翻译 + 按需 LLM 将动态英文问句/备选译为中文。 */
+/** 结构翻译；方案 A：zh 落盘中文问句直接展示，仅 legacy 英文内容才读时 MT。 */
 export async function toDisplayInterviewQuestionAsync(
   scope: InterviewScope,
   q: DisplayInterviewQuestion,
@@ -138,49 +139,46 @@ export async function toDisplayInterviewQuestionAsync(
 
   let optionReasons = base.optionReasons;
   if (base.type === "topic" && base.optionReasons?.length) {
-    const mapped = base.optionReasons.map((r) => toDisplayMaterialPickReason(r, locale));
-    const reasonBatch: string[] = [];
-    const reasonSlots: number[] = [];
-    const outReasons = [...mapped];
-    for (let i = 0; i < mapped.length; i++) {
-      const r = mapped[i]!;
-      if (needsEnToZhTranslation(r, locale)) {
-        reasonBatch.push(r);
-        reasonSlots.push(i);
-      }
-    }
-    if (reasonBatch.length > 0) {
-      const translatedReasons = await translateTextsForDisplay(scope, reasonBatch, locale);
-      for (let j = 0; j < reasonSlots.length; j++) {
-        outReasons[reasonSlots[j]!] = translatedReasons[j] ?? outReasons[reasonSlots[j]!]!;
-      }
-    }
-    optionReasons = outReasons;
+    optionReasons = base.optionReasons.map((r) => toDisplayMaterialPickReason(r, locale));
   }
 
-  const toTranslate: string[] = [base.text];
-  const options: string[] = [];
-  const mtSlots: Array<{ outIndex: number; translateIndex: number }> = [];
-
-  for (const o of base.options) {
+  const legacySlots: Array<{ kind: "text" | "option"; index: number; text: string }> = [];
+  if (shouldUseLegacyDisplayTranslation(base.text, locale)) {
+    legacySlots.push({ kind: "text", index: 0, text: base.text });
+  }
+  const options = [...base.options];
+  for (let i = 0; i < options.length; i++) {
+    const o = options[i]!;
     const yn = toDisplayYesNo(o, locale);
     if (yn !== o) {
-      options.push(yn);
-    } else {
-      toTranslate.push(o);
-      mtSlots.push({ outIndex: options.length, translateIndex: toTranslate.length - 1 });
-      options.push(o);
+      options[i] = yn;
+      continue;
+    }
+    if (shouldUseLegacyDisplayTranslation(o, locale)) {
+      legacySlots.push({ kind: "option", index: i, text: o });
     }
   }
 
-  const translated = await translateTextsForDisplay(scope, toTranslate, locale);
-  for (const { outIndex, translateIndex } of mtSlots) {
-    options[outIndex] = translated[translateIndex] ?? options[outIndex]!;
+  if (legacySlots.length === 0) {
+    return { ...base, options, ...(optionReasons ? { optionReasons } : {}) };
+  }
+
+  const translated = await translateTextsForDisplay(
+    scope,
+    legacySlots.map((s) => s.text),
+    locale,
+  );
+  let text = base.text;
+  for (let j = 0; j < legacySlots.length; j++) {
+    const slot = legacySlots[j]!;
+    const value = translated[j] ?? slot.text;
+    if (slot.kind === "text") text = value;
+    else options[slot.index] = value;
   }
 
   return {
     ...base,
-    text: translated[0] ?? base.text,
+    text,
     options,
     ...(optionReasons ? { optionReasons } : {}),
   };

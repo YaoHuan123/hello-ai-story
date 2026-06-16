@@ -43,6 +43,7 @@
     "test:interview:orchestrator": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/integration/question/interview-orchestrator.integration.ts",
     "test:interview:topic-submit-resolve": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/interview/topic-submit-resolve.unit.ts",
     "test:interview:catalog-gates": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/interview/catalog-gates.unit.ts",
+    "test:interview:output-locale": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/content/interview-output-locale.unit.ts",
     "test:interview:luxun": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/interview-luxun-2api.integration.ts",
     "test:video:input": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/sections-video-input.unit.ts",
     "test:video:voiceover-coherence": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/step170VoiceoverCoherence.test.ts",
