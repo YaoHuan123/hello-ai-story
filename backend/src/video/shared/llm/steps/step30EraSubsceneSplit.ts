@@ -1,6 +1,6 @@
 import fs from "node:fs";
-import { loadVideoPromptParts } from "../loadPrompt.js";
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../client.js";
+import { buildVideoLlmMessages, stringifyVideoPipeline } from "../localeLlm.js";
+import { chatJson, getVideoLlmEnv } from "../client.js";
 
 const PROMPT_FILE = "step-30_era-subscene-split.md";
 
@@ -143,17 +143,11 @@ export async function runEraSubsceneSplitFromPipelineJson(
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi(input);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, input);
   let parsed: unknown;
   try {
     parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+      messages,
       {
         debugStepId: "era_subscene_split_30",
         temperature: 0.25,

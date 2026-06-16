@@ -4,12 +4,16 @@
  * 与 `prompts/preprocess/contradiction.md` 的 JSON 约定对齐。
  */
 
+const USER_QUESTION_MAX_LEN = 200;
+
 /** 模型单条矛盾。 */
 export type FactContradictionRaw = {
   /** 互斥叙述所涉节名，须全部存在于输入 `polishedEventSummaries` */
   involvedIds: string[];
   /** 矛盾类型/判定逻辑摘要（展示用，不含具体年月地名） */
   summary: string;
+  /** 一句口语化开放问句，直接展示给用户 */
+  userQuestion: string;
   needsUserFix: "yes" | "maybe" | "no";
   /** 0～2 条可选消解方向，映射为 PendingPickRow.suggestedAnswers */
   reconciliationHypotheses: string[];
@@ -54,6 +58,13 @@ export function parseFactContradictions(parsed: unknown, validIds: Set<string>):
     if (!summary) {
       throw new Error("CONTRADICTION_INVALID: summary 为空");
     }
+    let userQuestion = typeof o.userQuestion === "string" ? o.userQuestion.trim() : "";
+    if (!userQuestion) {
+      userQuestion = `Please clarify: ${summary}`;
+    }
+    if (userQuestion.length > USER_QUESTION_MAX_LEN) {
+      throw new Error("CONTRADICTION_INVALID: userQuestion 过长");
+    }
     if (!isNeedsUserFix(o.needsUserFix)) {
       throw new Error("CONTRADICTION_INVALID: needsUserFix 非法");
     }
@@ -70,6 +81,7 @@ export function parseFactContradictions(parsed: unknown, validIds: Set<string>):
     out.push({
       involvedIds,
       summary,
+      userQuestion,
       needsUserFix: o.needsUserFix,
       reconciliationHypotheses: rh,
     });

@@ -1,9 +1,10 @@
 import { mapGeneratedPickRow } from "./parse";
 import { loadTier3Prompt } from "./prompt";
 import { chatJson } from "./llm";
+import { topicInputLlmMessages } from "./localeLlm";
 import type { GeneratedTopicPick, RecommendTier3Params } from "./types";
 
-const TIER3_MAX_PICKS = 10;
+const TIER3_MAX_PICKS = 6;
 const TIER3_MIN_PICKS = 1;
 
 type Tier3LlmOutput = {
@@ -23,7 +24,7 @@ function assertSections(sections: RecommendTier3Params["sections"]): void {
  * 不读配置模板候选；适用于 catalog 话题已耗尽或需补充非模板角度时。
  * 用户选中某条后，用返回的 `questions` 引导访谈。
  *
- * @param params.maxPicks 默认 10
+ * @param params.maxPicks 默认 6
  * @throws TOPIC_MISSING_INPUT | TOPIC_LLM_INVALID
  */
 export async function recommendTier3(
@@ -38,12 +39,7 @@ export async function recommendTier3(
 
   const input = { sections: params.sections, maxPicks };
   const { system, userTemplate } = loadTier3Prompt();
-  const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(input));
-
-  const out = await chatJson<Tier3LlmOutput>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
+  const out = await chatJson<Tier3LlmOutput>(topicInputLlmMessages(system, userTemplate, input));
 
   if (out.error) {
     throw new Error(`TOPIC_LLM_INVALID: 模型返回错误：${out.error}`);

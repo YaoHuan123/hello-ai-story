@@ -13,14 +13,13 @@ import {
 } from "./questionEngine.service";
 import {
   getInterviewDisplayLocale,
-  getDisplayLocale,
   interviewCompletePrompt,
   interviewSkipLabel,
+  runWithDisplayLocale,
   selectTopicPrompt,
 } from "../content/displayLocale";
 import {
   toDisplayInterviewQuestionAsync,
-  toCanonicalTopicNameFromDisplay,
 } from "../content/translate/display";
 import {
   getBasicProfileTopicName,
@@ -34,10 +33,21 @@ import {
 import { isQuestionSkippable } from "../question/skip";
 import { clearTopicDir, readAnswers, readQuestionSet } from "../question/topicPersist";
 import {
-  advanceStage,
+  CATALOG_SKIP_ESCAPE_THRESHOLD,
+  canEnterAdvancedTiers,
+  incrementCatalogSkipStreak,
+  markCatalogLoopEscaped,
+  markTier2Skipped,
+  resetCatalogSkipStreak,
+} from "./catalogGates.service";
+import {
+  advanceStageWithGates,
+  escapeCatalogLoopToTier3,
   getCurrentStage,
   getPendingTopics as selectPendingTopics,
   getTopicQuestions,
+  resetToCatalogPhase,
+  resolveTopicTitleForSubmit,
 } from "./topicSelection.service";
 import { toCanonicalYesNo } from "../content/translate/yesNo";
 import { normalizeFieldAnswer } from "../topic/fieldAnswer";
@@ -125,11 +135,29 @@ function buildCompleteQuestion(scope: InterviewScope, answerCount: number): Inte
   };
 }
 
+function isCatalogQuestionSet(questionSet: QuestionSet | null | undefined): boolean {
+  return questionSet?.kind === "catalog";
+}
+
 function toNormalQuestion(
   questionSet: QuestionSet | null,
   title: string,
   question: NextQuestionDisplay,
 ): InterviewQuestion {
+  if (!isCatalogQuestionSet(questionSet)) {
+    const topicTitle = questionSet?.title.trim() || title.trim();
+    const key = question.key.trim();
+    return {
+      type: "normal",
+      title: topicTitle,
+      key,
+      text: question.text,
+      options: question.suggestions,
+      fieldType: "text",
+      ...(questionSet ? { skippable: isQuestionSkippable(questionSet, key) } : {}),
+    };
+  }
+
   const canonicalTitle = resolveCanonicalTopicName(title);
   const canonicalKey = resolveCanonicalFieldKey(canonicalTitle, question.key);
   const meta = getTopicFieldMeta(canonicalTitle, canonicalKey);
@@ -157,13 +185,18 @@ export type SubmitInput = {
 /** 对外：带 trace 的 getCurrentQuestion（HTTP 层调用）。 */
 export async function getCurrentQuestionTraced(scope: InterviewScope): Promise<InterviewQuestion> {
   const displayLocale = getInterviewDisplayLocale(scope);
-  const q = await runWithQuestionTrace(scope, "getCurrentQuestion", () => getCurrentQuestion(scope));
-  const def =
-    q.type === "normal" && q.title ? getTopicFieldDef(q.title, q.key) : undefined;
-  return toDisplayInterviewQuestionAsync(scope, q, displayLocale, {
-    fieldType: q.fieldType,
-    fieldChoices: q.fieldChoices,
-    optionsKey: def?.optionsKey,
+  return runWithDisplayLocale(displayLocale, async () => {
+    const q = await runWithQuestionTrace(scope, "getCurrentQuestion", () => getCurrentQuestion(scope));
+    const questionSet = readQuestionSet(scope);
+    const def =
+      q.type === "normal" && q.title && isCatalogQuestionSet(questionSet)
+        ? getTopicFieldDef(q.title, q.key)
+        : undefined;
+    return toDisplayInterviewQuestionAsync(scope, q, displayLocale, {
+      fieldType: q.fieldType,
+      fieldChoices: q.fieldChoices,
+      optionsKey: def?.optionsKey,
+    });
   });
 }
 
@@ -224,6 +257,7 @@ export async function getCurrentQuestion(scope: InterviewScope): Promise<Intervi
     text: selectTopicPrompt(getInterviewDisplayLocale(scope)),
     options: topics.map((t) => t.title),
     optionReasons: topics.map((t) => t.reason),
+    skippable: true,
   };
 }
 
@@ -232,7 +266,7 @@ export async function getCurrentQuestion(scope: InterviewScope): Promise<Intervi
  * - 选主题阶段：`value` 作为主题标题进入该主题
  * - 普通问答阶段：`value` 作为答案落盘；答完由 `getCurrentQuestion` 自动 commit
  */
-export function submit(scope: InterviewScope, input: SubmitInput): void {
+export async function submit(scope: InterviewScope, input: SubmitInput): Promise<void> {
   if (readInterviewMeta(scope)?.interviewStatus === "complete") {
     throw new Error("INTERVIEW_COMPLETE: 采访已结束，无法继续作答");
   }
@@ -245,9 +279,31 @@ export function submit(scope: InterviewScope, input: SubmitInput): void {
         "INTERVIEW_TOPIC_IN_PROGRESS: 已有进行中主题，请先用 getCurrentQuestion 继续作答",
       );
     }
-    const displayLocale = getDisplayLocale();
-    const canonicalTitle = toCanonicalTopicNameFromDisplay(input.value.trim(), displayLocale);
-    const questionSet = getTopicQuestions(scope, canonicalTitle);
+    const { tier } = getCurrentStage(scope);
+    if (input.skip) {
+      if (tier === 2) {
+        markTier2Skipped(scope);
+      }
+      if (tier === 1 || tier === 2) {
+        const streak = incrementCatalogSkipStreak(scope);
+        if (streak >= CATALOG_SKIP_ESCAPE_THRESHOLD) {
+          markCatalogLoopEscaped(scope);
+          resetCatalogSkipStreak(scope);
+          escapeCatalogLoopToTier3(scope);
+          return;
+        }
+      }
+      advanceStageWithGates(scope);
+      return;
+    }
+    resetCatalogSkipStreak(scope);
+    const displayLocale = getInterviewDisplayLocale(scope);
+    const resolvedTitle = await resolveTopicTitleForSubmit(
+      scope,
+      input.value.trim(),
+      displayLocale,
+    );
+    const questionSet = getTopicQuestions(scope, resolvedTitle);
     initQuestion(scope, questionSet);
   } else {
     const questionSet = readQuestionSet(scope);
@@ -255,38 +311,56 @@ export function submit(scope: InterviewScope, input: SubmitInput): void {
       throw new Error("QUESTION_ENGINE_NO_SESSION: 无进行中主题");
     }
 
-    const displayLocale = getDisplayLocale();
-    const topicTitle = resolveCanonicalTopicName(questionSet.title.trim());
-    const canonicalKey = resolveCanonicalFieldKey(topicTitle, input.key);
+    const displayLocale = getInterviewDisplayLocale(scope);
 
+    let topicTitle: string;
+    let answerKey: string;
     let answer: string;
-    if (input.skip) {
-      if (!isQuestionSkippable(questionSet, canonicalKey)) {
-        throw new Error("QUESTION_NOT_SKIPPABLE: 当前题目不可跳过");
+
+    if (isCatalogQuestionSet(questionSet)) {
+      topicTitle = resolveCanonicalTopicName(questionSet.title.trim());
+      answerKey = resolveCanonicalFieldKey(topicTitle, input.key);
+
+      if (input.skip) {
+        if (!isQuestionSkippable(questionSet, answerKey)) {
+          throw new Error("QUESTION_NOT_SKIPPABLE: 当前题目不可跳过");
+        }
+        answer = interviewSkipLabel(displayLocale);
+      } else {
+        const meta = getTopicFieldMeta(topicTitle, answerKey);
+        const def = getTopicFieldDef(topicTitle, answerKey);
+        let rawAnswer = input.value;
+        if (questionSet.kind === "material_inner") {
+          rawAnswer = toCanonicalYesNo(rawAnswer, displayLocale);
+        }
+        const normalized = normalizeFieldAnswer(meta, rawAnswer, {
+          displayLocale,
+          topicName: topicTitle,
+          fieldKey: answerKey,
+          canonicalChoices: meta?.fieldChoices,
+          optionsKey: def?.optionsKey,
+        });
+        if (!normalized.ok) {
+          throw new Error(`INVALID_FIELD_ANSWER: ${normalized.message}`);
+        }
+        answer = normalized.value;
       }
-      answer = interviewSkipLabel(displayLocale);
     } else {
-      const meta = getTopicFieldMeta(topicTitle, canonicalKey);
-      const def = getTopicFieldDef(topicTitle, canonicalKey);
-      let rawAnswer = input.value;
-      if (questionSet.kind === "material_inner") {
-        rawAnswer = toCanonicalYesNo(rawAnswer, displayLocale);
+      topicTitle = questionSet.title.trim();
+      answerKey = input.key.trim();
+
+      if (input.skip) {
+        if (!isQuestionSkippable(questionSet, answerKey)) {
+          throw new Error("QUESTION_NOT_SKIPPABLE: 当前题目不可跳过");
+        }
+        answer = interviewSkipLabel(displayLocale);
+      } else {
+        answer = input.value;
       }
-      const normalized = normalizeFieldAnswer(meta, rawAnswer, {
-        displayLocale,
-        topicName: topicTitle,
-        fieldKey: canonicalKey,
-        canonicalChoices: meta?.fieldChoices,
-        optionsKey: def?.optionsKey,
-      });
-      if (!normalized.ok) {
-        throw new Error(`INVALID_FIELD_ANSWER: ${normalized.message}`);
-      }
-      answer = normalized.value;
     }
 
     engineSubmitAnswer(scope, {
-      key: canonicalKey,
+      key: answerKey,
       questionText: input.text,
       answer,
     });
@@ -297,26 +371,39 @@ export function submit(scope: InterviewScope, input: SubmitInput): void {
 }
 
 /**
+ * 当前档待选，过滤 sections 中已答主题（不含自动升档）。
+ */
+async function unansweredPendingTopics(scope: InterviewScope): Promise<TopicPick[]> {
+  const sections = getSections(scope);
+  const answered = new Set(
+    sections.map((s) => {
+      try {
+        return resolveCanonicalTopicName(s.name.trim());
+      } catch {
+        return s.name.trim();
+      }
+    }),
+  );
+  const topics = await selectPendingTopics(scope, sections);
+  return topics.filter((t) => !answered.has(t.title.trim()));
+}
+
+/**
  * 待选为空时按 tier 轮转最多一圈，自动升档直至取到非空待选。
  * 过滤已在 sections 中的主题（兼容旧数据 pending 未随 commit 升档删除的情况）。
  */
 async function pendingWithAutoPromote(scope: InterviewScope): Promise<TopicPick[]> {
   for (let i = 0; i < 8; i++) {
-    const sections = getSections(scope);
-    const answered = new Set(
-      sections.map((s) => {
-        try {
-          return resolveCanonicalTopicName(s.name.trim());
-        } catch {
-          return s.name.trim();
-        }
-      }),
+    const { tier } = getCurrentStage(scope);
+    if (tier >= 3 && tier <= 8 && !canEnterAdvancedTiers(scope)) {
+      resetToCatalogPhase(scope);
+      continue;
+    }
+    const topics = await traceQuestionStep("topic.selectPending", () =>
+      unansweredPendingTopics(scope),
     );
-    const topics = (
-      await traceQuestionStep("topic.selectPending", () => selectPendingTopics(scope, sections))
-    ).filter((t) => !answered.has(t.title.trim()));
     if (topics.length > 0) return topics;
-    advanceStage(scope);
+    advanceStageWithGates(scope);
   }
   return [];
 }
@@ -356,10 +443,10 @@ export function commitTopic(scope: InterviewScope): void {
   }
   clearTopicDir(scope);
   if (title && !isBasicProfileTopicName(title)) {
-    advanceStage(scope);
+    advanceStageWithGates(scope);
   }
 }
 
 export function promoteStage(scope: InterviewScope): CurrentStage {
-  return advanceStage(scope);
+  return advanceStageWithGates(scope);
 }

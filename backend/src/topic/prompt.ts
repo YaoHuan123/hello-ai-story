@@ -46,7 +46,7 @@ export function loadTier2Prompt(): { system: string; userTemplate: string } {
   return loadTopicPrompt(TIER2_FILE);
 }
 
-/** Tier3：列出 1～10 个 AI 创意主题供用户点选。 */
+/** Tier3：列出 1～6 个 AI 创意主题供用户点选。 */
 export function loadTier3Prompt(): { system: string; userTemplate: string } {
   return loadTopicPrompt(TIER3_FILE);
 }

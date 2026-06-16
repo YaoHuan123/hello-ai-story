@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../client.js";
-import { loadVideoPromptParts } from "../loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../client.js";
+import { buildVideoLlmMessages, stringifyVideoPipeline } from "../localeLlm.js";
 import type { AnsweredSection } from "../../../../topic/types";
 import {
   buildMaterialPolishLlmInput,
@@ -33,7 +33,7 @@ export function assertPolishedCoversAllSections(
   for (const name of sectionNames) {
     const v = polished[name];
     if (typeof v !== "string" || v.trim() === "") {
-      throw new Error(`POLISH_10_FAILED: polishedTemplateInstanceSummaries 缺少或无效：name="${name}"`);
+      throw new Error(`POLISH_10_FAILED: polishedTemplateInstanceSummaries ??????name="${name}"`);
     }
     out[name] = v.trim();
   }
@@ -41,7 +41,7 @@ export function assertPolishedCoversAllSections(
   const extraKeys = Object.keys(polished).filter((k) => !Object.prototype.hasOwnProperty.call(out, k));
   if (extraKeys.length > 0) {
     throw new Error(
-      `POLISH_10_FAILED: polishedTemplateInstanceSummaries 存在多余键：${extraKeys.slice(0, 6).join(",")}`,
+      `POLISH_10_FAILED: polishedTemplateInstanceSummaries ??????${extraKeys.slice(0, 6).join(",")}`,
     );
   }
 
@@ -52,21 +52,15 @@ async function callMaterialPolishLlm(
   input: MaterialPolishLlmInput,
   debugStepId: string,
 ): Promise<Record<string, unknown>> {
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi(input);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, input as Record<string, unknown>);
   const parsed = await chatJson<{ polishedTemplateInstanceSummaries?: unknown }>(
-    [
-      { role: "system", content: systemText },
-      { role: "user", content: userContent },
-    ],
+    messages,
     { debugStepId, temperature: debugStepId.includes("repair") ? 0.1 : 0.2, useJsonObject: true },
   );
 
   const raw = parsed.polishedTemplateInstanceSummaries;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new Error("POLISH_10_FAILED: 模型输出缺少 polishedTemplateInstanceSummaries 对象");
+    throw new Error("POLISH_10_FAILED: ?????? polishedTemplateInstanceSummaries ??");
   }
   return raw as Record<string, unknown>;
 }
@@ -78,10 +72,10 @@ export async function runMaterialPolish(input: MaterialPolishLlmInput): Promise<
   }
 
   if (!getVideoLlmEnv().apiKey) {
-    throw new Error("OPENAI_API_KEY 未配置（请在 backend/.env 配置；可复制 backend/.env.example 为 backend/.env）");
+    throw new Error("OPENAI_API_KEY ?????? backend/.env ?????? backend/.env.example ? backend/.env?");
   }
 
-  const pipelineStr = stringifyForAi(input);
+  const pipelineStr = stringifyVideoPipeline(input as Record<string, unknown>);
 
   try {
     const raw = await callMaterialPolishLlm(input, "polish_10");
@@ -95,25 +89,20 @@ export async function runMaterialPolish(input: MaterialPolishLlmInput): Promise<
     }
 
     const hint =
-      `【服务端校验未通过】${firstErr.message}
+      `??????????${firstErr.message}
 
-你必须输出唯一顶层 JSON，且仅含 polishedTemplateInstanceSummaries。
-其对象的键必须**恰好**为下列每一个字符串（顺序不限；不得增删改键名；每个值为非空字符串）：
+????????? JSON???? polishedTemplateInstanceSummaries?
+???????**??**??????????????????????????????????
 ${JSON.stringify(sectionNames, null, 2)}
 
-完整输入 JSON 如下，请据此补全或重写全部键值的润色正文：
+???? JSON ?????????????????????
 ${pipelineStr}`;
 
-    const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-    const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
+    const { messages: repairMessages } = buildVideoLlmMessages(PROMPT_FILE, input as Record<string, unknown>);
 
     try {
       const parsed2 = await chatJson<{ polishedTemplateInstanceSummaries?: unknown }>(
-        [
-          { role: "system", content: systemText },
-          { role: "user", content: userContent },
-          { role: "user", content: hint },
-        ],
+        [...repairMessages, { role: "user", content: hint }],
         { debugStepId: "polish_10_repair", temperature: 0.1, useJsonObject: true },
       );
       const raw2 = parsed2.polishedTemplateInstanceSummaries;
@@ -135,7 +124,7 @@ function resolvePolishMode(mode?: MaterialPolishMode): MaterialPolishMode {
   return "llm";
 }
 
-/** 从已答小节运行 step-10；默认 LLM，`mode: "stub"` 或 `VIDEO_INPUT_STUB=1` 时跳过模型。 */
+/** ??????? step-10??? LLM?`mode: "stub"` ? `VIDEO_INPUT_STUB=1` ?????? */
 export async function runMaterialPolishFromSections(
   sections: AnsweredSection[],
   opts?: {

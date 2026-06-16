@@ -1,4 +1,5 @@
 import { chatJson } from "./llm";
+import { topicPipelineLlmMessages } from "./localeLlm";
 import { loadGapPrompt } from "./loadGapPrompt";
 import { MATERIAL_GAP_REASON } from "./materialCopy";
 import { parseGapAudit } from "./parseGap";
@@ -23,12 +24,9 @@ export async function recommendTier6(params: RecommendTier6Params): Promise<Topi
 
   const polishedTemplateInstanceSummaries = sectionsToPolishedEventSummaries(params.sections);
   const { system, userTemplate } = loadGapPrompt();
-  const pipelineJson = JSON.stringify({ polishedTemplateInstanceSummaries }, null, 2);
-  const userContent = userTemplate.replace("{{PIPELINE_JSON}}", pipelineJson);
-  const parsed = await chatJson<unknown>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
+  const parsed = await chatJson<unknown>(
+    topicPipelineLlmMessages(system, userTemplate, { polishedTemplateInstanceSummaries }),
+  );
   const missingPoints = parseGapAudit(parsed);
 
   return missingPoints.map((text) => ({

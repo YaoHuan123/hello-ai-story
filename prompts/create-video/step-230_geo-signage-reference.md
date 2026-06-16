@@ -2,6 +2,16 @@ This step runs **before text-to-image (step 240)**. From each `visualScenes[].sc
 
 **Important**: **no live web search** — model knowledge only; **do not** invent specific road or institution names you are unsure exist. When uncertain, leave arrays empty and note briefly in `uncertaintyNote`. Maintainers should spot-check; for hard verification use a separate retrieval product path.
 
+### Output locale
+
+`PIPELINE_JSON` includes **`outputLocale`** (`zh` | `en`). JSON examples in this prompt use **en** unless noted; match **`outputLocale`** in production.
+
+- **User-facing strings** you generate in this step: natural Chinese when `zh`, English when `en`; first person「我」 / `"I"` where this step uses first person.
+- **Canonical structure**: JSON keys, section name keys in maps, `segmentIndex`, enum values (`event`/`context`), and literal person names — copy from input; do not translate keys or rename people for locale.
+- **This step only**: **`signageLines` always short Chinese** (≤12 chars) for on-image text-to-image, regardless of `outputLocale`.
+
+---
+
 ## User
 
 You receive JSON: `inputScenes` is an array; each item has `segmentIndex`, `sceneIndex`, `sceneDescription` (string). Output **one** `geoDetails` record per input item; **array order matches `inputScenes` 1:1** (item i ↔ `inputScenes[i]`).
@@ -21,6 +31,6 @@ Per scene, from region, era, occupation, and activity:
 
 Output **only** one JSON object; top-level key **`geoDetails`**, array value; length equals `inputScenes`.
 
-Input JSON:
+Read **`PIPELINE_JSON`** (includes **`outputLocale`**).
 
 {{PIPELINE_JSON}}

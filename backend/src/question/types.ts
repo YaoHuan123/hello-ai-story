@@ -84,7 +84,7 @@ export type ColloquializeQuestionsResult = {
 export type SuggestBatchItem = {
   /** 模板题 key */
   question: string;
-  /** 可点选短答案，0～4 条，每条 ≤40 字 */
+  /** 可点选短答案，0～4 条，每条 ≤80 字（prompt 目标更短） */
   suggestedAnswers: string[];
 };
 
@@ -266,7 +266,7 @@ export type RefineAndSuggestCurrentResult = {
 export type ExtendQuestionItem = {
   /** 开放追问文案（canonical 英文），≤180 字符 */
   q: string;
-  /** 0～4 条点选备选，仅轻量摘录/归一，每条 ≤40 字 */
+  /** 0～4 条点选备选，仅轻量摘录/归一，每条 ≤80 字（prompt 目标更短） */
   suggestedAnswers: string[];
 };
 

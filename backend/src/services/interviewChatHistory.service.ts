@@ -1,4 +1,5 @@
 import { getInterviewDisplayLocale } from "../content/displayLocale";
+import { shouldUseLegacyDisplayTranslation } from "../content/interviewOutputLocale";
 import { getDisplayOptionByCanonicalValue } from "../content/displayCatalog";
 import { toDisplayTopicName } from "../content/translate/display";
 import { toDisplayYesNo } from "../content/translate/yesNo";
@@ -72,7 +73,7 @@ export function getInterviewChatHistory(scope: InterviewScope): InterviewChatMes
   return messages;
 }
 
-/** HTTP：按 `meta.locale` 翻译主题名、问句与答案。 */
+/** HTTP：按 `meta.locale` 展示聊天；用户答案永不 MT，AI 问句仅 legacy 英文才回译。 */
 export async function getInterviewChatHistoryForDisplay(
   scope: InterviewScope,
 ): Promise<InterviewChatMessage[]> {
@@ -81,14 +82,32 @@ export async function getInterviewChatHistoryForDisplay(
   if (locale === "en") return raw;
 
   const metas = raw.map((m) => (m.meta ? toDisplayTopicName(m.meta, locale) : undefined));
-  const texts = raw.map((m) =>
+
+  const displayTexts = raw.map((m) =>
     m.role === "user" ? toDisplayStoredAnswer(m.text, locale) : m.text,
   );
-  const translatedTexts = await translateTextsForDisplay(scope, texts, locale);
+
+  const legacyIndices: number[] = [];
+  const legacyBatch: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    if (raw[i]!.role !== "ai") continue;
+    const t = displayTexts[i]!;
+    if (shouldUseLegacyDisplayTranslation(t, locale)) {
+      legacyIndices.push(i);
+      legacyBatch.push(t);
+    }
+  }
+
+  if (legacyBatch.length > 0) {
+    const translated = await translateTextsForDisplay(scope, legacyBatch, locale);
+    for (let j = 0; j < legacyIndices.length; j++) {
+      displayTexts[legacyIndices[j]!] = translated[j] ?? displayTexts[legacyIndices[j]!]!;
+    }
+  }
 
   return raw.map((m, i) => ({
     ...m,
-    text: translatedTexts[i]!,
+    text: displayTexts[i]!,
     ...(metas[i] ? { meta: metas[i] } : {}),
   }));
 }

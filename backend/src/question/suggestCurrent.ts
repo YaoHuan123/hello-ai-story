@@ -1,7 +1,13 @@
-import { chatJson } from "../topic/llm";
+import { getTopicFieldMeta } from "../topic/catalog";
+import { chatJson, type ChatMessage } from "../topic/llm";
 import { loadSuggestCurrentPrompt } from "./loadPrompt";
+import { systemWithOutputLocale, withOutputLocale } from "../content/interviewOutputLocale";
 import { narratorProfileFromSections } from "./narratorProfile";
-import { parseSuggestCurrent } from "./parseSuggestCurrent";
+import {
+  hasNonEmptySuggestCandidates,
+  parseSuggestCurrent,
+  SUGGEST_CURRENT_VALUE_MAX_LEN,
+} from "./parseSuggestCurrent";
 import type {
   SuggestCurrentQuestionParams,
   SuggestCurrentQuestionResult,
@@ -64,12 +70,15 @@ export async function suggestCurrentAnswers(
     return { suggestedAnswers: [] };
   }
 
-  const promptInput = {
+  const fieldMeta = getTopicFieldMeta(questionSet.title, currentQuestion);
+
+  const promptInput = withOutputLocale({
     title: questionSet.title,
     narratorProfile: narratorProfileFromSections(params.sections),
     currentQuestion: {
       question: currentQuestion,
       questionText,
+      fieldType: fieldMeta?.fieldType ?? "text",
     },
     answeredInTopic: params.answeredInTopic.map((row) => ({
       question: row.question.trim(),
@@ -77,16 +86,30 @@ export async function suggestCurrentAnswers(
       answer: String(row.answer ?? "").trim(),
     })),
     sections: params.sections,
-  };
+  });
 
   const { system, userTemplate } = loadSuggestCurrentPrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
 
-  const parsed = await chatJson<unknown>([
-    { role: "system", content: system },
+  const messages: ChatMessage[] = [
+    { role: "system", content: systemWithOutputLocale(system) },
     { role: "user", content: userContent },
-  ]);
+  ];
 
-  const suggestedAnswers = parseSuggestCurrent(parsed);
+  let parsed = await chatJson<unknown>(messages);
+  let suggestedAnswers = parseSuggestCurrent(parsed);
+  if (suggestedAnswers.length === 0 && hasNonEmptySuggestCandidates(parsed)) {
+    parsed = await chatJson<unknown>([
+      ...messages,
+      {
+        role: "user",
+        content:
+          `Your previous suggestedAnswers were too long. Regenerate JSON only. ` +
+          `Each string must be ≤ ${SUGGEST_CURRENT_VALUE_MAX_LEN} characters; omit options that cannot fit.`,
+      },
+    ]);
+    suggestedAnswers = parseSuggestCurrent(parsed);
+  }
+
   return { suggestedAnswers };
 }

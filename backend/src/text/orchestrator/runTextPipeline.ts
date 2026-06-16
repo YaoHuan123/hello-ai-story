@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { InterviewScope } from "../../services/interviewWorkspace.service";
 import type { AnsweredSection } from "../../topic/types";
+import { getInterviewDisplayLocale } from "../../content/displayLocale";
 import { getSections } from "../../services/answeredSections.service";
 import { readTierCommits } from "../../services/tierCommitLedger.service";
 import { estimateVideoCostForSections } from "../videoCostEstimate.js";
@@ -89,8 +90,10 @@ async function runTextPipelineInner(
     const tierCommitCount = readTierCommits(scope).length;
     const videoCostEstimate = estimateVideoCostForSections(sections, tierCommitCount);
 
+    const locale = getInterviewDisplayLocale(scope);
     const { article, skippedModel } = await generateFormalArticleFromSections(sections, {
       mode: opts?.mode,
+      outputLocale: locale,
     });
 
     writeTextArticleFile(handle.paths, {

@@ -196,6 +196,21 @@ export async function translateTextsZhToEnForTts(
   return results;
 }
 
+/** 从 en→zh 展示缓存反查 canonical 英文（选题提交用）。 */
+export function lookupCanonicalEnFromDisplayCache(
+  scope: InterviewScope,
+  displayZh: string,
+): string | undefined {
+  const zh = displayZh.trim();
+  if (!zh) return undefined;
+  const cache = readCache(scope);
+  for (const [en, cachedZh] of Object.entries(cache)) {
+    if (en.startsWith(ZH2EN_CACHE_PREFIX)) continue;
+    if (cachedZh === zh) return en;
+  }
+  return undefined;
+}
+
 type TranslateArticleOutput = {
   zh?: string;
   error?: string;

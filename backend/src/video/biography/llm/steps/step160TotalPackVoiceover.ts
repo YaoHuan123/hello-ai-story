@@ -1,6 +1,6 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
 import { VOICEOVER_LINE_MAX_CHARS } from "../../../shared/constants/voiceoverLimits.js";
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
+import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
 import type { MergedNarrativeSegmentItem } from "./step150MergeEnvAndEra.js";
 import { rowHasRenderableEnvScene } from "../../../shared/llm/envSegmentSceneText.js";
 
@@ -268,16 +268,10 @@ function assertVoiceoverAlignmentResult(parsed: unknown): void {
 }
 
 async function runVoiceoverAlignmentModelCheck(payload: { env: unknown[]; era: unknown[] }): Promise<void> {
-  const { systemText, userSuffix } = loadVideoPromptParts(ALIGN_PROMPT_FILE);
-  const pipelineStr = stringifyForAi(payload);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
+  const { messages } = buildVideoLlmMessages(ALIGN_PROMPT_FILE, payload);
   let parsed: unknown;
   try {
-    parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+    parsed = await chatJson<unknown>(messages,
       {
         debugStepId: "total_pack_voiceover_160_alignment",
         temperature: 0,
@@ -483,7 +477,6 @@ export async function runTotalPackVoiceoverFromMergedSegments(
     adjacencyHints,
   } = splitMergedForVoiceoverPipelineJson(merged);
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
   const innerItems = buildSanitizedInnerSignalsForPrompt(emotionalInnerSignals, timelineOrder);
   const pipelinePayload: Record<string, unknown> = {
     polishedEventSummariesEnv,
@@ -495,18 +488,14 @@ export async function runTotalPackVoiceoverFromMergedSegments(
   if (innerItems.length > 0) {
     pipelinePayload.emotionalInnerSignals = { items: innerItems };
   }
-  const pipelineStr = stringifyForAi(pipelinePayload);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
+  const { messages: baseMessages } = buildVideoLlmMessages(PROMPT_FILE, pipelinePayload);
 
   // 单次「校验失败带错误重试」：旁白长度/条数等约束模型偶发违例，反馈具体错误后重试一次通常即可通过。
   const callAndAssert = async (
     debugStepId: string,
     extraGuidance?: string,
   ): Promise<{ envVoiceovers: EnvVoiceoverRow[]; eraVoiceovers: EraVoiceoverRow[] }> => {
-    const messages = [
-      { role: "system" as const, content: systemText },
-      { role: "user" as const, content: userContent },
-    ];
+    const messages = [...baseMessages];
     if (extraGuidance) {
       messages.push({ role: "user" as const, content: extraGuidance });
     }

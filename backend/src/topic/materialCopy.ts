@@ -4,14 +4,18 @@ import { hotTopicDomainIdByName } from "./hotTopicMap";
 
 const LIFE_MEMORY_REASON_RE = /^Life memory:\s*(.+)$/;
 
-/** Tier5～8 落盘用英文文案（展示层再翻译）。 */
+/** Tier5～8 落盘文案随 `meta.locale` 在选题时生成；以下为英文 fallback 模板。 */
 
-export function contradictionQuestionFallback(title: string): string {
-  return `Please clarify this inconsistency: ${title.trim()}`;
+export function contradictionQuestionFallback(title: string, locale: DisplayLocale = "en"): string {
+  const t = title.trim();
+  if (locale === "zh") return `请说明：${t}`;
+  return `Please clarify: ${t}`;
 }
 
-export function gapQuestionText(missingPoint: string): string {
-  return `Details you could add: ${missingPoint.trim()}`;
+export function gapQuestionText(missingPoint: string, locale: DisplayLocale = "en"): string {
+  const t = missingPoint.trim();
+  if (locale === "zh") return `还可以补充：${t}`;
+  return `Details you could add: ${t}`;
 }
 
 export const MATERIAL_GAP_REASON = "Material gap — please add key dates or places";

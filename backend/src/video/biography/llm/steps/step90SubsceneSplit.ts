@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
 import {
   normalizeTimelineSegmentItemsFromUnknown,
   type PolishedEventSummariesContextExpandedItem,
@@ -153,17 +153,10 @@ export async function runSubsceneSplitFromPipelineJson(
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi(pipeline);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, pipeline);
   let parsed: unknown;
   try {
-    parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+    parsed = await chatJson<unknown>(messages,
       {
         debugStepId: "subscene_split_90",
         temperature: 0.15,

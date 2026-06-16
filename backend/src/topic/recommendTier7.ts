@@ -1,4 +1,5 @@
 import { chatJson } from "./llm";
+import { topicPipelineLlmMessages } from "./localeLlm";
 import { loadTurnPrompt } from "./loadTurnPrompt";
 import { parseTurningPointReasons } from "./parseTurn";
 import {
@@ -24,12 +25,9 @@ export async function recommendTier7(params: RecommendTier7Params): Promise<Topi
   if (keys.length === 0) return [];
 
   const { system, userTemplate } = loadTurnPrompt();
-  const pipelineJson = JSON.stringify({ polishedTemplateInstanceSummaries }, null, 2);
-  const userContent = userTemplate.replace("{{PIPELINE_JSON}}", pipelineJson);
-  const parsed = await chatJson<unknown>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
+  const parsed = await chatJson<unknown>(
+    topicPipelineLlmMessages(system, userTemplate, { polishedTemplateInstanceSummaries }),
+  );
   const rows = parseTurningPointReasons(parsed);
 
   return rows.map((row) => ({

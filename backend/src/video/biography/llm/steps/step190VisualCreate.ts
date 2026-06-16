@@ -1,5 +1,5 @@
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
 import type { MergedNarrativeSegmentItem } from "./step150MergeEnvAndEra.js";
 
 const PROMPT_FILE = "step-190_visual-create.md";
@@ -161,17 +161,10 @@ export async function runVisualCreateFromMergedSegments(input: VisualCreateInput
   }
 
   const visualLabelSamples = buildVisualLabelSamples(mergedNarrativeSegments, labels);
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi({ visualLabelSamples, confirmedGenderByName });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, { visualLabelSamples, confirmedGenderByName });
   let parsed: unknown;
   try {
-    parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+    parsed = await chatJson<unknown>(messages,
       {
         debugStepId: "visual_create_190",
         temperature: 0.35,

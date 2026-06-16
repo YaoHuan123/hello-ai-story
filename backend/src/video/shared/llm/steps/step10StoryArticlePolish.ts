@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../client.js";
-import { loadVideoPromptParts } from "../loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../client.js";
+import { buildVideoLlmMessages, stringifyVideoPipeline } from "../localeLlm.js";
 import type { AnsweredSection } from "../../../../topic/types";
 import { filterSectionsForVideo } from "../../input/sectionsFilter.js";
 import { assertPolishedCoversAllSections } from "./step10MaterialPolish.js";
@@ -38,7 +38,7 @@ export function buildStubPolishedFromStoryArticle(
 
   const paragraphs = trimmed.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
   if (paragraphs.length === 0) {
-    return Object.fromEntries(names.map((name) => [name, trimmed || "（空）"]));
+    return Object.fromEntries(names.map((name) => [name, trimmed || "???"]));
   }
 
   const out: Record<string, string> = {};
@@ -58,21 +58,15 @@ async function callStoryArticlePolishLlm(
   input: StoryArticlePolishLlmInput,
   debugStepId: string,
 ): Promise<Record<string, unknown>> {
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi(input);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, input as Record<string, unknown>);
   const parsed = await chatJson<{ polishedTemplateInstanceSummaries?: unknown }>(
-    [
-      { role: "system", content: systemText },
-      { role: "user", content: userContent },
-    ],
+    messages,
     { debugStepId, temperature: debugStepId.includes("repair") ? 0.1 : 0.2, useJsonObject: true },
   );
 
   const raw = parsed.polishedTemplateInstanceSummaries;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new Error("STORY_POLISH_10_FAILED: 模型输出缺少 polishedTemplateInstanceSummaries 对象");
+    throw new Error("STORY_POLISH_10_FAILED: ?????? polishedTemplateInstanceSummaries ??");
   }
   return raw as Record<string, unknown>;
 }
@@ -88,10 +82,10 @@ export async function runStoryArticlePolish(
   }
 
   if (!getVideoLlmEnv().apiKey) {
-    throw new Error("OPENAI_API_KEY 未配置（请在 backend/.env 配置；可复制 backend/.env.example 为 backend/.env）");
+    throw new Error("OPENAI_API_KEY ?????? backend/.env ?????? backend/.env.example ? backend/.env?");
   }
 
-  const pipelineStr = stringifyForAi(input);
+  const pipelineStr = stringifyVideoPipeline(input as Record<string, unknown>);
 
   try {
     const raw = await callStoryArticlePolishLlm(input, "story_polish_10");
@@ -105,25 +99,20 @@ export async function runStoryArticlePolish(
     }
 
     const hint =
-      `【服务端校验未通过】${firstErr.message}
+      `??????????${firstErr.message}
 
-你必须输出唯一顶层 JSON，且仅含 polishedTemplateInstanceSummaries。
-其对象的键必须**恰好**为下列每一个字符串（顺序不限；不得增删改键名；每个值为非空字符串）：
+????????? JSON???? polishedTemplateInstanceSummaries?
+???????**??**??????????????????????????????????
 ${JSON.stringify(sectionNames, null, 2)}
 
-完整输入 JSON 如下，请据此补全或重写全部键值的润色正文：
+???? JSON ?????????????????????
 ${pipelineStr}`;
 
-    const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-    const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
+    const { messages: repairMessages } = buildVideoLlmMessages(PROMPT_FILE, input as Record<string, unknown>);
 
     try {
       const parsed2 = await chatJson<{ polishedTemplateInstanceSummaries?: unknown }>(
-        [
-          { role: "system", content: systemText },
-          { role: "user", content: userContent },
-          { role: "user", content: hint },
-        ],
+        [...repairMessages, { role: "user", content: hint }],
         { debugStepId: "story_polish_10_repair", temperature: 0.1, useJsonObject: true },
       );
       const raw2 = parsed2.polishedTemplateInstanceSummaries;
@@ -139,7 +128,7 @@ ${pipelineStr}`;
   }
 }
 
-/** 故事正文 → step-10 各节润色摘要；默认 LLM，`mode: "stub"` 或 `VIDEO_INPUT_STUB=1` 时按段落轮转分配。 */
+/** ???? ? step-10 ????????? LLM?`mode: "stub"` ? `VIDEO_INPUT_STUB=1` ????????? */
 export async function runStoryArticlePolishFromSections(
   sections: AnsweredSection[],
   storyArticle: string,

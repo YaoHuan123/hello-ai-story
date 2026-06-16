@@ -16,18 +16,39 @@
 
 | Tier | 选题方式 | `TopicPick.kind` | 典型条数 | 用户确认 |
 |------|----------|------------------|----------|----------|
-| 1 | LLM 从配置模板 catalog **自动**推荐 1 个话题 | `catalog` | 1 | 前端可仅 1 条时自动确认 |
-| 2 | LLM 列出 catalog **候选** | `catalog` | 1～6 | 用户点选 |
-| 3 | LLM **生成**创意主题（非 catalog） | `generated` | 1～10 | 用户点选；题面写入 pending 行 `questions` |
-| 4 | LLM **生活记忆热点**开放问句 | `hot_topic` | 1～6 | 用户点选问句；`title` = 问句全文 |
-| 5 | 根据 **`sections`** 做矛盾检测；pending 行写入含节摘录的 `questions` | `material_contradiction` | 0～N | 用户点选 `title`（summary）后开放说明 |
-| 6 | 根据 **`sections`** 做缺口审核后列出待补充要点 | `material_gap` | 0～N | 用户点选缺口短句 |
-| 7 | 根据 **`sections`** 挖掘转折原因（老项目 tier8 语义） | `material_turn` | 0～N | 用户点选转折短问句 |
-| 8 | 根据 **`sections`** 生成内心是/否题（老项目 tier7 语义） | `material_inner` | 0～N | 用户点选是/否问句 |
+| 1 | LLM 从配置模板 catalog **自动**推荐 1 个话题 | `catalog` | 1 | 用户确认或跳过 |
+| 2 | LLM 列出 catalog **候选** | `catalog` | 1～6 | 用户点选或跳过 |
+| 3 | LLM **生成**创意主题（非 catalog） | `generated` | 1～10 | 用户点选或跳过；题面写入 pending 行 `questions` |
+| 4 | LLM **生活记忆热点**开放问句 | `hot_topic` | 1～6 | 用户点选问句或跳过；`title` = 问句全文 |
+| 5 | 根据 **`sections`** 做矛盾检测；pending 行写入 LLM `userQuestion` 单问句 | `material_contradiction` | 0～N | 用户点选或跳过 |
+| 6 | 根据 **`sections`** 做缺口审核后列出待补充要点 | `material_gap` | 0～N | 用户点选或跳过 |
+| 7 | 根据 **`sections`** 挖掘转折原因（老项目 tier8 语义） | `material_turn` | 0～N | 用户点选或跳过 |
+| 8 | 根据 **`sections`** 生成内心是/否题（老项目 tier7 语义） | `material_inner` | 0～N | 用户点选或跳过 |
 
-阶段流转为**循环**：`1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 1 → …`（由接口4 推进）。
+阶段流转为**循环**：解锁后 `1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 1 → …`（由接口4 / `advanceStageWithGates` 推进）。**Tier3～8 须先解锁**（见下）。
 
-Tier5～8 使用调用方传入的 **`sections`**。须至少 **5 个有内容的节**；首次会调 LLM 并写入 `选题/pending.json`。Tier5 的涉及节正文在选题时写入 pending 行的 `questions`，不再输出 `contradictionId` / `involvedIds`（见 §11）。
+### Tier3～8 解锁条件
+
+进入 Tier3 及以后档位需**同时满足**两道 AND 门槛（持久化于 `选题/catalog-gates.json`，单场采访解锁后全程有效，tier8→tier1 后仍保持）：
+
+| 门槛 | 含义 | 触发时机 |
+|------|------|----------|
+| **Gate1** `tier1Exhausted` | Tier1 LLM 已无 catalog 候选 | `getPendingTopics` @ tier1 返回 `[]`（含 `TOPIC_NO_CANDIDATE` 落盘空 pending） |
+| **Gate2** `tier2Skipped` | 用户在 Tier2 **选题 UI** 点过「跳过」 | 编排层 `submit` + `__select_topic__` + `skip: true` @ tier2（仅 Tier2 跳过计入 Gate2；各档选题 UI 均提供跳过） |
+| **逃出** `catalogLoopEscaped` | Tier1/2 选题 **连续 4 次跳过** | 编排层累计 `consecutiveCatalogSkips`；第 4 次直接 `stage=3`，**不**标记 `tier1Exhausted`；Tier1/2 点选主题时 streak 归零 |
+
+未解锁时的 catalog 循环：
+
+- Tier1 有候选 → 确认开题 → 答完 → Tier2
+- Tier1 无候选（Gate1）→ Tier2 待选
+- Tier2 **点选**主题答完 → **回到 Tier1**（不进 Tier3）
+- Tier2 **跳过**（Gate2）且 Gate1 已满足 → **进入 Tier3**
+- Tier2 跳过但 Gate1 未满足 → **回到 Tier1**
+- Tier1/2 **连续 4 次跳过** → **进入 Tier3**（`catalogLoopEscaped`，Gate1 仍可未耗尽）
+
+`canEnterAdvancedTiers(scope)` = `tier2Skipped && (tier1Exhausted || catalogLoopEscaped)`。编排层 `pendingWithAutoPromote` 在 tier∈[3,8] 且未解锁时会 `resetToCatalogPhase`（强制 tier1），避免过早调用 Tier3+ LLM。
+
+Tier5～8 使用调用方传入的 **`sections`**。须至少 **5 个有内容的节**；首次会调 LLM 并写入 `选题/pending.json`。Tier5 的 `userQuestion` 在选题时写入 pending 行的 `questions`；不再输出 `contradictionId` / `involvedIds`（见 §11）。
 
 ---
 
@@ -37,20 +58,27 @@ Tier5～8 使用调用方传入的 **`sections`**。须至少 **5 个有内容�
 
 **用户按 tier 逐档完成**：在同一 `current-stage` 档位内完成「看待选 → 确认主题 → 取题 → 答完落库 → 升档」，再进入下一档；**不会**在同一档长时间停留并反复改 `sections` 后再要求整批待选重算。
 
-典型顺序：
+典型顺序（**已解锁 Tier3～8** 时 tier≥3 与下表相同；未解锁时 Tier2 答完/跳过见 §1 门槛表）：
 
 ```
 tier N：getPendingTopics（无缓存则 LLM，写入 pending.json）
       → 用户确认 pick → getTopicQuestions → 答题 → commit 进 sections
-      → advanceStage（删除 pending.json，stage = N+1）
+      → advanceStageWithGates（删除 pending.json；tier2 未解锁则 stage=1 而非 3）
 tier N+1：getPendingTopics（无 tier{N+1}.json，用**最新** sections 重新 LLM）
 ```
+
+**Tier2 升档分支**（`advanceStageWithGates`）：
+
+| 条件 | 下一 tier |
+|------|-----------|
+| Gate1+Gate2 均已满足，或 catalogLoopEscaped+Gate2 | 3 |
+| 否则（含 Tier2 点选答完） | 1 |
 
 因此：
 
 - **不需要**「同档 `sections` 变更 → 输入 hash 失效 → 重调 LLM」；同档内复用 `pending.json` 是预期行为。
-- 答完一个主题后 `commitTopic` 会 `advanceStage` 并删除 `pending.json`；`pendingWithAutoPromote` 对已在 `sections` 中的 `title` 做内存过滤，仅用于 `picks: []` 升档或**旧数据** pending 未删时的兜底。
-- 下一档选题始终基于升档后的最新 `sections`（上一档 pending 已在 `advanceStage` 时删除）。
+- 答完一个主题后 `commitTopic` 会 `advanceStageWithGates` 并删除 `pending.json`；`pendingWithAutoPromote` 对已在 `sections` 中的 `title` 做内存过滤，并在 tier3+ 未解锁时重置回 tier1。
+- 下一档选题始终基于升档后的最新 `sections`（上一档 pending 已在升档时删除）。
 
 若未来产品改为「同档停留期间持续答题并刷新整批候选」，再单独设计 hash 失效或强制刷新；**当前产品路径下不必实现**。
 
@@ -85,6 +113,7 @@ advanceStage(scope)               // 进入下一档；下一档 getPendingTopic
 | 文件 | 类型 | 说明 |
 |------|------|------|
 | `current-stage.json` | `CurrentStage` | 当前 tier；首次访问默认为 tier 1 |
+| `catalog-gates.json` | `CatalogGates` | Tier3～8 解锁：`tier1Exhausted`、`tier2Skipped`、`catalogLoopEscaped`、`consecutiveCatalogSkips`（见 §1） |
 | `pending.json` | `PendingSelection` | 当前档待选；`picks` 为 `PendingPickRow[]`（`pick` + 可选题面）；`tier` 须与 `current-stage.json` 一致 |
 
 **Tier5～8** 以 `getPendingTopics(scope, sections)` 的 `sections` 入参为准（通常来自 `已答/sections.json`），无单独素材磁盘文件。
@@ -122,8 +151,7 @@ getPendingTopics(scope: InterviewScope, sections: AnsweredSection[]): Promise<To
 **前端提示**：
 
 - Tier1 常只有 1 条，可自动确认。
-- Tier4 可能多条，也可按产品规则自动确认单条。
-- 返回 `[]` 表示本档无待选，是否 `advanceStage` 由调用方决定（本模块不自动跳档）；不要指望同档再次 `getPendingTopics` 会重新打 LLM。
+- Tier4～8 返回多条时由用户点选；返回 `[]` 表示本档无待选，是否 `advanceStage` 由调用方决定（同档不会重打 LLM）。
 
 ---
 
@@ -142,7 +170,7 @@ getTopicQuestions(scope: InterviewScope, title: string): QuestionSet
 | `catalog` | 配置模板 `required` + `optional` 的字段 **key**（[`getTopicFieldKeys`](../backend/src/topic/catalog.ts)；与 `template-config.v2.json` 表头一致，如 `学校名称（必填）`） | 无 |
 | `generated` | 选题时写入 row 的 `questions` | 无 |
 | `hot_topic` | `[title]`（问句本身） | row 的 `suggestedAnswers`（若有） |
-| `material_contradiction` | row 的 `questions`（摘要 + 各节【节名】摘录 + 请说明） | row 的 `suggestedAnswers`（消解假设，若有） |
+| `material_contradiction` | row 的 `questions`（LLM `userQuestion` 单问句） | row 的 `suggestedAnswers`（消解假设，若有） |
 | `material_gap` | `可以补充的细节：${title}` | 无 |
 | `material_turn` | `[title]`（转折短问句） | `[pick.reason]`（原因摘要作快捷参考） |
 | `material_inner` | `[title]`（完整是/否句） | `["是","否"]` |
@@ -174,18 +202,30 @@ getCurrentStage(scope: InterviewScope): CurrentStage
 
 ---
 
-### 4.4 接口4 — `advanceStage`
+### 4.4 接口4 — `advanceStage` / `advanceStageWithGates`
 
 ```ts
 advanceStage(scope: InterviewScope): CurrentStage
+advanceStageWithGates(scope: InterviewScope): CurrentStage
 ```
 
-**作用**：进入下一阶段（`1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 1` 循环）。
+**`advanceStage`**：无条件进入下一阶段（`1 → 2 → 3 → … → 8 → 1`）。测试或管理用；**编排层应使用 `advanceStageWithGates`**。
 
-**逻辑**：`next = tier === 8 ? 1 : tier + 1`，写入 `current-stage.json`，返回新 `CurrentStage`。
+**`advanceStageWithGates`**（产品路径）：
+
+| 当前 tier | 下一 tier |
+|-----------|-----------|
+| 1 | 2 |
+| 2 | 已解锁 → 3；否则 → 1 |
+| 3～7 | tier + 1 |
+| 8 | 1 |
+
+**逻辑**：升档时删除 `pending.json`，写入 `current-stage.json`。
 
 - **升档时**：删除 `pending.json`（须在 advance 前已通过接口2 取题）。
 - **tier8→tier1**：与任意升档相同；下一档 `getPendingTopics` 会重新选题。
+
+辅助：`resetToCatalogPhase(scope)` 强制 tier1（tier3+ 未解锁时由编排层调用）；`canEnterAdvancedTiers` / `markTier1Exhausted` / `markTier2Skipped` 见 [`catalogGates.service.ts`](../backend/src/services/catalogGates.service.ts)。
 
 ---
 
@@ -335,20 +375,22 @@ npm run test:topic:select  # 仅底层 selectTopics（需 LLM）
 
 ---
 
-## 11. Tier5 矛盾确认（摘录入题）
+## 11. Tier5 矛盾确认（口语单问）
 
-已采用：**不再**对外暴露 `contradictionId`、`involvedIds`。
+已采用：**不再**对外暴露 `contradictionId`、`involvedIds`；用户点选 `title`（summary）后进入开放说明。
 
 | 字段 | 含义 |
 |------|------|
-| `title` | LLM `summary`，待选列表主文案；接口2 按 `title` 定位 pick |
-| `questions`（pending 行） | 选题时生成的一道完整开放题：矛盾说明 + 各涉及节 `【节名】` 正文摘录 + 「请简要说明…」 |
-| `reason`（`pick`） | 简短说明，如「涉及 N 个已填节，待您说明」 |
+| `title` | LLM `summary`（待选列表主文案；落盘 `section.name`） |
+| `questions`（pending 行） | LLM `userQuestion`：一句口语化开放问句，无节摘录 |
+| `reason`（`pick`） | 简短说明，如「涉及 N 个已填节，请说明」 |
 | `suggestedAnswers`（pending 行） | 可选，LLM `reconciliationHypotheses`（消解假设快捷回复） |
 
-LLM 解析层仍使用 `involvedIds`（节名），仅用于 [`buildContradictionQuestion`](../backend/src/topic/contradictionQuestion.ts)，不写入 pending 的 pick。
+LLM 解析层仍使用 `involvedIds`（节名）做校验，不写入 pending 的 pick。
 
-**代码位置**：[`recommendTier5.ts`](../backend/src/topic/recommendTier5.ts)、[`contradictionQuestion.ts`](../backend/src/topic/contradictionQuestion.ts)。
+**时间锚点**：LLM 入参含 `referenceDate`（`YYYY-MM-DD`，默认服务器当日）。一切「今天 / 未来 / 周岁」以此为准。Prompt 约定：选填「当前周岁」与出生年月推算相差 ≤2 岁不算矛盾；禁止跨人物比较选填年龄；不早于 `referenceDate` 的年月不算未来。
+
+**代码位置**：[`recommendTier5.ts`](../backend/src/topic/recommendTier5.ts)、[`parseContradiction.ts`](../backend/src/topic/parseContradiction.ts)、[`sectionsInput.ts`](../backend/src/topic/sectionsInput.ts)（`buildContradictionLlmInput`）。
 
 ---
 
@@ -361,7 +403,7 @@ LLM 解析层仍使用 `involvedIds`（节名），仅用于 [`buildContradictio
 | `title` | LLM `missingPoints` 一项（缺口短句）；待选列表与接口2 均按 `title` 定位 |
 | `reason` | 简短说明，如「素材缺口，建议补充关键时间或地点等信息」 |
 
-接口2 出题：`可以补充的细节：${title}`。
+接口2 出题：`Details you could add: ${title}`（展示层 MT 为中文）。
 
 ### 后续可选（未做）
 

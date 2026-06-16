@@ -53,7 +53,7 @@ async function main(): Promise<void> {
         !!p.domainId &&
         !!p.domainName &&
         p.q.trim().length > 0 &&
-        p.q.length <= 80 &&
+        p.q.length <= 120 &&
         Array.isArray(p.suggestedAnswers) &&
         p.suggestedAnswers.length <= 4,
     ),

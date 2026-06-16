@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../client.js";
-import { loadVideoPromptParts } from "../loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../client.js";
+import { buildVideoLlmMessages, stringifyVideoPipeline } from "../localeLlm.js";
 import { classifyPipelineForLlm } from "../../input/sectionsFilter.js";
 import type { ClassifyPipelineJson } from "./step60Classify.js";
 
@@ -53,15 +53,9 @@ export async function runEraBackdropFromPipelineJson(pipeline: EraBackdropPipeli
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi(classifyPipelineForLlm(pipeline));
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, classifyPipelineForLlm(pipeline));
   const parsed = await chatJson<unknown>(
-    [
-      { role: "system", content: systemText },
-      { role: "user", content: userContent },
-    ],
+    messages,
     {
       debugStepId: "era_backdrop",
       temperature: 0.25,

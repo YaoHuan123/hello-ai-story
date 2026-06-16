@@ -249,7 +249,7 @@
           ],
           "optional": [
             {
-              "key": "Graduation date (optional)",
+              "key": "Last year attended at this school (optional)",
               "control": "timeAgePair"
             },
             {
@@ -289,7 +289,7 @@
           ],
           "optional": [
             {
-              "key": "Graduation date (optional)",
+              "key": "Last year attended at this school (optional)",
               "control": "timeAgePair"
             },
             {
@@ -329,7 +329,7 @@
           ],
           "optional": [
             {
-              "key": "Graduation date (optional)",
+              "key": "Last year attended at this school (optional)",
               "control": "timeAgePair"
             },
             {
@@ -570,11 +570,6 @@
             {
               "key": "How you knew each other (required)",
               "control": "partnerMeetRelation",
-              "required": true
-            },
-            {
-              "key": "How you met (required)",
-              "control": "meetChannelSelect",
               "required": true
             }
           ],

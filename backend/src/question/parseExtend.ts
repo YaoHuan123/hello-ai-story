@@ -4,7 +4,7 @@ import type { ExtendQuestionItem } from "./types";
 export const MAX_EXTEND_QUESTIONS = 3;
 /** @deprecated 使用 extendQuestionMaxChars(locale) */
 export const EXTEND_QUESTION_MAX_LEN = 30;
-export const EXTEND_SUGGESTION_MAX_LEN = 40;
+export const EXTEND_SUGGESTION_MAX_LEN = 80;
 export const MAX_EXTEND_SUGGESTIONS_PER_QUESTION = 4;
 
 /**

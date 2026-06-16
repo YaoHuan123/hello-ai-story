@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../client.js";
-import { loadVideoPromptParts } from "../loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../client.js";
+import { buildVideoLlmMessages, stringifyVideoPipeline } from "../localeLlm.js";
 import type { EraBackdropSegment } from "./step20EraBackdrop.js";
 import type { EnvNarrativeSegmentPackItem } from "../envNarrativeTypes.js";
 import type { EraSubsceneSplitItem } from "./step30EraSubsceneSplit.js";
@@ -256,19 +256,13 @@ export async function runEraEnvNarrativePackFromSubsceneSplit(input: EraEnvNarra
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi({
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, {
     eraSubsceneSplitTimelineSegments: slimSubsceneForVisualScenes(input.eraSubsceneSplitTimelineSegments),
   });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
   let parsed: unknown;
   try {
     parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+      messages,
       {
         debugStepId: "era_env_narrative_pack_150_subscene",
         temperature: 0.25,
@@ -295,17 +289,11 @@ export async function runEraEnvNarrativePackFromSegments(segments: EraBackdropSe
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi({ step20EraBackdropSegments: segments });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, { step20EraBackdropSegments: segments });
   let parsed: unknown;
   try {
     parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+      messages,
       {
         debugStepId: "era_env_narrative_pack_150_backdrop",
         temperature: 0.25,

@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi, type ChatOptions } from "./client";
-import { loadVideoPromptParts } from "./loadPrompt";
+import { chatJson, getVideoLlmEnv, type ChatOptions } from "./client";
+import { buildVideoLlmMessages } from "./localeLlm";
 
 /**
  * 传记成片通用 LLM 步：加载提示词 → 注入 PIPELINE_JSON → chatJson → 校验输出。
@@ -21,8 +21,11 @@ export async function runVideoLlmStep<T>(params: {
     throw new Error("OPENAI_API_KEY 未配置");
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(params.promptBasename);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", stringifyForAi(params.pipeline));
+  const pipeline =
+    params.pipeline && typeof params.pipeline === "object" && !Array.isArray(params.pipeline)
+      ? (params.pipeline as Record<string, unknown>)
+      : { pipeline: params.pipeline };
+  const { messages } = buildVideoLlmMessages(params.promptBasename, pipeline);
 
   const chatOpts: ChatOptions = {
     debugStepId: params.debugStepId,
@@ -32,13 +35,7 @@ export async function runVideoLlmStep<T>(params: {
 
   let parsed: unknown;
   try {
-    parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
-      chatOpts,
-    );
+    parsed = await chatJson<unknown>(messages, chatOpts);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(`${params.debugStepId.toUpperCase()}_LLM_FAILED: ${msg}`);

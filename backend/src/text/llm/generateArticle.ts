@@ -1,3 +1,6 @@
+import type { DisplayLocale } from "../../content/displayLocale";
+import { getDisplayLocale } from "../../content/displayLocale";
+import { systemWithOutputLocale, withOutputLocale } from "../../content/interviewOutputLocale";
 import type { AnsweredSection } from "../../topic/types";
 import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../video/shared/llm/client.js";
 import { sectionsForTextArticleLlm } from "../input/sectionsTextInput.js";
@@ -7,6 +10,12 @@ const PROMPT_FILE = "step-10_formal-article.md";
 const ERR = "TEXT_ARTICLE_INVALID";
 
 export type TextArticleMode = "llm" | "stub";
+
+export type GenerateFormalArticleOpts = {
+  mode?: TextArticleMode;
+  /** 默认 `APP_LOCALE`；管线应传 `getInterviewDisplayLocale(scope)`。 */
+  outputLocale?: DisplayLocale;
+};
 
 function assertArticleShape(parsed: unknown): string {
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -36,12 +45,21 @@ function stubArticle(sections: AnsweredSection[]): string {
   return parts.join("\n\n");
 }
 
-async function callFormalArticleLlm(pipelineStr: string, debugStepId: string): Promise<unknown> {
+function buildPipelineStr(sections: AnsweredSection[], locale: DisplayLocale): string {
+  const { sections: slim } = sectionsForTextArticleLlm(sections);
+  return stringifyForAi(withOutputLocale({ sections: slim }, locale));
+}
+
+async function callFormalArticleLlm(
+  pipelineStr: string,
+  locale: DisplayLocale,
+  debugStepId: string,
+): Promise<unknown> {
   const { systemText, userSuffix } = loadTextPromptParts(PROMPT_FILE);
   const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
   return chatJson<unknown>(
     [
-      { role: "system", content: systemText },
+      { role: "system", content: systemWithOutputLocale(systemText, locale) },
       { role: "user", content: userContent },
     ],
     { debugStepId, temperature: debugStepId.includes("repair") ? 0.15 : 0.35, useJsonObject: true },
@@ -50,13 +68,14 @@ async function callFormalArticleLlm(pipelineStr: string, debugStepId: string): P
 
 export async function generateFormalArticleFromSections(
   sections: AnsweredSection[],
-  opts?: { mode?: TextArticleMode },
+  opts?: GenerateFormalArticleOpts,
 ): Promise<{ article: string; skippedModel: boolean }> {
   const { sections: slim } = sectionsForTextArticleLlm(sections);
   if (slim.length === 0) {
     throw new Error(`${ERR}: sections 为空，无法生成文章`);
   }
 
+  const locale = opts?.outputLocale ?? getDisplayLocale();
   const mode = opts?.mode ?? (process.env.TEXT_ARTICLE_STUB === "1" ? "stub" : "llm");
   if (mode === "stub") {
     return { article: stubArticle(sections), skippedModel: true };
@@ -68,10 +87,10 @@ export async function generateFormalArticleFromSections(
     );
   }
 
-  const pipelineStr = stringifyForAi({ sections: slim });
+  const pipelineStr = buildPipelineStr(sections, locale);
 
   try {
-    const parsed = await callFormalArticleLlm(pipelineStr, "tx_article");
+    const parsed = await callFormalArticleLlm(pipelineStr, locale, "tx_article");
     return { article: assertArticleShape(parsed), skippedModel: false };
   } catch (firstErr) {
     if (!(firstErr instanceof Error) || !firstErr.message.startsWith(`${ERR}:`)) {
@@ -83,7 +102,7 @@ export async function generateFormalArticleFromSections(
     const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
     const parsed2 = await chatJson<unknown>(
       [
-        { role: "system", content: systemText },
+        { role: "system", content: systemWithOutputLocale(systemText, locale) },
         { role: "user", content: userContent },
         { role: "user", content: guidance },
       ],
@@ -91,4 +110,12 @@ export async function generateFormalArticleFromSections(
     );
     return { article: assertArticleShape(parsed2), skippedModel: false };
   }
+}
+
+/** @internal 单测：正式文章 LLM 入参含 outputLocale。 */
+export function formalArticlePipelineJsonForTest(
+  sections: AnsweredSection[],
+  locale: DisplayLocale,
+): string {
+  return buildPipelineStr(sections, locale);
 }

@@ -1,4 +1,5 @@
 import { chatJson } from "./llm";
+import { topicPipelineLlmMessages } from "./localeLlm";
 import { loadInnerPrompt } from "./loadInnerPrompt";
 import { MATERIAL_INNER_REASON } from "./materialCopy";
 import { parseEmotionalInnerQuestions } from "./parseInner";
@@ -25,12 +26,9 @@ export async function recommendTier8(params: RecommendTier8Params): Promise<Topi
   if (keys.length === 0) return [];
 
   const { system, userTemplate } = loadInnerPrompt();
-  const pipelineJson = JSON.stringify({ polishedTemplateInstanceSummaries }, null, 2);
-  const userContent = userTemplate.replace("{{PIPELINE_JSON}}", pipelineJson);
-  const parsed = await chatJson<unknown>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
+  const parsed = await chatJson<unknown>(
+    topicPipelineLlmMessages(system, userTemplate, { polishedTemplateInstanceSummaries }),
+  );
   const rows = parseEmotionalInnerQuestions(parsed);
 
   return rows.map((row) => ({

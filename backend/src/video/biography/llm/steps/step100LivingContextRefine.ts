@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
 import {
   derivePolishedSummariesFromClassifyRaw,
   normalizeStringRecordFromUnknown,
@@ -200,15 +200,8 @@ export async function runLivingContextRefineFromPipelineJson(
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi(pipeline);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
-  const parsed = await chatJson<unknown>(
-    [
-      { role: "system", content: systemText },
-      { role: "user", content: userContent },
-    ],
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, pipeline);
+  const parsed = await chatJson<unknown>(messages,
     {
       debugStepId: "living_context_refine_85",
       temperature: 0.2,

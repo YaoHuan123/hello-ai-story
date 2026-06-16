@@ -1,6 +1,8 @@
 import { chatJson } from "../topic/llm";
 import { loadDedupePrompt } from "./loadPrompt";
+import { systemWithOutputLocale, withOutputLocale } from "../content/interviewOutputLocale";
 import { parseDedupe } from "./parseDedupe";
+import { personCentricPromptFields, filterPersonCentricDedupeDecisions } from "./personCentricPrompt";
 import type { DedupeDecision, DedupeQuestionsParams, DedupeQuestionsResult } from "./types";
 import { isDedupeNotApplicable, isDedupeSkipped } from "./types";
 
@@ -36,20 +38,25 @@ export async function dedupeQuestions(params: DedupeQuestionsParams): Promise<De
     throw new Error("DEDUPE_MISSING_INPUT: questionSet.questions 为空");
   }
 
-  const promptInput = {
+  const promptInput = withOutputLocale({
     title: questionSet.title,
     sections: params.sections,
     questions,
-  };
+    ...personCentricPromptFields(questionSet.title),
+  });
 
   const { system, userTemplate } = loadDedupePrompt();
   const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(promptInput, null, 2));
 
   const parsed = await chatJson<unknown>([
-    { role: "system", content: system },
+    { role: "system", content: systemWithOutputLocale(system) },
     { role: "user", content: userContent },
   ]);
 
-  const decisions = parseDedupe(parsed, questions);
+  const decisions = filterPersonCentricDedupeDecisions(
+    questionSet.title,
+    params.sections,
+    parseDedupe(parsed, questions),
+  );
   return toResult(decisions);
 }

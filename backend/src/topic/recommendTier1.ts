@@ -2,6 +2,7 @@ import { mapPickRow } from "./parse";
 import { prepareCandidates } from "./prepare";
 import { loadTier1Prompt } from "./prompt";
 import { chatJson } from "./llm";
+import { topicInputLlmMessages } from "./localeLlm";
 import type { RecommendTierParams, TopicRecommendation } from "./types";
 
 export type { AnsweredSection, TopicRecommendation, GatingConfidence } from "./types";
@@ -23,14 +24,12 @@ export async function recommendTier1(
 ): Promise<TopicRecommendation> {
   const { candidates, input } = prepareCandidates(params);
   const { system, userTemplate } = loadTier1Prompt();
-  const userContent = userTemplate.replace("{{INPUT_JSON}}", JSON.stringify(input));
-
-  const out = await chatJson<Tier1LlmOutput>([
-    { role: "system", content: system },
-    { role: "user", content: userContent },
-  ]);
+  const out = await chatJson<Tier1LlmOutput>(topicInputLlmMessages(system, userTemplate, input));
 
   if (out.error) {
+    if (out.error === "NO_CANDIDATE") {
+      throw new Error("TOPIC_NO_CANDIDATE: Tier1 无剩余 catalog 候选");
+    }
     throw new Error(`TOPIC_LLM_INVALID: 模型返回错误：${out.error}`);
   }
   if (!out.pick) {

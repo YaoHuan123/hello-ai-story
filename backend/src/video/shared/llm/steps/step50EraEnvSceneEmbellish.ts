@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../client.js";
-import { loadVideoPromptParts } from "../loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../client.js";
+import { buildVideoLlmMessages, stringifyVideoPipeline } from "../localeLlm.js";
 import type { EnvNarrativeSegmentPackItem } from "../envNarrativeTypes.js";
 import type { EraSubsceneSplitItem } from "./step30EraSubsceneSplit.js";
 
@@ -217,19 +217,13 @@ export async function runEraEnvSceneEmbellishFromSubsceneSplit(input: EraEnvScen
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi({
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, {
     eraSubsceneSplitTimelineSegments: slimSubsceneForEmbellish(input.eraSubsceneSplitTimelineSegments),
   });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
   let parsed: unknown;
   try {
     parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+      messages,
       {
         debugStepId: "era_env_scene_embellish_50_subscene",
         temperature: 0.25,
@@ -326,17 +320,11 @@ export async function runEraEnvSceneEmbellishFromPipelineJson(
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi({ eraEnvNarrativeSegmentsPack: slimPackForEraEnvSceneEmbellish(pack) });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, { eraEnvNarrativeSegmentsPack: slimPackForEraEnvSceneEmbellish(pack) });
   let parsed: unknown;
   try {
     parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+      messages,
       {
         debugStepId: "era_env_scene_embellish_50_pack",
         temperature: 0.25,

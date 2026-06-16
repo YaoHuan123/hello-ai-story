@@ -67,12 +67,13 @@ async function main(): Promise<void> {
     check("pending row questions 非空", (row?.questions?.length ?? 0) >= 1, row);
 
     const qText = row!.questions![0];
-    check("题目含请说明引导", qText.includes("请简要说明") || qText.includes("请说明"), qText);
-    check("题目含 summary 或材料不一致", qText.includes(first.title) || qText.includes("不一致"), qText);
-    const hasSectionBlock = sections.some(
-      (s) => s.name && qText.includes(`【${s.name}】`),
+    check("题目为短问句", qText.length <= 200 && !qText.includes("Briefly explain"), qText);
+    check("题目不含节摘录块", !sections.some((s) => s.name && qText.includes(`[${s.name}]`)), qText);
+    check(
+      "题目像口语问句",
+      qText.includes("?") || qText.startsWith("Please clarify"),
+      qText,
     );
-    check("题目含至少一个【节名】摘录", hasSectionBlock, qText);
 
     const qs = getTopicQuestions(scope, first.title);
     console.log("  questions length:", qs.questions[0]?.length);

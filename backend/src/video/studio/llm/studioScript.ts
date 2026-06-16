@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { PolishedEventSummariesContextExpandedItem } from "../../shared/llm/steps/step70ContextExpand.js";
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../shared/llm/client.js";
+import { chatJson, getVideoLlmEnv } from "../../shared/llm/client.js";
 import {
   PIPELINE_SEGMENT_REFINE_FILE,
   PIPELINE_SUBDIR,
@@ -11,7 +11,9 @@ import {
   STUDIO_SCRIPT_REL,
   studioPathUnderPipeline,
 } from "../constants/studioFilenames.js";
-import { loadInterviewStudioPromptParts } from "./loadStudioPrompt.js";
+import type { DisplayLocale } from "../../../content/displayLocale";
+import { interviewOutputLocale } from "../../../content/interviewOutputLocale";
+import { buildStudioLlmMessages, studioPipelineJsonForTest } from "./localeLlm.js";
 
 const PROMPT_FILE = "studio-10_interview-studio-script.md";
 const ERR = "INTERVIEW_STUDIO_SCRIPT_INVALID";
@@ -130,6 +132,18 @@ export function loadSegmentRefineEvents(pipelineDir: string): PolishedEventSumma
 }
 
 function stubTurns(): InterviewTurn[] {
+  const locale = interviewOutputLocale();
+  if (locale === "zh") {
+    const lines: Array<[InterviewSpeaker, string]> = [
+      ["host", "今天我们来聊聊您人生中几个重要的阶段，先从早年说起好吗？"],
+      ["guest", "好的。家里不算富裕，但父母特别重视读书。"],
+      ["host", "后来求学或工作时，有没有让您印象特别深的一个转折点？"],
+      ["guest", "有的。第一次离开家乡去外地，又紧张又兴奋。"],
+      ["host", "那之后，家庭或事业上还有什么事一直留在您心里？"],
+      ["guest", "成家以后责任多了，也更懂得珍惜身边的人。"],
+    ];
+    return lines.map(([speaker, text]) => ({ speaker, text }));
+  }
   const lines: Array<[InterviewSpeaker, string]> = [
     ["host", "Today let's talk about a few chapters that shaped your life. Shall we start with your early years?"],
     ["guest", "Sure. We weren't wealthy, but my parents really valued education."],
@@ -142,18 +156,26 @@ function stubTurns(): InterviewTurn[] {
 }
 
 async function callInterviewStudioScriptLlm(
-  pipelineStr: string,
+  pipeline: Record<string, unknown>,
   debugStepId: string,
 ): Promise<unknown> {
-  const { systemText, userSuffix } = loadInterviewStudioPromptParts(PROMPT_FILE);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-  return chatJson<unknown>(
-    [
-      { role: "system", content: systemText },
-      { role: "user", content: userContent },
-    ],
-    { debugStepId, temperature: debugStepId.includes("repair") ? 0.15 : 0.25, useJsonObject: true },
-  );
+  const { messages } = buildStudioLlmMessages(PROMPT_FILE, pipeline);
+  return chatJson<unknown>(messages, {
+    debugStepId,
+    temperature: debugStepId.includes("repair") ? 0.15 : 0.25,
+    useJsonObject: true,
+  });
+}
+
+/** 单测：iv_script 入参 JSON（含 outputLocale）。 */
+export function studioScriptPipelineJsonForTest(
+  params: {
+    events: PolishedEventSummariesContextExpandedItem[];
+    qaGranularity: InterviewQaGranularity;
+  },
+  locale: DisplayLocale,
+): string {
+  return studioPipelineJsonForTest(studioScriptPipelineForLlm(params) as Record<string, unknown>, locale);
 }
 
 export async function runInterviewStudioScriptFromEvents(params: {
@@ -168,10 +190,10 @@ export async function runInterviewStudioScriptFromEvents(params: {
       "OPENAI_API_KEY 未配置（请在 backend/.env 配置；可复制 backend/.env.example 为 backend/.env）",
     );
   }
-  const pipelineStr = stringifyForAi(studioScriptPipelineForLlm(params));
+  const pipeline = studioScriptPipelineForLlm(params) as Record<string, unknown>;
 
   try {
-    const parsed = await callInterviewStudioScriptLlm(pipelineStr, "iv_script");
+    const parsed = await callInterviewStudioScriptLlm(pipeline, "iv_script");
     return assertInterviewTurnsShape(parsed);
   } catch (firstErr) {
     if (!(firstErr instanceof Error) || !firstErr.message.startsWith(`${ERR}:`)) {
@@ -179,14 +201,9 @@ export async function runInterviewStudioScriptFromEvents(params: {
       throw new Error(`${ERR}: 模型调用或 JSON 解析失败。${msg}`);
     }
     const guidance = `【服务端校验未通过，请修正后重新输出】\n${firstErr.message}\n\n硬性约束：顶层仅含 turns；每条仅 speaker+text；至少 6 条且须同时含 host 与 guest；不要 sourceSegmentIndexes。`;
-    const { systemText, userSuffix } = loadInterviewStudioPromptParts(PROMPT_FILE);
-    const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
+    const { messages: repairMessages } = buildStudioLlmMessages(PROMPT_FILE, pipeline);
     const parsed2 = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-        { role: "user", content: guidance },
-      ],
+      [...repairMessages, { role: "user", content: guidance }],
       { debugStepId: "iv_script_repair", temperature: 0.15, useJsonObject: true },
     );
     return assertInterviewTurnsShape(parsed2);

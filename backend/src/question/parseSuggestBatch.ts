@@ -1,7 +1,7 @@
 import type { SuggestBatchItem } from "./types";
 
 export const MAX_SUGGESTIONS_PER_QUESTION = 4;
-export const SUGGESTION_MAX_LEN = 40;
+export const SUGGESTION_MAX_LEN = 80;
 
 /**
  * 解析批量备选 LLM 输出。

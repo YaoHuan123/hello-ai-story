@@ -1,8 +1,9 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../shared/llm/client.js";
+import { chatJson, getVideoLlmEnv } from "../../shared/llm/client.js";
 import type { InterviewSpeaker } from "./studioScript.js";
-import { loadInterviewStudioPromptParts } from "./loadStudioPrompt.js";
+import { buildStudioLlmMessages } from "./localeLlm.js";
 
 const PROMPT_FILE = "studio-20_interview-studio-turn-rewrite-to-target-duration.md";
+const TURN_PLACEHOLDER = "{{TURN_PAYLOAD_JSON}}";
 const ERR = "INTERVIEW_STUDIO_DURATION_ALIGN_INVALID";
 
 export const IV_DURATION_ALIGN_MAX_ITERATIONS = 6;
@@ -36,7 +37,7 @@ export async function rewriteSingleTurnToTargetDuration(params: {
       "OPENAI_API_KEY 未配置（请在 backend/.env 配置；可复制 backend/.env.example 为 backend/.env）",
     );
   }
-  const payload = {
+  const payload: Record<string, unknown> = {
     speaker: params.speaker,
     currentText: params.currentText,
     currentDurationSec: params.currentDurationSec,
@@ -44,18 +45,14 @@ export async function rewriteSingleTurnToTargetDuration(params: {
     targetCharsEstimate: params.targetCharsEstimate,
     deltaChars: params.deltaChars,
   };
-  const payloadStr = stringifyForAi(payload);
-  const { systemText, userSuffix } = loadInterviewStudioPromptParts(PROMPT_FILE, "{{TURN_PAYLOAD_JSON}}");
-  const userContent = userSuffix.replace("{{TURN_PAYLOAD_JSON}}", payloadStr);
+  const { messages: baseMessages } = buildStudioLlmMessages(PROMPT_FILE, payload, TURN_PLACEHOLDER);
 
   try {
-    const parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
-      { debugStepId: "iv_duration_align", temperature: 0.2, useJsonObject: true },
-    );
+    const parsed = await chatJson<unknown>(baseMessages, {
+      debugStepId: "iv_duration_align",
+      temperature: 0.2,
+      useJsonObject: true,
+    });
     return assertTurnRewriteShape(parsed);
   } catch (firstErr) {
     if (!(firstErr instanceof Error) || !firstErr.message.startsWith(`${ERR}:`)) {
@@ -64,11 +61,7 @@ export async function rewriteSingleTurnToTargetDuration(params: {
     }
     const guidance = `【服务端校验未通过，请修正后重新输出】\n${firstErr.message}\n\n硬性约束：顶层仅含 text（非空字符串）；不要 speaker 或其它键；不要角色前缀。`;
     const parsed2 = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-        { role: "user", content: guidance },
-      ],
+      [...baseMessages, { role: "user", content: guidance }],
       { debugStepId: "iv_duration_align_repair", temperature: 0.15, useJsonObject: true },
     );
     return assertTurnRewriteShape(parsed2);

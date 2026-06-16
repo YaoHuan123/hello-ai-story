@@ -1,5 +1,5 @@
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
 import type { CrossValidatedTimelineItem } from "./step110EnvNarrativePack.js";
 import { resolveChatMaxItemsPerCall, runChatPerSliceConcat } from "../../../shared/llm/pipelineChunkedChat.js";
 
@@ -131,18 +131,14 @@ function parsePhasePatchesFromModel(parsed: unknown, sliceInput: PhaseReplaceInp
 
 async function runPhaseReplaceForSlice(
   slice: CrossValidatedTimelineItem[],
-  systemText: string,
-  userSuffix: string,
 ): Promise<CrossValidatedTimelineItem[]> {
   const sliceInput: PhaseReplaceInput = { crossValidatedTimelineSegments: slice };
-  const pipelineStr = stringifyForAi({ crossValidatedTimelineSegments: slimSliceForPhaseReplace(slice) });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
+  const { messages: baseMessages } = buildVideoLlmMessages(PROMPT_FILE, {
+    crossValidatedTimelineSegments: slimSliceForPhaseReplace(slice),
+  });
 
   const callForPatches = async (debugStepId: string, extraGuidance?: string): Promise<CrossValidatedTimelineItem[]> => {
-    const messages = [
-      { role: "system" as const, content: systemText },
-      { role: "user" as const, content: userContent },
-    ];
+    const messages = [...baseMessages];
     if (extraGuidance) {
       messages.push({ role: "user" as const, content: extraGuidance });
     }
@@ -180,13 +176,12 @@ export async function runPhaseReplaceFromPipelineJson(
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
   const chunkSize = resolveChatMaxItemsPerCall();
 
   const merged = await runChatPerSliceConcat<CrossValidatedTimelineItem, CrossValidatedTimelineItem>({
     items: input.crossValidatedTimelineSegments,
     chunkSize,
-    runOnce: (slice) => runPhaseReplaceForSlice(slice, systemText, userSuffix),
+    runOnce: (slice) => runPhaseReplaceForSlice(slice),
   });
 
   return { crossValidatedTimelineSegments: merged };

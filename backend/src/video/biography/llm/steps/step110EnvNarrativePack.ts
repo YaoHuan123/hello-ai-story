@@ -1,5 +1,6 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages } from "../../../shared/llm/localeLlm.js";
+import { extractEnvLocationFromText, extractEnvTimeFromText } from "../../../shared/envSceneExtract.js";
 import { resolveChatMaxItemsPerCall, runChatPerSliceConcat } from "../../../shared/llm/pipelineChunkedChat.js";
 
 const PROMPT_FILE = "step-110_env-narrative-pack.md";
@@ -147,16 +148,11 @@ function assertEnvNarrativePackModelShape(
  */
 async function runEnvNarrativePackForSlice(
   slice: CrossValidatedTimelineItem[],
-  systemText: string,
-  userSuffix: string,
 ): Promise<CrossValidatedTimelineItem[]> {
-  const pipelineStr = stringifyForAi({ crossValidatedTimelineSegments: slimSliceForEnvNarrativePack(slice) });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, {
+    crossValidatedTimelineSegments: slimSliceForEnvNarrativePack(slice),
+  });
 
-  const messages = [
-    { role: "system" as const, content: systemText },
-    { role: "user" as const, content: userContent },
-  ];
   const chatOpts = {
     debugStepId: "env_narrative_pack_110",
     temperature: 0.25,
@@ -190,13 +186,12 @@ export async function runEnvNarrativePackFromPipelineJson(
 
   const { crossValidatedTimelineSegments } = pipeline;
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
   const chunkSize = resolveChatMaxItemsPerCall();
 
   const validatedSegments = await runChatPerSliceConcat<CrossValidatedTimelineItem, CrossValidatedTimelineItem>({
     items: crossValidatedTimelineSegments,
     chunkSize,
-    runOnce: (slice) => runEnvNarrativePackForSlice(slice, systemText, userSuffix),
+    runOnce: (slice) => runEnvNarrativePackForSlice(slice),
   });
 
   // 生成 envNarrativeSegmentsPack 字段（步骤 120 输入）：按全量结果统一编号，与是否切块无关。
@@ -211,17 +206,9 @@ export async function runEnvNarrativePackFromPipelineJson(
       // 提取时间和地点信息
       let env_time = segment.timeLabel;
       let env_location = "";
-      
-      // 简单的时间地点提取逻辑
-      const timeMatch = sceneDescription.match(/(\d{4}年\d{1,2}月|\d{4}年|\d{1,2}月\d{1,2}日|\d{4}-\d{2}-\d{2})/);
-      if (timeMatch) {
-        env_time = timeMatch[0];
-      }
-      
-      const locationMatch = sceneDescription.match(/在([^，。！？；：]+)/);
-      if (locationMatch) {
-        env_location = locationMatch[1];
-      }
+
+      env_time = extractEnvTimeFromText(sceneDescription, env_time);
+      env_location = extractEnvLocationFromText(sceneDescription);
       
       envNarrativeSegmentsPack.push({
         segmentIndex: segmentIndex++,
