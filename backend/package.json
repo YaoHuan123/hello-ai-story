@@ -55,6 +55,7 @@
     "test:video:step10": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/integration/video/video-prep-trace.integration.ts 10",
     "test:video:step80": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/integration/video/video-prep-trace.integration.ts 80",
     "test:video:studio": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/studio-orchestrator.unit.ts",
+    "test:video:studio:locale": "npm run build && ts-node --project test/tsconfig.json --transpile-only test/unit/video/studio-locale.unit.ts",
     "worker:video": "ts-node --transpile-only -r ./scripts/register-js-to-ts.cjs src/video/worker/cli.ts",
     "worker:video:once": "ts-node --transpile-only -r ./scripts/register-js-to-ts.cjs src/video/worker/cli.ts -- --once",
     "test:video:worker": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/video-worker.unit.ts",
