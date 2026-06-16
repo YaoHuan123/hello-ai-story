@@ -38,6 +38,9 @@ export function appendLocaleOutputRules(system: string, locale: DisplayLocale): 
           "When `outputLocale` is `zh`: write user-facing strings (`questionText`, `reason`, creative `title`, `questions`, `suggestedAnswers`, chips, `userQuestion`, etc.) in natural conversational **Chinese**.",
           "Preserve personal names, nicknames, dates, and places exactly as in `sections`; never substitute homophones (e.g. 一一 ≠ 依依).",
           "**Catalog topic picks (tier1/2)**: `pick.name` / `picks[].name` must still match a candidate from input `topics` **exactly** (English canonical id). Only translate `reason` to Chinese.",
+          "**Tier4 hot topics**: `domainId` / `domainName` must copy input `topicMap` **exactly** (English canonical). Only translate `q` and `suggestedAnswers`.",
+          "**Tier5 contradictions**: translate `summary`, `userQuestion`, `reconciliationHypotheses`; keep `involvedIds` as input section ids.",
+          "**Tier7 turning points**: translate both `question` and `reason`.",
           "When `outputLocale` is `en`: write in English.",
           "Catalog field keys in input stay English for matching.",
         ].join("\n")

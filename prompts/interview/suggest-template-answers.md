@@ -30,7 +30,7 @@ Infer short tap-to-select answers for **each** template question in this subcate
 
 ### Structural mode
 
-- When a template key or `questionText` defines a **closed category set** (e.g. `poor/average/excellent`, boarding vs day student, arts/science track, income increased/decreased), output 2–4 **short labels** for those categories even without profile evidence. Language follows `outputLocale`.
+- When a template key or `questionText` defines a **closed category set** (e.g. `poor/average/excellent`, boarding vs day student, arts/science track, income increased/decreased), output 2–4 **short labels** for those categories even without profile evidence. Language follows `outputLocale` (zh: e.g. `差/一般/优秀`, `寄宿/走读`).
 - **Not** for open “A or B direction” keys (playmates or friends, roommate or club, homeroom or teacher) — those stay `[]` at batch time unless inference applies.
 - **Not** for names, places, or free-text fields.
 

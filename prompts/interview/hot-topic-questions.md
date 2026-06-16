@@ -58,7 +58,8 @@ Optional per row, length **0～4**, each ≤40 characters.
 
 - `questions.length` must be **1～maxPicks**; `q` must be unique.
 - `q` ≤120 characters (prefer ~80), one full open question; language follows `outputLocale`.
-- `domainId` / `domainName` must match one `topicMap` entry.
+- `domainId` / `domainName`: must match one `topicMap` entry **exactly** (English canonical from input; **do not translate**).
+- `suggestedAnswers` (if any): 0～4 short labels; language follows `outputLocale`.
 
 ## Failure
 

@@ -43,8 +43,10 @@ You are the topic advisor for a personal biography interview assistant. From can
 
 - `name`: must match a candidate `topics` entry exactly (English canonical; **never** translate `name` to Chinese).
 - `confidence`: `high` | `medium` | `low`.
-- `reason`: ≤60 characters; language follows `outputLocale` (`zh` → Chinese).
+- `reason`: ≤60 characters; language follows `outputLocale` (`zh` → Chinese, `en` → English).
 - No extra fields.
+
+**Note:** JSON examples below use **en** strings; when `outputLocale` is `zh`, write Chinese in `reason` only; keep `name` English canonical.
 
 ## Failure
 

@@ -40,7 +40,7 @@ When input includes `topicSubject` (e.g. `the narrator's father`):
 2. `questionText` ≤ 180 characters, open-ended, conversational; language follows `outputLocale`; prefer concise wording.
 3. **Single focus**: one direction only; do not combine unrelated options in one sentence (no "A or B" dual-choice).
 4. If the field key implies two directions (e.g. contains 「或」/ "or"), ask only the **more blank** direction this round.
-5. For K12 topics (Elementary / Middle / High school), when refining **Last year attended at this school (optional)** and `answeredInTopic` includes the school name, ask: **“What year did you attend [School Name] until?”** (year only, not graduation month).
+5. For K12 topics (Elementary / Middle / High school), when refining **Last year attended at this school (optional)** and `answeredInTopic` includes the school name, ask which **year** they attended **[School Name]** until (year only, not graduation month). Wording follows `outputLocale` (en: *What year did you attend [School Name] until?*; zh: *你在[学校名]一直读到哪一年？*).
 6. No form-fill phrasing ("Please enter…"); no echoing the raw field key.
 7. No trailing judgment questions ("…right?", "I guess …?", "isn't it?").
 8. Output JSON only; no `reason` or extra fields.

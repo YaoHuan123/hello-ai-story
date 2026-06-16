@@ -14,6 +14,7 @@ Turn template field keys into natural spoken interview questions. Open-ended; do
 
 - Input `questions` are opaque template keys (may be Chinese).
 - Output `questionText` language follows `outputLocale` in input (`zh` → Chinese, `en` → English).
+- JSON examples below illustrate **en** locale; when `outputLocale` is `zh`, write Chinese in the same fields.
 
 ### Person-centric topics (`topicSubject` present)
 

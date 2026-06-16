@@ -53,8 +53,10 @@ You are the topic advisor for a personal biography interview assistant. From can
 
 - `picks`: length **1～maxPicks**, unique `name`, each from candidate `topics` (**English canonical, do not translate `name`**).
 - `confidence`: `high` | `medium` | `low`.
-- `reason`: ≤60 characters; language follows `outputLocale`.
+- `reason`: ≤60 characters; language follows `outputLocale` (`zh` → Chinese, `en` → English).
 - No extra fields.
+
+**Note:** JSON examples below use **en** strings; when `outputLocale` is `zh`, write Chinese in user-facing fields (`reason`, etc.); keep `name` English canonical.
 
 ## Failure
 

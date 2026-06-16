@@ -20,9 +20,10 @@ Each contradiction must cite at least two material **`id`** values in **`involve
 - JSON only; top-level **`factContradictions`** with **`items`** array.
 - Each `needsUserFix`: `yes` | `maybe` | `no` (use `maybe` when unverifiable).
 - Every id in **`involvedIds` must appear in input `polishedEventSummaries` keys**; do not invent ids.
-- **`summary`**: one short English sentence (~60 chars) stating contradiction type or logic; no ids, exact dates, place names, or verbatim quotes.
-- **`userQuestion`**: one short conversational English open question (~80 chars) to ask the user directly, like a chat clarification (e.g. *"Were you majoring in communications engineering or journalism?"*). No section names, ids, excerpts, or data dumps.
-- **`reconciliationHypotheses`**: 0–2 short English concrete resolution hints; no filler or vague "wrong year" only.
+- **`involvedIds`**: copy section ids from input **exactly** (do not translate).
+- **`summary`**: one short sentence (~60 chars) stating contradiction type or logic; no ids, exact dates, place names, or verbatim quotes. Language follows `outputLocale`.
+- **`userQuestion`**: one short conversational open question (~80 chars) to ask the user directly, like a chat clarification. Language follows `outputLocale`. No section names, ids, excerpts, or data dumps.
+- **`reconciliationHypotheses`**: 0–2 short concrete resolution hints; language follows `outputLocale`; no filler or vague "wrong year" only.
 
 ---
 
