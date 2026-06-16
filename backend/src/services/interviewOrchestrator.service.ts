@@ -32,9 +32,17 @@ import {
 } from "../topic/catalog";
 import { isQuestionSkippable } from "../question/skip";
 import { clearTopicDir, readAnswers, readQuestionSet } from "../question/topicPersist";
-import { canEnterAdvancedTiers, markTier2Skipped } from "./catalogGates.service";
+import {
+  CATALOG_SKIP_ESCAPE_THRESHOLD,
+  canEnterAdvancedTiers,
+  incrementCatalogSkipStreak,
+  markCatalogLoopEscaped,
+  markTier2Skipped,
+  resetCatalogSkipStreak,
+} from "./catalogGates.service";
 import {
   advanceStageWithGates,
+  escapeCatalogLoopToTier3,
   getCurrentStage,
   getPendingTopics as selectPendingTopics,
   getTopicQuestions,
@@ -276,9 +284,19 @@ export async function submit(scope: InterviewScope, input: SubmitInput): Promise
       if (tier === 2) {
         markTier2Skipped(scope);
       }
+      if (tier === 1 || tier === 2) {
+        const streak = incrementCatalogSkipStreak(scope);
+        if (streak >= CATALOG_SKIP_ESCAPE_THRESHOLD) {
+          markCatalogLoopEscaped(scope);
+          resetCatalogSkipStreak(scope);
+          escapeCatalogLoopToTier3(scope);
+          return;
+        }
+      }
       advanceStageWithGates(scope);
       return;
     }
+    resetCatalogSkipStreak(scope);
     const displayLocale = getInterviewDisplayLocale(scope);
     const resolvedTitle = await resolveTopicTitleForSubmit(
       scope,

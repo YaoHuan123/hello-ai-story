@@ -39,6 +39,21 @@ Output 2–4 **short category labels** matching those branches. Language follows
 3. Prefer `YYYY-MM` for inferred dates.
 4. Aim for ≤ **28 characters** per chip; hard max **80** (drop or omit options that cannot fit faithfully).
 
+### Year-month mode (`currentQuestion.fieldType` = `yearMonth`)
+
+When the field is a **year-month picker** (answers stored as `YYYY-MM`):
+
+- Output **0–4** strings, each **must be** a valid **`YYYY-MM`** (e.g. `2019-03`, `2012-09`).
+- Infer concrete months from `narratorProfile`, `answeredInTopic`, or `sections`; list multiple distinct dates when supported.
+- **Do not** output narrative time phrases (e.g.「大学的时候」「2019年和陈灿认识后」「工作之后」) — they fail validation.
+- If month cannot be inferred with reasonable confidence → `[]`.
+
+Example:
+
+```json
+{ "suggestedAnswers": ["2012-09", "2019-03"] }
+```
+
 ## Input
 
 ```json
@@ -46,8 +61,9 @@ Output 2–4 **short category labels** matching those branches. Language follows
   "title": "Middle school",
   "narratorProfile": { "出生年月": "1990-01" },
   "currentQuestion": {
-    "question": "Boarding or day student (optional)",
-    "questionText": "When you were at Duanji Middle School, did you board or commute daily?"
+    "question": "Enrollment date (required)",
+    "questionText": "When did you start middle school?",
+    "fieldType": "yearMonth"
   },
   "answeredInTopic": [
     {

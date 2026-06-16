@@ -32,7 +32,12 @@ import {
 } from "./questionGeneration.service";
 import { traceQuestionStep } from "../question/questionTrace";
 import type { InterviewScope } from "./interviewWorkspace.service";
-import { getCatalogFieldDisplayText, isBasicProfileTopicName } from "../topic/catalog";
+import {
+  getCatalogFieldDisplayText,
+  getTopicFieldMeta,
+  isBasicProfileTopicName,
+} from "../topic/catalog";
+import { filterSuggestionsForFieldType } from "../topic/fieldAnswer";
 import type { AnsweredSection, QuestionSet } from "../topic/types";
 
 function isCatalog(questionSet: QuestionSet): boolean {
@@ -145,10 +150,12 @@ async function buildCatalogTemplateDisplay(
     }
   }
 
+  const fieldMeta = getTopicFieldMeta(questionSet.title, key);
+
   return {
     key,
     text: questionText,
-    suggestions,
+    suggestions: filterSuggestionsForFieldType(suggestions, fieldMeta?.fieldType),
   };
 }
 

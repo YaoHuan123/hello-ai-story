@@ -75,6 +75,12 @@ async function main(): Promise<void> {
   check("仅 gate2 不足", canEnterAdvancedTiers(scopeGates) === false);
   seedCatalogGates(scopeGates, { tier1Exhausted: true, tier2Skipped: true });
   check("gate1+gate2 解锁", canEnterAdvancedTiers(scopeGates) === true);
+  seedCatalogGates(scopeGates, {
+    tier1Exhausted: false,
+    tier2Skipped: true,
+    catalogLoopEscaped: true,
+  });
+  check("catalogLoopEscaped + gate2 解锁（无 gate1）", canEnterAdvancedTiers(scopeGates) === true);
 
   console.log("\n=== advanceStageWithGates：Tier2 未解锁 → Tier1 ===");
   const scopeAdv1 = setupUserWithInterview(`catalog-gates-adv1-${Date.now()}`);
@@ -189,6 +195,57 @@ async function main(): Promise<void> {
   await submit(scopeSkipT3, { key: SELECT_TOPIC_KEY, value: "", skip: true });
   check("tier3 skip → tier4", getCurrentStage(scopeSkipT3).tier === 4);
   check("tier3 skip 不标记 gate2", readCatalogGates(scopeSkipT3).tier2Skipped === true);
+
+  console.log("\n=== submit：Tier1/2 连续 4 次跳过 → Tier3 逃出（无 gate1）===");
+  const scopeEscape = setupUserWithInterview(`catalog-gates-escape-${Date.now()}`);
+  seedCommittedSections(scopeEscape, stubSections());
+  seedCatalogGates(scopeEscape, { tier1Exhausted: false, tier2Skipped: false });
+  writeCurrentStage(scopeEscape, 1);
+  writePendingFile(scopeEscape, 1, "Elementary school");
+  await submit(scopeEscape, { key: SELECT_TOPIC_KEY, value: "", skip: true });
+  check("skip1 → tier2", getCurrentStage(scopeEscape).tier === 2);
+  writePendingFile(scopeEscape, 2, "Middle school");
+  await submit(scopeEscape, { key: SELECT_TOPIC_KEY, value: "", skip: true });
+  check("skip2 → tier1", getCurrentStage(scopeEscape).tier === 1);
+  writePendingFile(scopeEscape, 1, "Elementary school");
+  await submit(scopeEscape, { key: SELECT_TOPIC_KEY, value: "", skip: true });
+  check("skip3 → tier2", getCurrentStage(scopeEscape).tier === 2);
+  writePendingFile(scopeEscape, 2, "High school");
+  await submit(scopeEscape, { key: SELECT_TOPIC_KEY, value: "", skip: true });
+  const gatesEscape = readCatalogGates(scopeEscape);
+  check("skip4 → tier3", getCurrentStage(scopeEscape).tier === 3);
+  check("catalogLoopEscaped", gatesEscape.catalogLoopEscaped === true);
+  check("gate1 仍未耗尽", gatesEscape.tier1Exhausted === false);
+  check("gate2 已标记", gatesEscape.tier2Skipped === true);
+  check("逃出后 advanced 解锁", canEnterAdvancedTiers(scopeEscape) === true);
+  check("streak 归零", gatesEscape.consecutiveCatalogSkips === 0);
+
+  console.log("\n=== submit：3 次跳过后点选 → streak 归零 ===");
+  const scopeReset = setupUserWithInterview(`catalog-gates-streak-reset-${Date.now()}`);
+  seedCommittedSections(scopeReset, stubSections());
+  seedCatalogGates(scopeReset, { tier1Exhausted: false, tier2Skipped: false });
+  writeCurrentStage(scopeReset, 1);
+  writePendingFile(scopeReset, 1, "Elementary school");
+  await submit(scopeReset, { key: SELECT_TOPIC_KEY, value: "", skip: true });
+  writePendingFile(scopeReset, 2, "Middle school");
+  await submit(scopeReset, { key: SELECT_TOPIC_KEY, value: "", skip: true });
+  writePendingFile(scopeReset, 1, "Elementary school");
+  await submit(scopeReset, { key: SELECT_TOPIC_KEY, value: "", skip: true });
+  check("3 次跳过后 streak=3", readCatalogGates(scopeReset).consecutiveCatalogSkips === 3);
+  writePendingFile(scopeReset, 2, "Elementary school");
+  await submit(scopeReset, {
+    key: SELECT_TOPIC_KEY,
+    value: "Elementary school",
+    skip: false,
+  });
+  check("点选后 streak 归零", readCatalogGates(scopeReset).consecutiveCatalogSkips === 0);
+
+  const scopeStreakAgain = setupUserWithInterview(`catalog-gates-streak-again-${Date.now()}`);
+  seedCommittedSections(scopeStreakAgain, stubSections());
+  writeCurrentStage(scopeStreakAgain, 1);
+  writePendingFile(scopeStreakAgain, 1, "Elementary school");
+  await submit(scopeStreakAgain, { key: SELECT_TOPIC_KEY, value: "", skip: true });
+  check("新轮首次跳过 streak=1", readCatalogGates(scopeStreakAgain).consecutiveCatalogSkips === 1);
 
   if (failed > 0) {
     console.error(`\ntest:interview:catalog-gates FAILED (${passed} ok, ${failed} fail)`);

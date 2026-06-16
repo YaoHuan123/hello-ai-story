@@ -35,6 +35,7 @@
 |------|------|----------|
 | **Gate1** `tier1Exhausted` | Tier1 LLM 已无 catalog 候选 | `getPendingTopics` @ tier1 返回 `[]`（含 `TOPIC_NO_CANDIDATE` 落盘空 pending） |
 | **Gate2** `tier2Skipped` | 用户在 Tier2 **选题 UI** 点过「跳过」 | 编排层 `submit` + `__select_topic__` + `skip: true` @ tier2（仅 Tier2 跳过计入 Gate2；各档选题 UI 均提供跳过） |
+| **逃出** `catalogLoopEscaped` | Tier1/2 选题 **连续 4 次跳过** | 编排层累计 `consecutiveCatalogSkips`；第 4 次直接 `stage=3`，**不**标记 `tier1Exhausted`；Tier1/2 点选主题时 streak 归零 |
 
 未解锁时的 catalog 循环：
 
@@ -43,8 +44,9 @@
 - Tier2 **点选**主题答完 → **回到 Tier1**（不进 Tier3）
 - Tier2 **跳过**（Gate2）且 Gate1 已满足 → **进入 Tier3**
 - Tier2 跳过但 Gate1 未满足 → **回到 Tier1**
+- Tier1/2 **连续 4 次跳过** → **进入 Tier3**（`catalogLoopEscaped`，Gate1 仍可未耗尽）
 
-`canEnterAdvancedTiers(scope)` = `tier1Exhausted && tier2Skipped`。编排层 `pendingWithAutoPromote` 在 tier∈[3,8] 且未解锁时会 `resetToCatalogPhase`（强制 tier1），避免过早调用 Tier3+ LLM。
+`canEnterAdvancedTiers(scope)` = `tier2Skipped && (tier1Exhausted || catalogLoopEscaped)`。编排层 `pendingWithAutoPromote` 在 tier∈[3,8] 且未解锁时会 `resetToCatalogPhase`（强制 tier1），避免过早调用 Tier3+ LLM。
 
 Tier5～8 使用调用方传入的 **`sections`**。须至少 **5 个有内容的节**；首次会调 LLM 并写入 `选题/pending.json`。Tier5 的 `userQuestion` 在选题时写入 pending 行的 `questions`；不再输出 `contradictionId` / `involvedIds`（见 §11）。
 
@@ -69,7 +71,7 @@ tier N+1：getPendingTopics（无 tier{N+1}.json，用**最新** sections 重新
 
 | 条件 | 下一 tier |
 |------|-----------|
-| Gate1+Gate2 均已满足 | 3 |
+| Gate1+Gate2 均已满足，或 catalogLoopEscaped+Gate2 | 3 |
 | 否则（含 Tier2 点选答完） | 1 |
 
 因此：
@@ -111,7 +113,7 @@ advanceStage(scope)               // 进入下一档；下一档 getPendingTopic
 | 文件 | 类型 | 说明 |
 |------|------|------|
 | `current-stage.json` | `CurrentStage` | 当前 tier；首次访问默认为 tier 1 |
-| `catalog-gates.json` | `CatalogGates` | Tier3～8 解锁：`tier1Exhausted`、`tier2Skipped`（见 §1） |
+| `catalog-gates.json` | `CatalogGates` | Tier3～8 解锁：`tier1Exhausted`、`tier2Skipped`、`catalogLoopEscaped`、`consecutiveCatalogSkips`（见 §1） |
 | `pending.json` | `PendingSelection` | 当前档待选；`picks` 为 `PendingPickRow[]`（`pick` + 可选题面）；`tier` 须与 `current-stage.json` 一致 |
 
 **Tier5～8** 以 `getPendingTopics(scope, sections)` 的 `sections` 入参为准（通常来自 `已答/sections.json`），无单独素材磁盘文件。
@@ -386,7 +388,9 @@ npm run test:topic:select  # 仅底层 selectTopics（需 LLM）
 
 LLM 解析层仍使用 `involvedIds`（节名）做校验，不写入 pending 的 pick。
 
-**代码位置**：[`recommendTier5.ts`](../backend/src/topic/recommendTier5.ts)、[`parseContradiction.ts`](../backend/src/topic/parseContradiction.ts)。
+**时间锚点**：LLM 入参含 `referenceDate`（`YYYY-MM-DD`，默认服务器当日）。一切「今天 / 未来 / 周岁」以此为准。Prompt 约定：选填「当前周岁」与出生年月推算相差 ≤2 岁不算矛盾；禁止跨人物比较选填年龄；不早于 `referenceDate` 的年月不算未来。
+
+**代码位置**：[`recommendTier5.ts`](../backend/src/topic/recommendTier5.ts)、[`parseContradiction.ts`](../backend/src/topic/parseContradiction.ts)、[`sectionsInput.ts`](../backend/src/topic/sectionsInput.ts)（`buildContradictionLlmInput`）。
 
 ---
 

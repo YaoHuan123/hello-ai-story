@@ -1,8 +1,27 @@
 import type { DisplayLocale } from "../content/displayLocale";
 import { toCanonicalFieldChoice } from "../content/translate/options";
 import { getTopicFieldDef } from "./catalog";
-import type { TopicFieldMeta } from "./fieldMeta";
+import type { InterviewFieldType, TopicFieldMeta } from "./fieldMeta";
 import { normalizeYearMonthInRange } from "./yearMonth";
+
+/** 年月题：只保留可解析为 YYYY-MM 的 chip（过滤 LLM 叙事短语）。 */
+export function filterSuggestionsForFieldType(
+  suggestions: readonly string[],
+  fieldType: InterviewFieldType | undefined,
+): string[] {
+  if (fieldType !== "yearMonth") {
+    return suggestions.map((s) => String(s).trim()).filter(Boolean);
+  }
+  const out: string[] = [];
+  for (const raw of suggestions) {
+    const s = String(raw).trim();
+    if (!s) continue;
+    const ym = normalizeYearMonthInRange(s);
+    if (!ym || out.includes(ym)) continue;
+    out.push(ym);
+  }
+  return out;
+}
 
 export type FieldAnswerResult =
   | { ok: true; value: string }

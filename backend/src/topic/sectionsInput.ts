@@ -33,6 +33,17 @@ export function sectionsToPolishedEventSummaries(
   return out;
 }
 
+/** Tier5 矛盾检测 LLM 入参（含采访日锚点）。 */
+export function buildContradictionLlmInput(
+  sections: AnsweredSection[],
+  referenceDate?: string,
+): { referenceDate: string; polishedEventSummaries: Record<string, string> } {
+  return {
+    referenceDate: referenceDate ?? new Date().toISOString().slice(0, 10),
+    polishedEventSummaries: sectionsToPolishedEventSummaries(sections),
+  };
+}
+
 /**
  * @throws TOPIC_MISSING_INPUT sections 为空
  * @throws MATERIAL_MIN_ENTRIES 有效节数不足 {@link MIN_TIER5_SECTIONS}

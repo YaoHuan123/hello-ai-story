@@ -10,7 +10,7 @@ import {
   schoolLastYearQuestionEn,
   schoolLastYearQuestionZh,
 } from "../../../src/topic/catalog";
-import { normalizeFieldAnswer } from "../../../src/topic/fieldAnswer";
+import { normalizeFieldAnswer, filterSuggestionsForFieldType } from "../../../src/topic/fieldAnswer";
 import { normalizeYearMonthInRange } from "../../../src/topic/yearMonth";
 
 let passed = 0;
@@ -77,6 +77,24 @@ function main(): void {
   check("性别非法拒绝", !genderBad.ok, genderBad);
   const ymOk = normalizeFieldAnswer(birthMeta, "1990年5月");
   check("出生年月规范化", ymOk.ok && ymOk.value === "1990-05", ymOk);
+
+  console.log("\n=== 年月 chip 过滤 ===");
+  check(
+    "保留 YYYY-MM",
+    filterSuggestionsForFieldType(["2019-03", "2012-09"], "yearMonth").join(",") === "2019-03,2012-09",
+  );
+  check(
+    "丢弃叙事短语",
+    filterSuggestionsForFieldType(["大学的时候", "2019-03"], "yearMonth").join(",") === "2019-03",
+  );
+  check(
+    "1992年3月→YYYY-MM",
+    filterSuggestionsForFieldType(["1992年3月"], "yearMonth").join(",") === "1992-03",
+  );
+  check(
+    "text 不过滤",
+    filterSuggestionsForFieldType(["寄宿", "走读"], "text").join(",") === "寄宿,走读",
+  );
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed > 0) process.exit(1);

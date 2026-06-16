@@ -11,13 +11,22 @@ Infer short tap-to-select answers for **each** template question in this subcate
   "title": "High school",
   "sections": [],
   "questions": [
-    { "question": "Enrollment date (required)", "questionText": "When did you start high school?" },
-    { "question": "Academic performance (optional, poor/average/excellent)", "questionText": "How were your grades in high school?" }
+    {
+      "question": "Enrollment date (required)",
+      "questionText": "When did you start high school?",
+      "fieldType": "yearMonth"
+    },
+    {
+      "question": "Academic performance (optional, poor/average/excellent)",
+      "questionText": "How were your grades in high school?",
+      "fieldType": "text"
+    }
   ]
 }
 ```
 
 - `questions[].question` are opaque template keys (may be Chinese); match output by index `i` only.
+- `questions[].fieldType`: `text` | `select` | `yearMonth`.
 
 ## Principles
 
@@ -27,6 +36,10 @@ Infer short tap-to-select answers for **each** template question in this subcate
 - Default to `[]` when evidence is weak; never pad guesses.
 - Do not invent proper names not supported by context.
 - Prefer `YYYY-MM` for dates.
+
+### Year-month mode (`questions[i].fieldType` = `yearMonth`)
+
+For year-month fields, each `suggestedAnswers` item **must be** valid **`YYYY-MM`** only (0–4 per question). No narrative phrases (e.g.「大学的时候」「2019年和陈灿认识后」). Weak evidence → `[]`.
 
 ### Structural mode
 

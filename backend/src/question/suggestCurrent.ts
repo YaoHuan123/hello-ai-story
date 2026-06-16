@@ -1,3 +1,4 @@
+import { getTopicFieldMeta } from "../topic/catalog";
 import { chatJson, type ChatMessage } from "../topic/llm";
 import { loadSuggestCurrentPrompt } from "./loadPrompt";
 import { systemWithOutputLocale, withOutputLocale } from "../content/interviewOutputLocale";
@@ -69,12 +70,15 @@ export async function suggestCurrentAnswers(
     return { suggestedAnswers: [] };
   }
 
+  const fieldMeta = getTopicFieldMeta(questionSet.title, currentQuestion);
+
   const promptInput = withOutputLocale({
     title: questionSet.title,
     narratorProfile: narratorProfileFromSections(params.sections),
     currentQuestion: {
       question: currentQuestion,
       questionText,
+      fieldType: fieldMeta?.fieldType ?? "text",
     },
     answeredInTopic: params.answeredInTopic.map((row) => ({
       question: row.question.trim(),

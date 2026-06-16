@@ -1,3 +1,4 @@
+import { getTopicFieldMeta } from "../topic/catalog";
 import { chatJson } from "../topic/llm";
 import { loadSuggestBatchPrompt } from "./loadPrompt";
 import { systemWithOutputLocale, withOutputLocale } from "../content/interviewOutputLocale";
@@ -58,10 +59,14 @@ export async function suggestBatchAnswers(
     currentDate: new Date().toISOString().slice(0, 10),
     title: questionSet.title,
     sections: params.sections,
-    questions: questions.map((question) => ({
-      question,
-      questionText: params.questionTexts[question]!.trim(),
-    })),
+    questions: questions.map((question) => {
+      const fieldMeta = getTopicFieldMeta(questionSet.title, question);
+      return {
+        question,
+        questionText: params.questionTexts[question]!.trim(),
+        fieldType: fieldMeta?.fieldType ?? "text",
+      };
+    }),
   });
 
   const { system, userTemplate } = loadSuggestBatchPrompt();

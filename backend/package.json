@@ -23,6 +23,7 @@
     "test:topic:luxun:trace": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-luxun-full-trace.integration.ts",
     "test:topic:tier5": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier5.integration.ts",
     "test:topic:parse-contradiction": "ts-node --project test/tsconfig.json --transpile-only test/unit/topic/parse-contradiction.unit.ts",
+    "test:topic:contradiction-input": "ts-node --project test/tsconfig.json --transpile-only test/unit/topic/contradiction-input.unit.ts",
     "test:topic:parse-hot-topic": "ts-node --project test/tsconfig.json --transpile-only test/unit/topic/parse-hot-topic.unit.ts",
     "test:topic:parse-tier3-questions": "ts-node --project test/tsconfig.json --transpile-only test/unit/topic/parse-tier3-questions.unit.ts",
     "test:topic:tier6": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier6.integration.ts",

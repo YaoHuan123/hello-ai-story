@@ -368,3 +368,9 @@ export function resetToCatalogPhase(scope: InterviewScope): CurrentStage {
   deletePending(scope);
   return writeCurrentStage(scope, 1);
 }
+
+/** 连续跳过逃出 catalog 循环：删 pending，进入 Tier3。 */
+export function escapeCatalogLoopToTier3(scope: InterviewScope): CurrentStage {
+  deletePending(scope);
+  return writeCurrentStage(scope, 3);
+}

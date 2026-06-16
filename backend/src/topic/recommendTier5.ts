@@ -6,7 +6,7 @@ import { parseFactContradictions } from "./parseContradiction";
 import { loadContradictionPrompt } from "./loadContradictionPrompt";
 import {
   assertSectionsForTier5,
-  sectionsToPolishedEventSummaries,
+  buildContradictionLlmInput,
 } from "./sectionsInput";
 import type { AnsweredSection, PendingPickRow } from "./types";
 
@@ -25,15 +25,15 @@ export type RecommendTier5Params = {
 export async function recommendTier5(params: RecommendTier5Params): Promise<PendingPickRow[]> {
   assertSectionsForTier5(params.sections);
 
-  const polishedEventSummaries = sectionsToPolishedEventSummaries(params.sections);
-  const ids = Object.keys(polishedEventSummaries);
+  const llmInput = buildContradictionLlmInput(params.sections);
+  const ids = Object.keys(llmInput.polishedEventSummaries);
   if (ids.length < 2) {
     return [];
   }
 
   const { system, userTemplate } = loadContradictionPrompt();
   const parsed = await chatJson<unknown>(
-    topicPipelineLlmMessages(system, userTemplate, { polishedEventSummaries }),
+    topicPipelineLlmMessages(system, userTemplate, llmInput),
   );
   const raw = parseFactContradictions(parsed, new Set(ids));
 

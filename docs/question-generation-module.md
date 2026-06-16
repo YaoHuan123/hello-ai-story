@@ -406,6 +406,23 @@ q = await getCurrentQuestion(scope)   // 循环
 | 三期 | HTTP MessageAgent、`GET next-message` / `POST message-reply`、前端备选 chip UI |
 | 可选 | bridge 引导问；同子类多 entry 去重（`priorSectionsInSubCategory`）；创建视频预处理对话流 |
 
+### 年月题 chip 待优化（Phase 2+）
+
+**背景**：`fieldType=yearMonth` 时，LLM 备选曾输出叙事短语（如「大学的时候」），与 `YYYY-MM` 校验不一致。**Phase 1** 已约束 LLM 只输出 `YYYY-MM`，并在 [`questionEngine.service.ts`](../backend/src/services/questionEngine.service.ts) 返回前用 `filterSuggestionsForFieldType` 过滤无效 chip。
+
+**待优化**（按优先级）：
+
+1. **`YYYY-MM(简短描述)` 单字符串**（仍 `options: string[]`）  
+   例：`2012-09(上大学后)`、`2019-03(认识陈灿后)`。展示整段，提交/落盘只取前缀 `YYYY-MM`。需扩展前后端 `normalizeYearMonthInRange`；点 chip 时只把年月填入 `YearMonthInput`。
+
+2. **chip 展示友好化**  
+   在不改落盘格式前提下，前端可将 `2019-03` 显示为 `2019年3月`（或与描述括号格式组合）。
+
+3. **`{ label, value }` 结构化 chip**（改动较大）  
+   仅当多个相近年月仍无法区分时再评估；需改 `InterviewQuestion.options` 类型与 merge 逻辑。
+
+**不做**：放宽校验让叙事文本直接落盘（破坏 sections 时间契约与 Tier5 矛盾检测）。
+
 ---
 
 ## 10. 老项目索引（仅供查阅，禁止复制源码）
