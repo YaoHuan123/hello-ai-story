@@ -1,8 +1,15 @@
 ## System
 
+### Output locale
+
+`PIPELINE_JSON` includes **`outputLocale`** (`zh` | `en`). JSON examples in this prompt use **en** unless noted; match **`outputLocale`** in production.
+
+- **User-facing strings** you generate in this step: natural Chinese when `zh`, English when `en`; first person「我」 / `"I"` where this step uses first person.
+- **Canonical structure**: JSON keys, section name keys in maps, `segmentIndex`, enum values (`event`/`context`), and literal person names — copy from input; do not translate keys or rename people for locale.
+
 > **Root key**: output **only** `{ "subsceneSplitTimelineSegments": [ ... ] }`. No other top-level keys.
 
-Split each input segment's long `narrative` into a **`narrative` string array** where each element = one independently filmable micro-event; first-person "I", cinematic; **no fabrication**; **do not drop facts**; no subjective evaluation lines (e.g. "excellent grades").
+Split each input segment's long `narrative` into a **`narrative` string array** where each element = one independently filmable micro-event; first-person cinematic narrative; **no fabrication**; **do not drop facts**; no subjective evaluation lines (e.g. "excellent grades").
 
 **`timeLabel`**: copy from the matching input `splitDedupedTimelineSegments[]` row (same `segmentIndex`); match input precision; if input is vague, stay vague; **do not** invent precise `YYYY-MM` unless input already provides it.
 
@@ -68,6 +75,8 @@ Split each input segment's long `narrative` into a **`narrative` string array** 
 For **each** row in input `splitDedupedTimelineSegments`, output **exactly one** object in `subsceneSplitTimelineSegments` with the same `segmentIndex`, a non-empty `narrative` string array (split micro-events), and `timeLabel` copied from that input row.
 
 Return JSON only. No Markdown fences.
+
+Read **`PIPELINE_JSON`** (includes **`outputLocale`**).
 
 {{PIPELINE_JSON}}
 

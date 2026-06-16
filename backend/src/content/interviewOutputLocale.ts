@@ -42,13 +42,15 @@ export function appendLocaleOutputRules(system: string, locale: DisplayLocale): 
           "**Tier5 contradictions**: translate `summary`, `userQuestion`, `reconciliationHypotheses`; keep `involvedIds` as input section ids. Use input `referenceDate` as today for all time/age logic; do not invent a different date.",
           "**Tier7 turning points**: translate both `question` and `reason`.",
           "**Formal article (create-text)**: write the full `article` body in natural **Chinese** (first person「我」); preserve names, dates, places from input.",
+          "**Video pipeline (create-video)**: write **voiceover**, **narrative**, **sceneDescription**, subtitles, env narrative, and other user-facing video copy in natural **Chinese**; preserve names, dates, places from input sections.",
+          "**Video polish keys**: `polishedTemplateInstanceSummaries` object keys stay English section names; only values are translated.",
           "When `outputLocale` is `en`: write in English.",
           "Catalog field keys in input stay English for matching.",
         ].join("\n")
       : [
           "## Output locale",
           "When `outputLocale` is `en` (default): user-facing strings in English.",
-          "When `outputLocale` is `zh`: user-facing strings in Chinese; **`article`** (formal biography) in Chinese; preserve facts from sections.",
+          "When `outputLocale` is `zh`: user-facing strings in Chinese; **`article`** (formal biography) and **video voiceover/narrative/scene copy** in Chinese; preserve facts from sections.",
         ].join("\n");
   return `${system.trim()}\n\n${rules}`;
 }

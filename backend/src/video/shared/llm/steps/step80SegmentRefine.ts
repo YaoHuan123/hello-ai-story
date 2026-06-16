@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../client.js";
-import { loadVideoPromptParts } from "../loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../client.js";
+import { buildVideoLlmMessages, stringifyVideoPipeline } from "../localeLlm.js";
 import {
   derivePolishedSummariesFromClassifyRaw,
   normalizeStringRecordFromUnknown,
@@ -205,15 +205,9 @@ export async function runSegmentRefineFromPipelineJson(
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi(segmentRefinePipelineForLlm(pipeline));
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, segmentRefinePipelineForLlm(pipeline));
   const parsed = await chatJson<unknown>(
-    [
-      { role: "system", content: systemText },
-      { role: "user", content: userContent },
-    ],
+    messages,
     {
       debugStepId: "segment_refine_80",
       temperature: 0.15,

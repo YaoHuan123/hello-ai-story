@@ -1,6 +1,6 @@
 import { VOICEOVER_LINE_MAX_CHARS } from "../../../shared/constants/voiceoverLimits.js";
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
 import type { MergedNarrativeSegmentItem } from "./step150MergeEnvAndEra.js";
 const PROMPT_FILE = "step-170_voiceover-coherence.md";
 const ERR = "VOICEOVER_COHERENCE_170_INVALID";
@@ -188,15 +188,9 @@ export async function runVoiceoverCoherenceFromMerged(params: {
   }
 
   const fullScript = flat.map((x) => x.text).join("\n");
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi({ items: flat, fullScript });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages: baseMessages } = buildVideoLlmMessages(PROMPT_FILE, { items: flat, fullScript });
   const callForTexts = async (debugStepId: string, extraGuidance?: string): Promise<string[]> => {
-    const messages = [
-      { role: "system" as const, content: systemText },
-      { role: "user" as const, content: userContent },
-    ];
+    const messages = [...baseMessages];
     if (extraGuidance) {
       messages.push({ role: "user" as const, content: extraGuidance });
     }

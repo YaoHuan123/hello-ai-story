@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
 import type { CrossValidatedTimelineItem } from "./step110EnvNarrativePack.js";
 import type { EraSubsceneSplitItem } from "../../../shared/llm/steps/step30EraSubsceneSplit.js";
 import type { MergedNarrativeSegmentItem } from "./step150MergeEnvAndEra.js";
@@ -227,18 +227,12 @@ export async function runMergeEnvAndEraFromPipelineJson(input: {
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
   const sourceIndex = buildSourceIndex(input);
-  const pipelineStr = stringifyForAi(buildMergeEnvAndEraAiPayload(input));
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, buildMergeEnvAndEraAiPayload(input));
 
   let parsed: unknown;
   try {
-    parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+    parsed = await chatJson<unknown>(messages,
       {
         debugStepId: "merge_env_era_160",
         temperature: 0.2,

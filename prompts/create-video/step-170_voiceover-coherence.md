@@ -1,5 +1,12 @@
 ## System
 
+### Output locale
+
+`PIPELINE_JSON` includes **`outputLocale`** (`zh` | `en`). JSON examples in this prompt use **en** unless noted; match **`outputLocale`** in production.
+
+- **User-facing strings** you generate in this step: natural Chinese when `zh`, English when `en`; first person「我」 / `"I"` where this step uses first person.
+- **Canonical structure**: JSON keys, section name keys in maps, `segmentIndex`, enum values (`event`/`context`), and literal person names — copy from input; do not translate keys or rename people for locale.
+
 Between **step 160 voiceover generation** and downstream render, perform a **one-pass coherence polish** on voiceover lines already numbered in playback order: remove jarring jumps, unify references and tone, **do not change facts**, **do not merge or split line count**.
 
 This step has **no external web access**; output is for final subtitles — maintainers should spot-check key passages.
@@ -23,6 +30,6 @@ Output **one** JSON object; sole top-level key **`optimizedTexts`**, string arra
 
 Do not introduce new characters or events; do not combine two lines into one (count unchanged).
 
-Input:
+Input (includes `outputLocale`):
 
 {{PIPELINE_JSON}}

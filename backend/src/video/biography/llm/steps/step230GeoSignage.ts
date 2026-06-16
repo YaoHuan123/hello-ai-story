@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "path";
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
 import type { MergedNarrativeSegmentItem } from "./step150MergeEnvAndEra.js";
 import { PIPELINE_GEO_SIGNAGE_REFERENCE_FILE } from "../../constants/pipelineFilenames.js";
 const PROMPT_FILE = "step-230_geo-signage-reference.md";
@@ -224,15 +224,11 @@ export async function runGeoSignageGeneration(params: {
     return { payload, model };
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
   const pipelineJson = { inputScenes: params.inputScenes };
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", stringifyForAi(pipelineJson));
+  const { messages: baseMessages } = buildVideoLlmMessages(PROMPT_FILE, pipelineJson);
 
   const callForGeo = async (debugStepId: string, extraGuidance?: string): Promise<GeoSignageSceneRow[]> => {
-    const messages = [
-      { role: "system" as const, content: systemText },
-      { role: "user" as const, content: userContent },
-    ];
+    const messages = [...baseMessages];
     if (extraGuidance) {
       messages.push({ role: "user" as const, content: extraGuidance });
     }

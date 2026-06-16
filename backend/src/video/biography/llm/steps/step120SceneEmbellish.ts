@@ -1,5 +1,6 @@
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages } from "../../../shared/llm/localeLlm.js";
+import { extractEnvLocationFromText, extractEnvTimeFromText } from "../../../shared/envSceneExtract.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
 import type { EnvNarrativeSegmentPackItem, CrossValidatedTimelineItem } from "./step110EnvNarrativePack.js";
 import { compactEnvEventFromRow } from "../../../shared/llm/envSegmentSceneText.js";
 import { resolveChatMaxItemsPerCall, runChatPerSliceConcat } from "../../../shared/llm/pipelineChunkedChat.js";
@@ -55,17 +56,9 @@ export function parseEnvNarrativeSegmentsPackFromRaw(
           // 提取时间和地点信息
           let env_time = o.timeLabel as string || "";
           let env_location = "";
-          
-          // 简单的时间地点提取逻辑
-          const timeMatch = sceneDescription.match(/(\d{4}年\d{1,2}月|\d{4}年|\d{1,2}月\d{1,2}日|\d{4}-\d{2}-\d{2})/);
-          if (timeMatch) {
-            env_time = timeMatch[0];
-          }
-          
-          const locationMatch = sceneDescription.match(/在([^，。！？；：]+)/);
-          if (locationMatch) {
-            env_location = locationMatch[1];
-          }
+
+          env_time = extractEnvTimeFromText(sceneDescription, env_time);
+          env_location = extractEnvLocationFromText(sceneDescription);
           
           out.push({
             segmentIndex: segmentIndex++,
@@ -252,19 +245,14 @@ function slimSliceForEmbellish(slice: CrossValidatedTimelineItem[]) {
 
 async function runSceneEmbellishForSlice(
   slice: CrossValidatedTimelineItem[],
-  systemText: string,
-  userSuffix: string,
 ): Promise<CrossValidatedTimelineItem[]> {
-  const pipelineStr = stringifyForAi({ crossValidatedTimelineSegments: slimSliceForEmbellish(slice) });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, {
+    crossValidatedTimelineSegments: slimSliceForEmbellish(slice),
+  });
 
   let parsed: unknown;
   try {
-    parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+    parsed = await chatJson<unknown>(messages,
       {
         debugStepId: "scene_embellish_120",
         temperature: 0.25,
@@ -323,13 +311,12 @@ export async function runSceneEmbellishFromPipelineJson(
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
   const chunkSize = resolveChatMaxItemsPerCall();
 
   const merged = await runChatPerSliceConcat<CrossValidatedTimelineItem, CrossValidatedTimelineItem>({
     items: input.crossValidatedTimelineSegments,
     chunkSize,
-    runOnce: (slice) => runSceneEmbellishForSlice(slice, systemText, userSuffix),
+    runOnce: (slice) => runSceneEmbellishForSlice(slice),
   });
 
   return { crossValidatedTimelineSegments: merged };

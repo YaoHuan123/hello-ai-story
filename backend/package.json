@@ -51,6 +51,7 @@
     "test:video:subscene-split-90": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/step90SubsceneSplit.test.ts",
     "test:video:orchestrator": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/biography-orchestrator.unit.ts",
     "test:video:trace": "ts-node --project test/tsconfig.json --transpile-only test/unit/video/video-llm-trace.unit.ts",
+    "test:video:locale": "npm run build && ts-node --project test/tsconfig.json --transpile-only test/unit/video/video-locale.unit.ts",
     "test:video:step10": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/integration/video/video-prep-trace.integration.ts 10",
     "test:video:step80": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/integration/video/video-prep-trace.integration.ts 80",
     "test:video:studio": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/studio-orchestrator.unit.ts",

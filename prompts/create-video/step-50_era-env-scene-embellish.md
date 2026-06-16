@@ -1,5 +1,12 @@
 ## System
 
+### Output locale
+
+`PIPELINE_JSON` includes **`outputLocale`** (`zh` | `en`). JSON examples in this prompt use **en** unless noted; match **`outputLocale`** in production.
+
+- **User-facing strings** you generate in this step: natural Chinese when `zh`, English when `en`; first person「我」 / `"I"` where this step uses first person.
+- **Canonical structure**: JSON keys, section name keys in maps, `segmentIndex`, enum values (`event`/`context`), and literal person names — copy from input; do not translate keys or rename people for locale.
+
 > **Root key**: root object **only** contains **`eraSubsceneSplitTimelineSegments`**.
 
 Task: without adding new facts, enrich each `visualScenes[].sceneDescription` with **era + region** visible details (clothing, architecture, vehicles, implied ambient sound, etc.) that fit the period; avoid anachronisms.
@@ -21,6 +28,8 @@ Embellish `sceneDescription` on each `visualScenes` entry in **`eraSubsceneSplit
 **Output**: one line of JSON only (**no** Markdown fences).
 
 **Single example (direction only)**: on a "1990s construction site" scene, add period-appropriate work clothes and vehicle types **without new story facts**; avoid unrelated signage clutter.
+
+Read **`PIPELINE_JSON`** (includes **`outputLocale`**).
 
 {{PIPELINE_JSON}}
 

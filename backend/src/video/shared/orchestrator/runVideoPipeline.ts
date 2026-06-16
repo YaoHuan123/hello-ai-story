@@ -1,3 +1,4 @@
+import { getInterviewDisplayLocale, runWithDisplayLocale } from "../../../content/displayLocale";
 import type { InterviewScope } from "../../../services/interviewWorkspace.service";
 import type { AnsweredSection } from "../../../topic/types";
 import type { MaterialPolishMode } from "../input/sectionsVideoInput.js";
@@ -86,7 +87,9 @@ export async function runVideoPipelineWithPrep<L extends { stepId: string }>(
   };
 
   try {
-    return await runWithVideoLlmTrace(videoLlmTraceDirForTask(handle.paths.taskRoot), async () => {
+    const outputLocale = getInterviewDisplayLocale(handle.scope);
+    return await runWithDisplayLocale(outputLocale, () =>
+      runWithVideoLlmTrace(videoLlmTraceDirForTask(handle.paths.taskRoot), async () => {
       const fromStep = opts.fromStep?.trim();
       const skipPrep = Boolean(fromStep && compareVideoPipelineSteps(fromStep, "80") > 0);
 
@@ -127,7 +130,8 @@ export async function runVideoPipelineWithPrep<L extends { stepId: string }>(
       }
 
       return finishSuccess(meta);
-    });
+    }),
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     meta = { ...meta, status: "failed", lastError: message, updatedAt: new Date().toISOString() };

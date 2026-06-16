@@ -1,5 +1,5 @@
-import { loadVideoPromptParts } from "../../../shared/llm/loadPrompt.js";
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../../../shared/llm/client.js";
+import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
+import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
 import type { CrossValidatedTimelineItem } from "./step110EnvNarrativePack.js";
 
 const PROMPT_FILE = "step-130_name-unify.md";
@@ -115,16 +115,10 @@ export async function runNameUnifyFromPipelineJson(input: NameUnifyInput): Promi
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi({ crossValidatedTimelineSegments: slimInputForNameUnify(input) });
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages: baseMessages } = buildVideoLlmMessages(PROMPT_FILE, { crossValidatedTimelineSegments: slimInputForNameUnify(input) });
   // 模型只回传差量替换表 nameUnifyTextReplacements；服务端按规则改写所有字段（narrative/visualScenes/timeLabel/originalNarrative/title）。
   const callForRules = async (debugStepId: string, extraGuidance?: string): Promise<{ from: string; to: string }[]> => {
-    const messages = [
-      { role: "system" as const, content: systemText },
-      { role: "user" as const, content: userContent },
-    ];
+    const messages = [...baseMessages];
     if (extraGuidance) {
       messages.push({ role: "user" as const, content: extraGuidance });
     }

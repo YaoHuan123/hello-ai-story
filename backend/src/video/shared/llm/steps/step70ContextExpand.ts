@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../client.js";
-import { loadVideoPromptParts } from "../loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../client.js";
+import { buildVideoLlmMessages, stringifyVideoPipeline } from "../localeLlm.js";
 
 const PROMPT_FILE = "step-70_context-expand-events.md";
 
@@ -217,17 +217,11 @@ export async function runContextExpandFromPipelineJson(
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi(pipeline);
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, pipeline);
   let parsed: unknown;
   try {
     parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+      messages,
       {
         debugStepId: "context_expand_78",
         temperature: 0.2,

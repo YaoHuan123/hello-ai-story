@@ -1,5 +1,5 @@
-import { chatJson, getVideoLlmEnv, stringifyForAi } from "../client.js";
-import { loadVideoPromptParts } from "../loadPrompt.js";
+import { chatJson, getVideoLlmEnv } from "../client.js";
+import { buildVideoLlmMessages, stringifyVideoPipeline } from "../localeLlm.js";
 import { classifyPipelineForLlm } from "../../input/sectionsFilter.js";
 
 const PROMPT_FILE = "step-60_classify.md";
@@ -94,17 +94,11 @@ export async function runClassifyFromPipelineJson(pipeline: ClassifyPipelineJson
     );
   }
 
-  const { systemText, userSuffix } = loadVideoPromptParts(PROMPT_FILE);
-  const pipelineStr = stringifyForAi(classifyPipelineForLlm(pipeline));
-  const userContent = userSuffix.replace("{{PIPELINE_JSON}}", pipelineStr);
-
+  const { messages } = buildVideoLlmMessages(PROMPT_FILE, classifyPipelineForLlm(pipeline));
   let parsed: unknown;
   try {
     parsed = await chatJson<unknown>(
-      [
-        { role: "system", content: systemText },
-        { role: "user", content: userContent },
-      ],
+      messages,
       { debugStepId: "classify_60", temperature: 0.15, useJsonObject: true },
     );
   } catch (e) {
