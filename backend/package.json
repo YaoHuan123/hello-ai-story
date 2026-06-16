@@ -65,6 +65,7 @@
     "test:video:biography:230": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/integration/video/video-biography-230.integration.ts",
     "test:video:studio:tts": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/integration/video/video-studio-tts.integration.ts",
     "test:text:article": "ts-node --project test/tsconfig.json --transpile-only test/unit/text/text-pipeline.unit.ts",
+    "test:text:locale": "ts-node --project test/tsconfig.json --transpile-only test/unit/text/generate-article-locale.unit.ts",
     "test:text:query": "ts-node --project test/tsconfig.json --transpile-only test/unit/text/text-task-query.unit.ts",
     "test:auth:p1": "ts-node --project test/tsconfig.json --transpile-only test/integration/auth/auth-p1.integration.ts",
     "test:auth:apple": "ts-node --project test/tsconfig.json --transpile-only test/unit/auth/appleAuth.test.ts",

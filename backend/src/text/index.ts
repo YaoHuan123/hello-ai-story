@@ -7,7 +7,7 @@ export {
   type TextTaskMeta,
   type TextArticleFile,
 } from "./orchestrator/textTaskWorkspace.js";
-export { generateFormalArticleFromSections, type TextArticleMode } from "./llm/generateArticle.js";
+export { generateFormalArticleFromSections, type TextArticleMode, type GenerateFormalArticleOpts } from "./llm/generateArticle.js";
 export { sectionsForTextArticleLlm } from "./input/sectionsTextInput.js";
 export { TEXT_PIPELINE_STEPS, TEXT_PIPELINE_STEP_IDS } from "./constants/textStepIds.js";
 export { listTextTasks, getTextTaskProgress } from "./textTaskQuery.js";
