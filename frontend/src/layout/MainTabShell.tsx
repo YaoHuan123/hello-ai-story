@@ -49,7 +49,7 @@ export function MainTabShell({
       <div className="app-shell-body">
         {activeTab === "story" ? (
           <div className="story-tab-shell">
-            <div className="story-tab-scroll">
+            <div className="story-tab-scroll shell-scroll-y">
               <StoryWall
                 onOpenCreate={onOpenCreate}
                 onNeedLogin={onNeedLogin}

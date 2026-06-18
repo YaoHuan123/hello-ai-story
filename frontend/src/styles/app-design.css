@@ -1,5 +1,18 @@
 /* 全局应用层：手机壳居中、排版复位、通用组件 */
 
+/* 可滚动区域：隐藏系统滚动条，保留滚轮/触控滑动（故事 Tab 等） */
+.shell-scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.shell-scroll-y::-webkit-scrollbar {
+  display: none;
+}
+
 html {
   background: var(--shell-bg-canvas);
 }

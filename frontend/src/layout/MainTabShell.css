@@ -95,13 +95,17 @@
 .me-tab-scroll {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
   background: var(--shell-bg-grouped);
   padding: 12px 0 20px;
   scroll-padding-bottom: 20px;
   box-sizing: border-box;
+}
+
+.story-tab-scroll:not(.shell-scroll-y),
+.me-tab-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .me-tab-scroll {

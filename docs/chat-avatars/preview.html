@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hello Story · 聊天形象筛选</title>
+  <style>
+    :root {
+      --brand: #4f46e5;
+      --brand-deep: #4338ca;
+      --bg: #f5f6fb;
+      --card: #fff;
+      --text: #1e1b4b;
+      --muted: #64748b;
+      --keep: #059669;
+      --reject: #e11d48;
+      --maybe: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      padding: 20px 24px;
+      background: linear-gradient(135deg, #a5b4fc, var(--brand));
+      color: #fff;
+    }
+    header h1 { margin: 0 0 6px; font-size: 1.35rem; font-weight: 600; }
+    header p { margin: 0; opacity: 0.92; font-size: 0.9rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 16px 24px;
+      align-items: center;
+      border-bottom: 1px solid rgba(79, 70, 229, 0.12);
+      background: var(--card);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .toolbar label { font-size: 0.85rem; color: var(--muted); }
+    .toolbar select, .toolbar button {
+      font: inherit;
+      border-radius: 10px;
+      padding: 8px 12px;
+      border: 1px solid rgba(79, 70, 229, 0.2);
+      background: var(--card);
+      cursor: pointer;
+    }
+    .toolbar button.primary {
+      background: var(--brand);
+      color: #fff;
+      border: none;
+      font-weight: 600;
+    }
+    .summary {
+      padding: 12px 24px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      padding: 0 24px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(79, 70, 229, 0.08);
+      border: 2px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .card[data-status="keep"] { border-color: var(--keep); }
+    .card[data-status="reject"] { border-color: var(--reject); opacity: 0.72; }
+    .card[data-status="maybe"] { border-color: var(--maybe); }
+    .card-head {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .card-head img {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--bg);
+    }
+    .card-head h2 { margin: 0; font-size: 1.05rem; }
+    .card-head .id { font-size: 0.75rem; color: var(--muted); font-family: ui-monospace, monospace; }
+    .tagline { font-size: 0.88rem; color: var(--muted); margin: 0 0 10px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .tag {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(79, 70, 229, 0.08);
+      color: var(--brand-deep);
+    }
+    .tag.rec { background: #d1fae5; color: #047857; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .actions button {
+      flex: 1;
+      min-width: 70px;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(79, 70, 229, 0.15);
+      background: var(--card);
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .actions button.active-keep { background: #d1fae5; border-color: var(--keep); color: #047857; font-weight: 600; }
+    .actions button.active-reject { background: #fff1f2; border-color: var(--reject); color: var(--reject); font-weight: 600; }
+    .actions button.active-maybe { background: #fef3c7; border-color: var(--maybe); color: #b45309; font-weight: 600; }
+    .export-box {
+      margin: 0 24px 32px;
+      max-width: 1200px;
+    }
+    .export-box textarea {
+      width: 100%;
+      min-height: 100px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(79, 70, 229, 0.2);
+    }
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hello Story · 聊天形象筛选</h1>
+    <p>注册用户头像方案（8 选）。标记「保留 / 淘汰 / 待定」后导出 JSON 给开发。</p>
+  </header>
+
+  <div class="toolbar">
+    <label>系列
+      <select id="filterSeries">
+        <option value="all">全部</option>
+        <option value="animal">小动物</option>
+        <option value="character">卡通小人</option>
+      </select>
+    </label>
+    <label>状态
+      <select id="filterStatus">
+        <option value="all">全部</option>
+        <option value="keep">仅保留</option>
+        <option value="maybe">仅待定</option>
+        <option value="reject">仅淘汰</option>
+        <option value="unset">未标记</option>
+      </select>
+    </label>
+    <button type="button" id="btnExport" class="primary">导出筛选结果</button>
+    <button type="button" id="btnReset">清空标记</button>
+  </div>
+
+  <p class="summary" id="summary"></p>
+  <div class="grid" id="grid"></div>
+
+  <div class="export-box">
+    <label for="exportOut"><strong>导出 JSON</strong>（复制发给开发或贴回 issue）</label>
+    <textarea id="exportOut" readonly placeholder="点击「导出筛选结果」生成…"></textarea>
+  </div>
+
+  <footer>文档目录：<code>docs/chat-avatars/</code> · 选择保存在本机浏览器 localStorage</footer>
+
+  <script>
+    const STORAGE_KEY = "hello-story-chat-avatar-filter-v1";
+
+    const avatars = [
+      { id: "owl", series: "animal", nameZh: "记忆猫头鹰", taglineZh: "安静倾听，适合慢慢讲人生", tags: ["稳重", "倾听", "全年龄"], asset: "assets/owl.svg", recommended: true },
+      { id: "cat", series: "animal", nameZh: "窗边的猫", taglineZh: "慵懒陪伴，像在家聊天", tags: ["温暖", "居家", "轻松"], asset: "assets/cat.svg" },
+      { id: "turtle", series: "animal", nameZh: "慢时光乌龟", taglineZh: "背壳像老相册，适合长篇回忆", tags: ["稳重", "怀旧", "长辈友好"], asset: "assets/turtle.svg" },
+      { id: "fox", series: "animal", nameZh: "故事狐狸", taglineZh: "尾巴卷着笔记本，稍活泼", tags: ["活泼", "好奇", "年轻向"], asset: "assets/fox.svg" },
+      { id: "grandpa", series: "character", nameZh: "银发爷爷", taglineZh: "圆框眼镜 + 开衫，经典传记感", tags: ["男性向", "经典", "传记"], asset: "assets/grandpa.svg", recommended: true },
+      { id: "grandma", series: "character", nameZh: "银发奶奶", taglineZh: "针织披肩 + 茶杯，家常温暖", tags: ["女性向", "温暖", "家常"], asset: "assets/grandma.svg", recommended: true },
+      { id: "youth", series: "character", nameZh: "青年剪影", taglineZh: "性别中性，背包里装着老照片", tags: ["中性", "青年", "现代"], asset: "assets/youth.svg" },
+      { id: "childhood", series: "character", nameZh: "童年自己", taglineZh: "代表小时候的我", tags: ["童年", "怀旧"], asset: "assets/childhood.svg" }
+    ];
+
+    let statusMap = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(statusMap));
+    }
+
+    function render() {
+      const series = document.getElementById("filterSeries").value;
+      const statusFilter = document.getElementById("filterStatus").value;
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+
+      const filtered = avatars.filter((a) => {
+        if (series !== "all" && a.series !== series) return false;
+        const st = statusMap[a.id] || "";
+        if (statusFilter === "all") return true;
+        if (statusFilter === "unset") return !st;
+        return st === statusFilter;
+      });
+
+      for (const a of filtered) {
+        const st = statusMap[a.id] || "";
+        const card = document.createElement("article");
+        card.className = "card";
+        if (st) card.dataset.status = st;
+        card.innerHTML = `
+          <div class="card-head">
+            <img src="${a.asset}" alt="" width="72" height="72" />
+            <div>
+              <h2>${a.nameZh}</h2>
+              <div class="id">${a.id} · ${a.series === "animal" ? "小动物" : "卡通小人"}</div>
+            </div>
+          </div>
+          <p class="tagline">${a.taglineZh}</p>
+          <div class="tags">
+            ${a.recommended ? '<span class="tag rec">初版推荐</span>' : ""}
+            ${a.tags.map((t) => `<span class="tag">${t}</span>`).join("")}
+          </div>
+          <div class="actions">
+            <button type="button" data-act="keep" class="${st === "keep" ? "active-keep" : ""}">保留</button>
+            <button type="button" data-act="maybe" class="${st === "maybe" ? "active-maybe" : ""}">待定</button>
+            <button type="button" data-act="reject" class="${st === "reject" ? "active-reject" : ""}">淘汰</button>
+          </div>
+        `;
+        card.querySelectorAll(".actions button").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const act = btn.dataset.act;
+            if (statusMap[a.id] === act) delete statusMap[a.id];
+            else statusMap[a.id] = act;
+            save();
+            render();
+            updateSummary();
+          });
+        });
+        grid.appendChild(card);
+      }
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const keep = avatars.filter((a) => statusMap[a.id] === "keep").map((a) => a.id);
+      const maybe = avatars.filter((a) => statusMap[a.id] === "maybe").map((a) => a.id);
+      const reject = avatars.filter((a) => statusMap[a.id] === "reject").map((a) => a.id);
+      document.getElementById("summary").textContent =
+        `保留 ${keep.length} · 待定 ${maybe.length} · 淘汰 ${reject.length} · 未标记 ${avatars.length - keep.length - maybe.length - reject.length}`;
+    }
+
+    document.getElementById("filterSeries").addEventListener("change", render);
+    document.getElementById("filterStatus").addEventListener("change", render);
+
+    document.getElementById("btnExport").addEventListener("click", () => {
+      const out = {
+        exportedAt: new Date().toISOString(),
+        keep: avatars.filter((a) => statusMap[a.id] === "keep").map((a) => a.id),
+        maybe: avatars.filter((a) => statusMap[a.id] === "maybe").map((a) => a.id),
+        reject: avatars.filter((a) => statusMap[a.id] === "reject").map((a) => a.id),
+      };
+      document.getElementById("exportOut").value = JSON.stringify(out, null, 2);
+    });
+
+    document.getElementById("btnReset").addEventListener("click", () => {
+      if (confirm("清空本页所有标记？")) {
+        statusMap = {};
+        save();
+        render();
+        document.getElementById("exportOut").value = "";
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

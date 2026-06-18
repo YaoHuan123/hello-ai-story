@@ -4,6 +4,7 @@
   "scripts": {
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
+    "live-shell": "npm start --prefix desktop",
     "dev:worker": "npm run worker:video --prefix backend",
     "build": "npm run build --prefix backend && npm run build --prefix frontend",
     "build:android": "npm run build:android --prefix frontend",

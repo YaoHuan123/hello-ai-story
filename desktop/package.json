@@ -1,0 +1,14 @@
+{
+  "name": "hello-story-live-shell",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Electron shell for Douyin live window capture",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "live-shell": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^35.0.0"
+  }
+}

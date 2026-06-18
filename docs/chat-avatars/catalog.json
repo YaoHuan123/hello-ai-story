@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "purpose": "注册用户在访谈聊天中展示的头像形象（用户侧气泡旁）",
+  "brand": {
+    "primary": "#4f46e5",
+    "primaryDeep": "#4338ca",
+    "primaryLight": "#a5b4fc",
+    "warmAccent": "#f59e0b"
+  },
+  "chatLayout": {
+    "userAvatarSizePx": 36,
+    "userAvatarPosition": "right of user bubble",
+    "aiAvatarOptional": "固定「小史」采访员，见 options/interviewer.md"
+  },
+  "series": [
+    { "id": "animal", "nameZh": "小动物", "nameEn": "Animals", "tone": "温和、有记忆感，全年龄段友好" },
+    { "id": "character", "nameZh": "卡通小人", "nameEn": "Characters", "tone": "扁平圆角，像年轻时的自己或家人" }
+  ],
+  "avatars": [
+    {
+      "id": "owl",
+      "series": "animal",
+      "nameZh": "记忆猫头鹰",
+      "nameEn": "Memory Owl",
+      "taglineZh": "安静倾听，适合慢慢讲人生",
+      "tags": ["稳重", "倾听", "全年龄"],
+      "asset": "assets/owl.svg",
+      "detail": "options/owl.md",
+      "recommended": true
+    },
+    {
+      "id": "cat",
+      "series": "animal",
+      "nameZh": "窗边的猫",
+      "nameEn": "Window Cat",
+      "taglineZh": "慵懒陪伴，像在家聊天",
+      "tags": ["温暖", "居家", "轻松"],
+      "asset": "assets/cat.svg",
+      "detail": "options/cat.md"
+    },
+    {
+      "id": "turtle",
+      "series": "animal",
+      "nameZh": "慢时光乌龟",
+      "nameEn": "Slow Turtle",
+      "taglineZh": "背壳像老相册，适合长篇回忆",
+      "tags": ["稳重", "怀旧", "长辈友好"],
+      "asset": "assets/turtle.svg",
+      "detail": "options/turtle.md"
+    },
+    {
+      "id": "fox",
+      "series": "animal",
+      "nameZh": "故事狐狸",
+      "nameEn": "Story Fox",
+      "taglineZh": "尾巴卷着笔记本，稍活泼",
+      "tags": ["活泼", "好奇", "年轻向"],
+      "asset": "assets/fox.svg",
+      "detail": "options/fox.md"
+    },
+    {
+      "id": "grandpa",
+      "series": "character",
+      "nameZh": "银发爷爷",
+      "nameEn": "Silver Grandpa",
+      "taglineZh": "圆框眼镜 + 开衫，经典传记感",
+      "tags": ["男性向", "经典", "传记"],
+      "asset": "assets/grandpa.svg",
+      "detail": "options/grandpa.md",
+      "recommended": true
+    },
+    {
+      "id": "grandma",
+      "series": "character",
+      "nameZh": "银发奶奶",
+      "nameEn": "Silver Grandma",
+      "taglineZh": "针织披肩 + 茶杯，家常温暖",
+      "tags": ["女性向", "温暖", "家常"],
+      "asset": "assets/grandma.svg",
+      "detail": "options/grandma.md",
+      "recommended": true
+    },
+    {
+      "id": "youth",
+      "series": "character",
+      "nameZh": "青年剪影",
+      "nameEn": "Youth Silhouette",
+      "taglineZh": "性别中性，背包里装着老照片",
+      "tags": ["中性", "青年", "现代"],
+      "asset": "assets/youth.svg",
+      "detail": "options/youth.md"
+    },
+    {
+      "id": "childhood",
+      "series": "character",
+      "nameZh": "童年自己",
+      "nameEn": "Childhood Self",
+      "taglineZh": "代表小时候的我，讲童年章节时用",
+      "tags": ["童年", "怀旧", "可选双发型"],
+      "asset": "assets/childhood.svg",
+      "detail": "options/childhood.md"
+    }
+  ]
+}
