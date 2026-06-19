@@ -1,0 +1,127 @@
+# Codemagic — Hello Story iOS Ad-Hoc
+#
+# 证书与描述文件来源（本地，勿提交仓库）：
+#   E:\ios调试和上线材料\hellostory\hellostoryhoc.mobileprovision
+#   E:\ios调试和上线材料\证书\2b054e3a68074341bebf0230796bec0f.p12
+#   E:\ios调试和上线材料\证书\ios_distribution.cer
+#
+# 在 Codemagic → Team settings → Environment variables 新建组 hellostory_ios_adhoc：
+#
+#   CM_CERTIFICATE              — p12 的 Base64（Windows PowerShell 示例见 scripts/encode-ios-secrets.ps1）
+#   CM_CERTIFICATE_PASSWORD     — p12 导出密码
+#   CM_PROVISIONING_PROFILE     — hellostoryhoc.mobileprovision 的 Base64
+#   VITE_API_BASE_URL           — 生产/测试 API，如 https://api.example.com
+#
+# 描述文件信息（hellostory-hoc）：
+#   Bundle ID : io.github.com.YaoHuan123.hello-ai-story
+#   Team ID   : TCPBS85F56
+#   UUID      : bafee2f4-97aa-4973-a423-d920aaadb42b
+#   已注册设备 : 00008101-00056DAE22E8001E（仅该 UDID 可安装 Ad-Hoc 包）
+
+workflows:
+  ios-adhoc:
+    name: Hello Story iOS Ad-Hoc
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+
+    environment:
+      groups:
+        - hellostory_ios_adhoc
+      vars:
+        BUNDLE_ID: io.github.com.YaoHuan123.hello-ai-story
+        DEVELOPMENT_TEAM: TCPBS85F56
+        PROVISIONING_PROFILE_SPECIFIER: hellostory-hoc
+        PROVISIONING_PROFILE_UUID: bafee2f4-97aa-4973-a423-d920aaadb42b
+        XCODE_WORKSPACE: frontend/ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+        # 在 Codemagic 变量组里覆盖为真实 API 地址
+        VITE_API_BASE_URL: https://your-api.example.com
+      node: 22
+      xcode: latest
+      cocoapods: default
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: master
+          include: true
+        - pattern: feature/*
+          include: true
+
+    scripts:
+      - name: Install frontend dependencies
+        script: |
+          set -e
+          cd frontend
+          npm ci
+
+      - name: Apply Ad-Hoc bundle ID and signing settings
+        script: |
+          set -e
+          bash scripts/codemagic-prepare-ios-adhoc.sh
+
+      - name: Build web assets and sync Capacitor iOS
+        script: |
+          set -e
+          cd frontend
+          cat > .env.ios <<EOF
+          VITE_API_BASE_URL=${VITE_API_BASE_URL}
+          EOF
+          npm run ios
+
+      - name: Install CocoaPods
+        script: |
+          set -e
+          cd frontend/ios/App
+          pod install
+
+      - name: Set up code signing
+        script: |
+          set -e
+          keychain initialize
+          echo "$CM_CERTIFICATE" | base64 --decode > /tmp/hellostory_distribution.p12
+          echo "$CM_PROVISIONING_PROFILE" | base64 --decode > /tmp/hellostory-hoc.mobileprovision
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp /tmp/hellostory-hoc.mobileprovision \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/${PROVISIONING_PROFILE_UUID}.mobileprovision"
+          keychain add-certificates \
+            --certificate /tmp/hellostory_distribution.p12 \
+            --certificate-password "$CM_CERTIFICATE_PASSWORD"
+          security find-identity -v -p codesigning
+
+      - name: Build iOS archive
+        script: |
+          set -e
+          cd frontend/ios/App
+          xcodebuild archive \
+            -workspace App.xcworkspace \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$CM_BUILD_DIR/build/App.xcarchive" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_SPECIFIER" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID"
+
+      - name: Export Ad-Hoc IPA
+        script: |
+          set -e
+          xcodebuild -exportArchive \
+            -archivePath "$CM_BUILD_DIR/build/App.xcarchive" \
+            -exportPath "$CM_BUILD_DIR/build/ipa" \
+            -exportOptionsPlist frontend/ios/export-adhoc.plist
+
+    artifacts:
+      - build/ipa/*.ipa
+      - build/App.xcarchive
+
+    # publishing:
+    #   email:
+    #     recipients:
+    #       - your-email@example.com
+    #     notify:
+    #       success: true
+    #       failure: true
