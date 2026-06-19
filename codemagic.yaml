@@ -3,6 +3,8 @@
 # Native app: UI bundled in IPA, API at VITE_API_BASE_URL
 # Codemagic → Code signing identities → Reference name: hellostory-hoc (profile + cert)
 #
+# Apple 登录：App ID 须开启 Sign in with Apple，并重新生成含该 entitlement 的 Ad-Hoc 描述文件后上传 Codemagic。
+#
 # Team ID: TCPBS85F56
 # Bundle ID: io.github.com.YaoHuan123.hello-ai-story
 
