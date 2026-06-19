@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.hellostory.app",
+  appId: "io.github.com.YaoHuan123.hello-ai-story",
   appName: "Hello Story",
   webDir: "dist",
   android: {

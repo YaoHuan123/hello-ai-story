@@ -19,7 +19,7 @@ export async function signInWithAppleNative(): Promise<{ identityToken: string }
   }
 
   const { SignInWithApple } = await import("@capacitor-community/apple-sign-in");
-  const clientId = import.meta.env.VITE_APPLE_BUNDLE_ID || "com.hellostory.app";
+  const clientId = import.meta.env.VITE_APPLE_BUNDLE_ID || "io.github.com.YaoHuan123.hello-ai-story";
   const result = await SignInWithApple.authorize({
     clientId,
     redirectURI: "",
