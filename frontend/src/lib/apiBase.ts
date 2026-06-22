@@ -5,5 +5,10 @@ export function resolveApiUrl(path: string): string {
   if (!path.startsWith("/")) {
     throw new Error(`API path must start with /: ${path}`);
   }
-  return API_BASE ? `${API_BASE}${path}` : path;
+  if (!API_BASE) return path;
+  // 生产 Nginx 常配 …/hello-story/api；前端 path 已含 /api/…，避免拼成 /api/api/…
+  if (API_BASE.endsWith("/api") && path.startsWith("/api")) {
+    return `${API_BASE}${path.slice(4)}`;
+  }
+  return `${API_BASE}${path}`;
 }

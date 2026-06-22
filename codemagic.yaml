@@ -19,7 +19,7 @@ workflows:
           - app-common
       vars:
         BUNDLE_ID: io.github.com.YaoHuan123.hello-ai-story
-        VITE_API_BASE_URL: "https://hellotita.top/hello-story/api"
+        VITE_API_BASE_URL: "https://hellotita.top/hello-story"
         XCODE_SCHEME: App
         XCODE_PROJECT_DIR: frontend/ios/App
         VITE_APPLE_BUNDLE_ID: io.github.com.YaoHuan123.hello-ai-story
