@@ -19,6 +19,7 @@
     "pm2:start": "npm run build:backend && npm run pm2:start --prefix backend",
     "pm2:stop": "npm run pm2:stop --prefix backend",
     "pm2:restart": "npm run pm2:restart --prefix backend",
-    "pm2:logs": "npm run pm2:logs --prefix backend"
+    "pm2:logs": "npm run pm2:logs --prefix backend",
+    "deploy:backend": "npm run deploy --prefix backend"
   }
 }

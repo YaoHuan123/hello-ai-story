@@ -33,6 +33,15 @@ export const zh: MessageTree = {
     appleHeading: "使用 Apple 登录",
     appleHint: "国内与海外均可使用 Apple ID 登录",
     appleSubmit: "通过 Apple 继续",
+    legalNotice: "继续即表示你已阅读并同意我们的隐私政策与用户协议。",
+  },
+  legal: {
+    section: "法律与帮助",
+    navAria: "法律与帮助链接",
+    privacy: "隐私政策",
+    terms: "用户协议",
+    support: "帮助与支持",
+    aiDisclaimer: "访谈与成片由 AI 辅助生成，可能存在不准确之处，请以你的真实经历为准。",
   },
   tab: {
     mainAria: "主栏目",

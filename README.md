@@ -93,7 +93,13 @@ npm run pm2:start
 
 详见 **[成片 Worker 说明](backend/docs/video-worker.md)**：单进程、**一次只跑一条流水线**是当前设计（FIFO 排队即可），不要多开 worker 实例。
 
-### systemd（Linux）
+### PM2 / 服务器（Ubuntu 22）
+
+一键部署脚本：`backend/deploy/start.sh`（`npm run deploy:backend`）。说明见 **[backend/deploy/README.md](backend/deploy/README.md)**。
+
+服务器路径：`/home/admin/apps/hello-story`
+
+### systemd（Linux，可选）
 
 示例 unit 文件：`backend/deploy/systemd/`，说明见同目录 `README.md`。
 
@@ -213,7 +219,7 @@ npx cap add ios
 |------|------|
 | iOS 模拟器（Mac） | `http://127.0.0.1:3001`（默认） |
 | 真机调试 | 电脑局域网 IP，如 `http://192.168.1.100:3001` |
-| 生产 | `https://你的域名`（须 HTTPS，可移除 Info.plist 里仅用于开发的本地网络例外） |
+| 生产 | `https://hellotita.top/hello-story/api`（须 HTTPS；见 `backend/deploy/README.md`） |
 
 覆盖默认：复制 `frontend/.env.ios.example` 为 `.env.ios.local` 后重新 `npm run ios`。
 

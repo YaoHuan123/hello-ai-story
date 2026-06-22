@@ -33,6 +33,15 @@ export const en: MessageTree = {
     appleHeading: "Sign in with Apple",
     appleHint: "Works in China and worldwide with your Apple ID",
     appleSubmit: "Continue with Apple",
+    legalNotice: "By continuing, you agree to our Privacy Policy and Terms of Service.",
+  },
+  legal: {
+    section: "Legal & support",
+    navAria: "Legal and support links",
+    privacy: "Privacy Policy",
+    terms: "Terms of Service",
+    support: "Help & Support",
+    aiDisclaimer: "Interviews and videos are AI-assisted and may contain inaccuracies. Your own recollection is authoritative.",
   },
   tab: {
     mainAria: "Main navigation",

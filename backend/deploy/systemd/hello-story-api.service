@@ -14,10 +14,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=www-data
-Group=www-data
-WorkingDirectory=/opt/hello-story2/backend
-EnvironmentFile=/opt/hello-story2/backend/.env
+User=admin
+Group=admin
+WorkingDirectory=/home/admin/apps/hello-story/backend
+EnvironmentFile=/home/admin/apps/hello-story/backend/.env
 Environment=NODE_ENV=production
 ExecStart=/usr/bin/node dist/index.js
 Restart=on-failure

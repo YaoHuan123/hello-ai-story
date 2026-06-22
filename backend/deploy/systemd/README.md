@@ -1,13 +1,15 @@
 # systemd 部署
 
+> 推荐生产环境用 **PM2**（见 [`../README.md`](../README.md)）。本节为 systemd 替代方案。
+
 ## 前置
 
-1. 将仓库部署到服务器，例如 `/opt/hello-story2`
+1. 将仓库部署到 **`/home/admin/apps/hello-story`**
 2. 配置 `backend/.env`（与开发相同键，生产用真实密钥）
 3. 编译：
 
 ```bash
-cd /opt/hello-story2/backend
+cd /home/admin/apps/hello-story/backend
 npm ci
 npm run build
 ```
@@ -40,3 +42,4 @@ sudo systemctl restart hello-story-video-worker
 - **一次只跑一条成片 pipeline** 是预期行为：其余任务在 `queued` 排队，无需为此多开 worker
 - 说明全文：[backend/docs/video-worker.md](../../docs/video-worker.md)
 - API 与 worker 必须看到**同一份** `DATA_USERS_ROOT`
+- 与 PM2 **勿同时**启动同一 worker

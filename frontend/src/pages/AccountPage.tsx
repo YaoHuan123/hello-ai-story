@@ -9,6 +9,7 @@ import type { HealthResponse } from "../api/health";
 import type { MeResponse } from "../types/auth";
 import type { WalletTransaction } from "../types/wallet";
 import { displayError, t } from "../i18n";
+import { LegalLinks } from "../components/LegalLinks";
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -20,6 +21,8 @@ import {
   IconTrash,
   IconWallet,
 } from "../components/icons";
+import { getLegalUrls } from "../lib/legalUrls";
+import { openExternalUrl } from "../lib/openExternalUrl";
 import "./AccountPage.css";
 
 type Props = {
@@ -543,6 +546,8 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
           </ul>
         </div>
         <p className="me-footer-note">{t("account.aboutFooter")}</p>
+        <p className="me-footer-note me-footer-note--legal">{t("legal.aiDisclaimer")}</p>
+        <LegalLinks variant="block" />
       </div>
     );
   }
@@ -596,6 +601,31 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
           label={t("account.about")}
           hint={t("account.aboutHint")}
           onClick={() => goScreen("about")}
+          disabled={loading}
+        />
+      </div>
+
+      <p className="me-group-label">{t("legal.section")}</p>
+      <div className="me-group">
+        <MeListRow
+          icon={<IconShield size={18} />}
+          iconTone="muted"
+          label={t("legal.privacy")}
+          onClick={() => openExternalUrl(getLegalUrls().privacy)}
+          disabled={loading}
+        />
+        <MeListRow
+          icon={<IconShield size={18} />}
+          iconTone="muted"
+          label={t("legal.terms")}
+          onClick={() => openExternalUrl(getLegalUrls().terms)}
+          disabled={loading}
+        />
+        <MeListRow
+          icon={<IconInfo size={18} />}
+          iconTone="muted"
+          label={t("legal.support")}
+          onClick={() => openExternalUrl(getLegalUrls().support)}
           disabled={loading}
         />
       </div>

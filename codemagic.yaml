@@ -1,6 +1,7 @@
 # Hello Story iOS — Codemagic (ios branch)
 #
 # Native app: UI bundled in IPA, API at VITE_API_BASE_URL
+# 生产美区示例：VITE_API_BASE_URL=https://hellotita.top/hello-story/api  VITE_LOCALE=en
 # Codemagic → Code signing identities → Reference name: hellostory-hoc (profile + cert)
 #
 # Apple 登录：App ID 须开启 Sign in with Apple，并重新生成含该 entitlement 的 Ad-Hoc 描述文件后上传 Codemagic。

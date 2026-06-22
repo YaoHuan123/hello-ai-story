@@ -1,3 +1,4 @@
+import { LegalLinks } from "../components/LegalLinks";
 import { t } from "../i18n";
 
 type Props = {
@@ -30,6 +31,8 @@ export function AppleLoginPage({ loading, error, message, onSignIn }: Props) {
         {loading && <p className="login-msg">{t("common.processing")}</p>}
         {error && <p className="login-msg login-msg--err">{error}</p>}
         {message && <p className="login-msg login-msg--ok">{message}</p>}
+        <p className="login-legal-notice">{t("login.legalNotice")}</p>
+        <LegalLinks />
       </div>
     </div>
   );
