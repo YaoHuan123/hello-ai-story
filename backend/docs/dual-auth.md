@@ -27,7 +27,7 @@ ALIYUN_ACCESS_KEY_ID=...
 ALIYUN_DYPNSAPI_DEV_MOCK=1   # 本地 mock，验证码 123456
 
 # iOS Apple
-APPLE_BUNDLE_ID=com.hellostory.app
+APPLE_BUNDLE_ID=io.github.com.YaoHuan123.hello-ai-story
 APPLE_AUTH_DEV_MOCK=1        # 本地 mock token: dev-apple-mock-token
 ```
 

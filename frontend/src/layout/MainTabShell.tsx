@@ -5,6 +5,7 @@ import { StoryWall } from "../components/StoryWall";
 import { WatchTabPage } from "../pages/WatchTabPage";
 import { IconFilm, IconSpark, IconStory, IconUser } from "../components/icons";
 import { t } from "../i18n";
+import { isQuizRewardsEnabled } from "../lib/features";
 import type { MeResponse } from "../types/auth";
 import type { HealthResponse } from "../api/health";
 import "./MainTabShell.css";
@@ -44,6 +45,8 @@ export function MainTabShell({
   watchRefreshKey,
   health,
 }: Props) {
+  const quizRewards = isQuizRewardsEnabled();
+
   return (
     <AppPageShell>
       <div className="app-shell-body">
@@ -57,7 +60,7 @@ export function MainTabShell({
               />
             </div>
           </div>
-        ) : activeTab === "activity" ? (
+        ) : quizRewards && activeTab === "activity" ? (
           <div className="story-tab-shell">
             <div className="story-tab-scroll">
               <ActivityTabPage
@@ -69,7 +72,7 @@ export function MainTabShell({
               />
             </div>
           </div>
-        ) : activeTab === "watch" ? (
+        ) : quizRewards && activeTab === "watch" ? (
           <div className="story-tab-shell">
             <div className="story-tab-scroll">
               <WatchTabPage
@@ -109,26 +112,30 @@ export function MainTabShell({
             <IconStory size={22} className="app-shell-tab__icon" />
             <span>{t("tab.story")}</span>
           </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "activity"}
-            className={activeTab === "activity" ? "app-shell-tab active" : "app-shell-tab"}
-            onClick={() => onTabChange("activity")}
-          >
-            <IconSpark size={22} className="app-shell-tab__icon" />
-            <span>{t("tab.activity")}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "watch"}
-            className={activeTab === "watch" ? "app-shell-tab active" : "app-shell-tab"}
-            onClick={() => onTabChange("watch")}
-          >
-            <IconFilm size={22} className="app-shell-tab__icon" />
-            <span>{t("tab.watch")}</span>
-          </button>
+          {quizRewards ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "activity"}
+              className={activeTab === "activity" ? "app-shell-tab active" : "app-shell-tab"}
+              onClick={() => onTabChange("activity")}
+            >
+              <IconSpark size={22} className="app-shell-tab__icon" />
+              <span>{t("tab.activity")}</span>
+            </button>
+          ) : null}
+          {quizRewards ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "watch"}
+              className={activeTab === "watch" ? "app-shell-tab active" : "app-shell-tab"}
+              onClick={() => onTabChange("watch")}
+            >
+              <IconFilm size={22} className="app-shell-tab__icon" />
+              <span>{t("tab.watch")}</span>
+            </button>
+          ) : null}
           <button
             type="button"
             role="tab"

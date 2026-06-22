@@ -4,6 +4,7 @@ import { changePhone, deleteAccount, getMe, sendSms } from "../api/auth";
 import { getWalletBalance, listWalletTransactions, mockRechargeWallet } from "../api/wallet";
 import { authTokenStore } from "../lib/authToken";
 import { signInWithAppleNative } from "../lib/appleSignIn";
+import { isQuizRewardsEnabled } from "../lib/features";
 import type { HealthResponse } from "../api/health";
 import type { MeResponse } from "../types/auth";
 import type { WalletTransaction } from "../types/wallet";
@@ -118,6 +119,16 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
   const [txNextCursor, setTxNextCursor] = useState<string | undefined>();
 
   const isPhoneUser = me?.loginMethod === "phone";
+  const quizRewards = isQuizRewardsEnabled();
+
+  useEffect(() => {
+    if (
+      !quizRewards &&
+      (screen === "wallet" || screen === "wallet-recharge" || screen === "wallet-history")
+    ) {
+      setScreen("home");
+    }
+  }, [quizRewards, screen]);
 
   const clearFeedback = () => {
     setError(null);
@@ -166,16 +177,18 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
   }, []);
 
   useEffect(() => {
+    if (!quizRewards) return;
     if (screen !== "wallet" && screen !== "wallet-recharge" && screen !== "wallet-history") return;
     void refreshWalletBalance().catch(() => {
       setWalletBalance(null);
     });
-  }, [screen, refreshWalletBalance]);
+  }, [screen, refreshWalletBalance, quizRewards]);
 
   useEffect(() => {
+    if (!quizRewards) return;
     if (screen !== "wallet-history") return;
     void loadTransactions(false).catch(() => setTransactions([]));
-  }, [screen, loadTransactions]);
+  }, [screen, loadTransactions, quizRewards]);
 
   const handleMockRecharge = () => {
     const amount = Number.parseInt(rechargeAmount.trim(), 10);
@@ -257,7 +270,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
     return <p className="me-empty">{t("account.loginRequired")}</p>;
   }
 
-  if (screen === "wallet") {
+  if (quizRewards && screen === "wallet") {
     return (
       <div className="me-page me-subpage">
         <button type="button" className="me-subpage__back" onClick={() => goScreen("home")}>
@@ -294,7 +307,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
     );
   }
 
-  if (screen === "wallet-recharge") {
+  if (quizRewards && screen === "wallet-recharge") {
     return (
       <div className="me-page me-subpage">
         <button type="button" className="me-subpage__back" onClick={() => goScreen("wallet")}>
@@ -329,7 +342,7 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
     );
   }
 
-  if (screen === "wallet-history") {
+  if (quizRewards && screen === "wallet-history") {
     return (
       <div className="me-page me-subpage">
         <button type="button" className="me-subpage__back" onClick={() => goScreen("wallet")}>
@@ -540,13 +553,15 @@ export function AccountPage({ me, onMeChange, onLoggedOut, health }: Props) {
 
       <p className="me-group-label">{t("account.sectionAccount")}</p>
       <div className="me-group">
-        <MeListRow
-          icon={<IconWallet size={18} />}
-          label={t("wallet.title")}
-          hint={t("wallet.entryHint")}
-          onClick={() => goScreen("wallet")}
-          disabled={loading}
-        />
+        {quizRewards ? (
+          <MeListRow
+            icon={<IconWallet size={18} />}
+            label={t("wallet.title")}
+            hint={t("wallet.entryHint")}
+            onClick={() => goScreen("wallet")}
+            disabled={loading}
+          />
+        ) : null}
         <MeListRow
           icon={<IconPhone size={18} />}
           label={isPhoneUser ? t("account.phone") : t("account.appleId")}

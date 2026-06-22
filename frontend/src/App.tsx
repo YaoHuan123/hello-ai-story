@@ -9,6 +9,7 @@ import "./layout/MainTabShell.css";
 import { displayError, t } from "./i18n";
 import { signInWithAppleNative } from "./lib/appleSignIn";
 import { authTokenStore } from "./lib/authToken";
+import { isQuizRewardsEnabled } from "./lib/features";
 import { isIosNative } from "./lib/platform";
 import { AppleLoginPage } from "./pages/AppleLoginPage";
 import { CreateHomePage } from "./pages/CreateHomePage";
@@ -59,6 +60,25 @@ function App() {
 
   const hasToken = useMemo(() => Boolean(authTokenStore.get()), [authResult, me, screen]);
   const useAppleLogin = isIosNative();
+  const quizRewards = isQuizRewardsEnabled();
+
+  useEffect(() => {
+    if (!quizRewards && screen.kind === "shell" && (screen.tab === "activity" || screen.tab === "watch")) {
+      setScreen({ kind: "shell", tab: "story" });
+    }
+  }, [quizRewards, screen]);
+
+  useEffect(() => {
+    if (
+      !quizRewards &&
+      (screen.kind === "campaign-plan-create" ||
+        screen.kind === "campaign-plan-questions" ||
+        screen.kind === "watch-video" ||
+        screen.kind === "watch-quiz")
+    ) {
+      setScreen({ kind: "shell", tab: "story" });
+    }
+  }, [quizRewards, screen]);
 
   useEffect(() => {
     void getHealth()
@@ -252,7 +272,7 @@ function App() {
     );
   }
 
-  if (screen.kind === "watch-video") {
+  if (quizRewards && screen.kind === "watch-video") {
     return (
       <AppPageShell>
         <WatchVideoPage
@@ -270,7 +290,7 @@ function App() {
     );
   }
 
-  if (screen.kind === "watch-quiz") {
+  if (quizRewards && screen.kind === "watch-quiz") {
     return (
       <AppPageShell>
         <WatchQuizPage
@@ -283,7 +303,7 @@ function App() {
     );
   }
 
-  if (screen.kind === "campaign-plan-questions" && campaignPlanDraft.selectedVideo) {
+  if (quizRewards && screen.kind === "campaign-plan-questions" && campaignPlanDraft.selectedVideo) {
     return (
       <AppPageShell>
         <CampaignPlanQuestionSelectPage
@@ -298,7 +318,10 @@ function App() {
     );
   }
 
-  if (screen.kind === "campaign-plan-create" || screen.kind === "campaign-plan-questions") {
+  if (
+    quizRewards &&
+    (screen.kind === "campaign-plan-create" || screen.kind === "campaign-plan-questions")
+  ) {
     return (
       <AppPageShell>
         <CampaignPlanCreatePage
@@ -325,7 +348,7 @@ function App() {
 
   return (
     <MainTabShell
-      activeTab={screen.tab}
+      activeTab={screen.kind === "shell" ? screen.tab : "story"}
       onTabChange={(tab) => {
         setScreen({ kind: "shell", tab });
         if (tab === "activity") {

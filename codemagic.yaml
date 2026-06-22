@@ -54,6 +54,7 @@ workflows:
           cd frontend
           cat > .env.ios <<EOF
           VITE_API_BASE_URL=${VITE_API_BASE_URL}
+          VITE_ENABLE_QUIZ_REWARDS=0
           EOF
           npm run ios
           echo "=== Bundled app (no remote server.url) ==="
