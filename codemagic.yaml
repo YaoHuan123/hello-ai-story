@@ -14,9 +14,9 @@ workflows:
     environment:
       ios_signing:
         provisioning_profiles:
-          - hello-story-appstore
+          - hellostory-appstore
         certificates:
-          - huanqi-hoc
+          - app-common
       vars:
         BUNDLE_ID: io.github.com.YaoHuan123.hello-ai-story
         VITE_API_BASE_URL: "https://hellotita.top/hello-story/api"
