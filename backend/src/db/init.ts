@@ -7,6 +7,13 @@ const ensureDir = (dirPath: string): void => {
   fs.mkdirSync(dirPath, { recursive: true });
 };
 
+function tableExists(db: DatabaseSync, name: string): boolean {
+  const row = db.prepare("SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ?").get(name) as
+    | { ok: number }
+    | undefined;
+  return row?.ok === 1;
+}
+
 function migrateUsersDualAuth(db: DatabaseSync): void {
   const cols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
   if (cols.some((c) => c.name === "login_method")) {
@@ -36,6 +43,9 @@ function migrateUsersDualAuth(db: DatabaseSync): void {
 }
 
 function migrateCampaignPlanPortions(db: DatabaseSync): void {
+  if (!tableExists(db, "campaign_plans")) {
+    return;
+  }
   const cols = db.prepare("PRAGMA table_info(campaign_plans)").all() as { name: string }[];
   if (!cols.some((c) => c.name === "start_year")) {
     db.exec("ALTER TABLE campaign_plans ADD COLUMN start_year INTEGER");
@@ -71,6 +81,9 @@ function migrateCampaignPlanPortions(db: DatabaseSync): void {
 }
 
 function migrateWatchTaskDispatch(db: DatabaseSync): void {
+  if (!tableExists(db, "campaign_plans")) {
+    return;
+  }
   const cols = db.prepare("PRAGMA table_info(campaign_plans)").all() as { name: string }[];
   if (!cols.some((c) => c.name === "distributed_total")) {
     db.exec("ALTER TABLE campaign_plans ADD COLUMN distributed_total INTEGER NOT NULL DEFAULT 0");
