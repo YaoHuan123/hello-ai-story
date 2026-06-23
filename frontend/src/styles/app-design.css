@@ -112,6 +112,15 @@ html.capacitor-native .app-shell-phone.tc-phone {
   box-shadow: 0 2px 10px rgba(79, 70, 229, 0.28);
 }
 
+.hs-btn--apple {
+  background: #000;
+  color: #fff;
+  box-shadow: none;
+  min-height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
 .hs-btn--secondary {
   background: var(--shell-bg-muted);
   color: var(--shell-label-1);
@@ -210,8 +219,9 @@ html.capacitor-native .app-shell-phone.tc-phone {
   grid-template-columns: minmax(72px, auto) 1fr minmax(72px, auto);
   align-items: start;
   gap: 8px;
-  padding: 12px 16px 10px;
+  padding: 8px 16px 10px;
   background: var(--shell-bg-grouped);
+  border-bottom: 1px solid var(--shell-separator);
 }
 
 .hs-subheader__back {

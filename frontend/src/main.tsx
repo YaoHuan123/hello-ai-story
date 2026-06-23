@@ -25,8 +25,9 @@ async function bootstrap() {
 
   if (isNativeApp()) {
     document.documentElement.classList.add("capacitor-native");
-    void StatusBar.setStyle({ style: Style.Dark });
-    void StatusBar.setBackgroundColor({ color: "#1e1b4b" });
+    void StatusBar.setStyle({ style: Style.Light });
+    void StatusBar.setBackgroundColor({ color: "#f5f6fb" });
+    void import("./lib/nativeKeyboard").then(({ initNativeKeyboardInset }) => initNativeKeyboardInset());
   }
 
   createRoot(document.getElementById("root")!).render(

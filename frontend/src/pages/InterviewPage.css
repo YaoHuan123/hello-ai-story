@@ -11,6 +11,11 @@
   background: var(--shell-bg-grouped);
 }
 
+html.keyboard-open .iv-subpage-shell {
+  height: calc(100dvh - var(--keyboard-height, 0px));
+  max-height: calc(100dvh - var(--keyboard-height, 0px));
+}
+
 .iv-layout {
   display: flex;
   flex-direction: column;
@@ -135,6 +140,10 @@
   flex-shrink: 0;
 }
 
+html.keyboard-open .iv-composer {
+  padding-bottom: 10px;
+}
+
 .iv-hint {
   font-size: 11px;
   color: var(--shell-label-3);
@@ -171,6 +180,21 @@
   font-family: inherit;
   box-sizing: border-box;
   background: var(--shell-bg-grouped);
+  color: var(--shell-label-1);
+}
+
+.iv-textarea {
+  min-height: 44px;
+  max-height: 120px;
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.45;
+}
+
+.iv-input::placeholder,
+.iv-textarea::placeholder {
+  color: var(--shell-label-2);
+  opacity: 1;
 }
 
 .iv-input:focus,

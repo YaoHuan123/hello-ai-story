@@ -15,13 +15,13 @@ export function AppleLoginPage({ loading, error, message, onSignIn }: Props) {
         <h1 className="login-shell-title">{t("common.appName")}</h1>
       </div>
 
-      <div className="login-card">
+      <div className="login-card login-card--apple">
         <h2 className="login-card__heading">{t("login.appleHeading")}</h2>
         <p className="login-card__hint">{t("login.appleHint")}</p>
-        <div className="login-actions">
+        <div className="login-actions login-actions--solo">
           <button
             type="button"
-            className="hs-btn hs-btn--primary login-actions__main"
+            className="hs-btn hs-btn--apple login-actions__main"
             onClick={onSignIn}
             disabled={loading}
           >

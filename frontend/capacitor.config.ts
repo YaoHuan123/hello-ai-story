@@ -10,6 +10,11 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: "automatic",
   },
+  plugins: {
+    Keyboard: {
+      resize: "none",
+    },
+  },
   server: {
     androidScheme: "https",
     iosScheme: "https",

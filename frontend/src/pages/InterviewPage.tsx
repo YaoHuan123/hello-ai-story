@@ -47,6 +47,19 @@ export function InterviewPage({
   const [error, setError] = useState<string | null>(null);
   const submittingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const answerRef = useRef<HTMLTextAreaElement>(null);
+
+  const resizeAnswerField = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  };
+
+  const focusAnswerField = () => {
+    window.setTimeout(() => {
+      answerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    }, 280);
+  };
 
   const isStaleProgressError = (err: unknown): boolean => {
     if (err instanceof ApiRequestError) {
@@ -98,6 +111,12 @@ export function InterviewPage({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, error]);
+
+  useEffect(() => {
+    if (!answer && answerRef.current) {
+      answerRef.current.style.height = "auto";
+    }
+  }, [answer]);
 
   const resolveSubmitValue = (q: InterviewQuestion, raw: string): string | null => {
     const trimmed = raw.trim();
@@ -302,15 +321,21 @@ export function InterviewPage({
                   )}
 
                   {fieldType !== "yearMonth" && fieldType !== "select" && (
-                    <input
-                      className="iv-input"
+                    <textarea
+                      ref={answerRef}
+                      className="iv-input iv-textarea"
+                      rows={1}
                       value={answer}
                       onChange={(e) => {
                         setAnswer(e.target.value);
                         setError(null);
+                        resizeAnswerField(e.target);
                       }}
                       placeholder={t("interview.answerPlaceholder")}
                       disabled={loading}
+                      enterKeyHint="send"
+                      autoComplete="off"
+                      onFocus={focusAnswerField}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();

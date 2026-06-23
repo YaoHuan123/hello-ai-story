@@ -199,6 +199,23 @@
   margin-top: 4px;
 }
 
+.login-actions--solo {
+  grid-template-columns: 1fr;
+}
+
+.login-card--apple {
+  text-align: center;
+  padding: 28px 22px 22px;
+}
+
+.login-card--apple .login-card__heading {
+  font-size: 20px;
+}
+
+.login-card--apple .login-msg {
+  text-align: center;
+}
+
 .login-actions__main {
   width: 100%;
 }
