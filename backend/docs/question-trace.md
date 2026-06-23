@@ -6,7 +6,7 @@
 
 | 模块 | 逐步耗时 |
 |------|----------|
-| 成片 video pipeline | 有（`VIDEO_LLM_TRACE`，`成片/{taskId}/trace/llm/`） |
+| 成片 video pipeline | 有（`VIDEO_LLM_TRACE` + `VIDEO_PIPELINE_TRACE`，`成片/{taskId}/trace/`）见 [`video-llm-trace.md`](./video-llm-trace.md) |
 | **访谈 / 出题** | **本次新增**（`QUESTION_LLM_TRACE`，见下） |
 
 ## 开启方式

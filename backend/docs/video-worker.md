@@ -60,6 +60,7 @@ HTTP 创建任务（`POST /video/biography|studio`）后，实际 LLM + TTS + �
 ## 失败与重试
 
 - 流水线失败 → `meta.status = failed`，错误在 `lastError`
+- 排查：`trace/run-summary.json`（步骤耗时）+ `trace/llm/`（LLM I/O），见 [`video-llm-trace.md`](./video-llm-trace.md)
 - HTTP `POST /video/tasks/:taskId/retry` 仅对 **failed** 有效，重新标为 `queued`（沿用 `request.json`）
 - worker 崩溃且心跳超时（默认 120s）后，僵死 `running` 可被重新认领
 

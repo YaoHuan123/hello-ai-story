@@ -4,6 +4,7 @@ import type { AnsweredSection } from "../../../topic/types";
 import type { MaterialPolishMode } from "../input/sectionsVideoInput.js";
 import { isPrepStepId } from "../constants/prepStepIds.js";
 import { runWithVideoLlmTrace, videoLlmTraceDirForTask } from "../llm/videoLlmTrace.js";
+import { VideoPipelineRunTracer } from "./videoPipelineTrace.js";
 import type { PrepStepResult } from "./prepPipelineSteps.js";
 import {
   runSharedPrepPipeline,
@@ -73,8 +74,10 @@ export async function runVideoPipelineWithPrep<L extends { stepId: string }>(
   writeVideoTaskMeta(handle.paths, meta);
 
   const stepResults: Array<PrepStepResult | Step10Result | L> = [];
+  const tracer = new VideoPipelineRunTracer(handle.paths.taskRoot, handle.taskId);
 
   const finishSuccess = (current: VideoTaskMeta): RunVideoPipelineResult<L> => {
+    tracer.finishSuccess();
     const next: VideoTaskMeta = { ...current, status: "success" };
     writeVideoTaskMeta(handle.paths, next);
     return {
@@ -105,6 +108,7 @@ export async function runVideoPipelineWithPrep<L extends { stepId: string }>(
           throughStep: prepThrough,
           prepProfile: opts.prepProfile,
           onStepComplete: opts.onStepComplete,
+          tracer,
         });
         stepResults.push(...prep.stepResults);
         meta = appendCompletedSteps(meta, prep.stepResults.map((r) => r.stepId));
@@ -120,7 +124,9 @@ export async function runVideoPipelineWithPrep<L extends { stepId: string }>(
           if (fromStep && !isAtOrAfterStep(stepId, fromStep)) {
             continue;
           }
-          const result = await lane.runStep(stepId);
+          const result = tracer.enabled()
+            ? await tracer.runStep(stepId, () => lane.runStep(stepId))
+            : await lane.runStep(stepId);
           stepResults.push(result);
           opts.onStepComplete?.(result);
           meta = appendCompletedSteps(meta, [stepId]);
@@ -134,6 +140,7 @@ export async function runVideoPipelineWithPrep<L extends { stepId: string }>(
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    tracer.finishFailed(message);
     meta = { ...meta, status: "failed", lastError: message, updatedAt: new Date().toISOString() };
     writeVideoTaskMeta(handle.paths, meta);
     throw err;

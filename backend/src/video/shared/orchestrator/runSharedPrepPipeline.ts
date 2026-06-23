@@ -16,6 +16,7 @@ import { STORY_ARTICLE_SOURCE_FILE } from "../constants/prepFilenames.js";
 import { filterSectionsForVideo, polishStoryArticleForVideoPipeline } from "../input/sectionsVideoInput.js";
 import type { MaterialPolishMode } from "../input/sectionsVideoInput.js";
 import { writeJsonAtomic } from "./pipelineDisk.js";
+import type { VideoPipelineRunTracer } from "./videoPipelineTrace.js";
 import {
   runPrepPipelineStep,
   type PrepStepResult,
@@ -49,6 +50,7 @@ export type RunSharedPrepOptions = {
   /** `studio` 跳过时代背景 20–50，仅跑 10 + 60–80。默认 `full`。 */
   prepProfile?: VideoPrepProfile;
   onStepComplete?: (result: PrepStepResult | Step10Result) => void;
+  tracer?: VideoPipelineRunTracer;
 };
 
 function shouldStop(throughStep: string | undefined, stepId: string): boolean {
@@ -60,10 +62,12 @@ async function runLane(
   ctx: Parameters<typeof runPrepPipelineStep>[1],
   throughStep: RunSharedPrepOptions["throughStep"],
   onStepComplete?: RunSharedPrepOptions["onStepComplete"],
+  tracer?: VideoPipelineRunTracer,
 ): Promise<PrepStepResult[]> {
   const results: PrepStepResult[] = [];
   for (const stepId of stepIds) {
-    const result = await runPrepPipelineStep(stepId, ctx);
+    const run = () => runPrepPipelineStep(stepId, ctx);
+    const result = tracer ? await tracer.runStep(stepId, run) : await run();
     results.push(result);
     onStepComplete?.(result);
     if (shouldStop(throughStep, stepId)) break;
@@ -94,10 +98,20 @@ export async function runSharedPrepPipeline(
     ...(story.skippedModel !== undefined ? { skippedModel: story.skippedModel } : {}),
   });
 
+  const polishStartMs = Date.now();
   const polished = await polishStoryArticleForVideoPipeline(sections, story.article, {
     mode: opts?.polishMode,
     inputDir: handle.paths.inputDir,
   });
+  if (opts?.tracer?.enabled()) {
+    opts.tracer.recordStep({
+      stepId: VIDEO_PREP_STEPS.POLISH,
+      durationMs: Date.now() - polishStartMs,
+      ok: true,
+      skipped: polished.sectionCount === 0,
+      outputRelativePath: polished.polishedInputPath,
+    });
+  }
 
   const step10: Step10Result = {
     stepId: VIDEO_PREP_STEPS.POLISH,
@@ -125,12 +139,13 @@ export async function runSharedPrepPipeline(
       ctx,
       opts?.throughStep,
       opts?.onStepComplete,
+      opts?.tracer,
     );
     stepResults.push(...personalResults);
   } else {
     const [eraResults, personalResults] = await Promise.all([
-      runLane(VIDEO_PREP_ERA_LANE_STEP_IDS, ctx, opts?.throughStep, opts?.onStepComplete),
-      runLane(VIDEO_PREP_PERSONAL_LANE_STEP_IDS, ctx, opts?.throughStep, opts?.onStepComplete),
+      runLane(VIDEO_PREP_ERA_LANE_STEP_IDS, ctx, opts?.throughStep, opts?.onStepComplete, opts?.tracer),
+      runLane(VIDEO_PREP_PERSONAL_LANE_STEP_IDS, ctx, opts?.throughStep, opts?.onStepComplete, opts?.tracer),
     ]);
     stepResults.push(...eraResults, ...personalResults);
   }

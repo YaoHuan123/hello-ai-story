@@ -243,39 +243,16 @@ function slimSliceForEmbellish(slice: CrossValidatedTimelineItem[]) {
   }));
 }
 
-async function runSceneEmbellishForSlice(
+function mergeEmbellishModelOutput(
   slice: CrossValidatedTimelineItem[],
-): Promise<CrossValidatedTimelineItem[]> {
-  const { messages } = buildVideoLlmMessages(PROMPT_FILE, {
-    crossValidatedTimelineSegments: slimSliceForEmbellish(slice),
-  });
-
-  let parsed: unknown;
-  try {
-    parsed = await chatJson<unknown>(messages,
-      {
-        debugStepId: "scene_embellish_120",
-        temperature: 0.25,
-        useJsonObject: true,
-      },
-    );
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(`ENV_SCENE_EMBELLISH_120_INVALID: 模型调用或 JSON 解析失败。${msg}`);
-  }
-
-  const root = coerceSceneEmbellish120Root(parsed);
-  const arr = root.crossValidatedTimelineSegments;
-  if (!Array.isArray(arr)) {
-    throw new Error("ENV_SCENE_EMBELLISH_120_INVALID: crossValidatedTimelineSegments 须为数组");
-  }
+  arr: unknown[],
+): CrossValidatedTimelineItem[] {
   if (arr.length !== slice.length) {
     throw new Error(
       `ENV_SCENE_EMBELLISH_120_INVALID: crossValidatedTimelineSegments 长度须与输入一致（期望 ${slice.length}，实际 ${arr.length}）`,
     );
   }
 
-  // 模型仅回传 segmentIndex + 修饰后的 visualScenes；其余字段由服务端按下标从输入合并。
   const output: CrossValidatedTimelineItem[] = [];
   for (let i = 0; i < arr.length; i++) {
     const src = slice[i]!;
@@ -300,6 +277,52 @@ async function runSceneEmbellishForSlice(
   }
 
   return output;
+}
+
+async function runSceneEmbellishForSlice(
+  slice: CrossValidatedTimelineItem[],
+): Promise<CrossValidatedTimelineItem[]> {
+  const { messages: baseMessages } = buildVideoLlmMessages(PROMPT_FILE, {
+    crossValidatedTimelineSegments: slimSliceForEmbellish(slice),
+  });
+
+  const callOnce = async (debugStepId: string, extraGuidance?: string): Promise<CrossValidatedTimelineItem[]> => {
+    const messages = [...baseMessages];
+    if (extraGuidance) {
+      messages.push({ role: "user" as const, content: extraGuidance });
+    }
+    const parsed = await chatJson<unknown>(messages, {
+      debugStepId,
+      temperature: extraGuidance ? 0.1 : 0.25,
+      useJsonObject: true,
+    });
+    const root = coerceSceneEmbellish120Root(parsed);
+    const arr = root.crossValidatedTimelineSegments;
+    if (!Array.isArray(arr)) {
+      throw new Error("ENV_SCENE_EMBELLISH_120_INVALID: crossValidatedTimelineSegments 须为数组");
+    }
+    return mergeEmbellishModelOutput(slice, arr);
+  };
+
+  try {
+    return await callOnce("scene_embellish_120");
+  } catch (firstErr) {
+    try {
+      return await callOnce("scene_embellish_120_retry");
+    } catch (retryErr) {
+      const retryMsg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+      const firstMsg = firstErr instanceof Error ? firstErr.message : String(firstErr);
+      const guidance = `【服务端校验未通过，请修正后重新输出】\n${retryMsg}\n\n硬性约束：顶层仅含 crossValidatedTimelineSegments；每项仅含 segmentIndex 与 visualScenes（sceneIndex + sceneDescription）；条数与输入一致；sceneDescription 内双引号须 JSON 转义；仅一行 JSON，不要 Markdown 围栏或说明文字。`;
+      try {
+        return await callOnce("scene_embellish_120_repair", guidance);
+      } catch (repairErr) {
+        const repairMsg = repairErr instanceof Error ? repairErr.message : String(repairErr);
+        throw new Error(
+          `ENV_SCENE_EMBELLISH_120_INVALID: 模型调用或 JSON 解析失败。${repairMsg}（重试：${retryMsg}；首次：${firstMsg}）`,
+        );
+      }
+    }
+  }
 }
 
 export async function runSceneEmbellishFromPipelineJson(
