@@ -4,7 +4,9 @@ import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { initAuthMiddleware } from "./middleware/auth";
 import { authMiddleware } from "./middleware/auth";
+import { initAdminMiddleware } from "./middleware/requireAdmin";
 import { createAuthRouter } from "./routes/auth.routes";
+import { createAdminRouter } from "./routes/admin.routes";
 import { createInterviewRouter } from "./routes/interview.routes";
 import { createProductionRouter } from "./routes/production.routes";
 import type { AuthService } from "./services/auth/auth.service";
@@ -32,6 +34,7 @@ export function createApp(
   quizQuestionService: QuizQuestionService,
 ): Express {
   initAuthMiddleware(db);
+  initAdminMiddleware(db);
 
   const app = express();
   app.use(cors());
@@ -76,6 +79,7 @@ export function createApp(
   });
 
   app.use("/api/auth", createAuthRouter(authService));
+  app.use("/api/admin", createAdminRouter(db));
   app.use("/api/wallet", createWalletRouter(walletService));
   app.use("/api/campaigns", createCampaignRouter(db, campaignPlanService, quizQuestionService));
   const watchFeedService = new WatchFeedService(db);
