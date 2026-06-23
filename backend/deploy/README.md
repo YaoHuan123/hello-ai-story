@@ -6,6 +6,7 @@
 
 | 用途 | 公网 URL | 本进程路由 |
 |------|----------|------------|
+| **Web 应用** | `https://hellotita.top/hello-story/` | Nginx 静态 `frontend/dist` |
 | API | `https://hellotita.top/hello-story/api` | `/api/*` |
 | 隐私政策 | `https://hellotita.top/hello-story/privacy` | `/privacy` |
 | 用户协议 | `https://hellotita.top/hello-story/terms` | `/terms` |
@@ -33,7 +34,21 @@ chmod +x deploy/start.sh
 
 更新代码后再次执行 `./deploy/start.sh` 即可。
 
-本地验证法律页：`curl -I http://127.0.0.1:3001/privacy`
+## 1b. Web 静态站（浏览器）
+
+构建配置见 `frontend/.env.web`（`VITE_API_BASE_URL=https://hellotita.top/hello-story`）。**不影响 iOS/Android 构建**（仍用 `build:ios` / `build:android`）。
+
+```bash
+cd /home/admin/apps/hello-story/backend
+chmod +x deploy/start-web.sh   # 首次
+./deploy/start-web.sh
+```
+
+或仓库根目录：`npm run deploy:web`
+
+产物：`frontend/dist/`，由 Nginx `location /hello-story/` 托管（见 [`nginx-hellotita-default.conf`](nginx-hellotita-default.conf)）。Web 端为短信登录；Apple 登录仅 iOS App。
+
+本地验证法律页：`curl -I http://127.0.0.1:3002/privacy`
 
 ## 2. PM2（手动，一般不必）
 
@@ -51,12 +66,12 @@ ALIYUN_DYPNSAPI_DEV_MOCK=0
 
 ## 3. Nginx 反代（示例）
 
-API 默认监听 `PORT=3001`。在 hellotita.top 上为 **hello-story 项目** 增加：
+API 生产监听 `PORT=3002`。在 hellotita.top 上为 **hello-story 项目** 增加（完整模板见 [`nginx-hellotita-default.conf`](nginx-hellotita-default.conf)）：
 
 ```nginx
 # API
 location /hello-story/api/ {
-  proxy_pass http://127.0.0.1:3001/api/;
+  proxy_pass http://127.0.0.1:3002/api/;
   proxy_http_version 1.1;
   proxy_set_header Host $host;
   proxy_set_header X-Real-IP $remote_addr;
@@ -67,10 +82,17 @@ location /hello-story/api/ {
 
 # 法律 / Support（本项目 backend/public/legal）
 location ~ ^/hello-story/(privacy|terms|support)$ {
-  proxy_pass http://127.0.0.1:3001/$1;
+  proxy_pass http://127.0.0.1:3002/$1;
   proxy_http_version 1.1;
   proxy_set_header Host $host;
   proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+# Web SPA（须在 api 之后）
+location /hello-story/ {
+  alias /home/admin/apps/hello-story/frontend/dist/;
+  index index.html;
+  try_files $uri $uri/ /hello-story/index.html;
 }
 ```
 

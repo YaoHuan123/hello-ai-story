@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "build:android": "tsc -b && vite build --mode android",
     "build:ios": "tsc -b && vite build --mode ios",
+    "build:web": "tsc -b && vite build --mode web",
     "cap:sync": "cap sync android",
     "cap:sync:ios": "cap sync ios",
     "cap:open": "cap open android",

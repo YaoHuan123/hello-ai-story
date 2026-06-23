@@ -14,6 +14,7 @@
     "pm2:restart": "pm2 restart ecosystem.config.cjs",
     "pm2:logs": "pm2 logs",
     "deploy": "bash deploy/start.sh",
+    "deploy:web": "bash deploy/start-web.sh",
     "test:topic": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier1.integration.ts",
     "test:topic:tier2": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier2.integration.ts",
     "test:topic:tier3": "ts-node --project test/tsconfig.json --transpile-only test/integration/topic/topic-tier3.integration.ts",

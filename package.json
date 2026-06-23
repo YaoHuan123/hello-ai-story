@@ -11,6 +11,7 @@
     "android": "npm run android --prefix frontend",
     "android:open": "npm run cap:open --prefix frontend",
     "build:ios": "npm run build:ios --prefix frontend",
+    "build:web": "npm run build:web --prefix frontend",
     "ios": "npm run ios --prefix frontend",
     "ios:open": "npm run cap:open:ios --prefix frontend",
     "build:backend": "npm run build --prefix backend",
@@ -20,6 +21,7 @@
     "pm2:stop": "npm run pm2:stop --prefix backend",
     "pm2:restart": "npm run pm2:restart --prefix backend",
     "pm2:logs": "npm run pm2:logs --prefix backend",
-    "deploy:backend": "npm run deploy --prefix backend"
+    "deploy:backend": "npm run deploy --prefix backend",
+    "deploy:web": "npm run deploy:web --prefix backend"
   }
 }
