@@ -20,7 +20,7 @@ import type {
 
 function productionPath(interviewId: string, suffix: string): string {
   const id = encodeURIComponent(interviewId);
-  return resolveApiUrl(`/api/interviews/${id}${suffix}`);
+  return `/api/interviews/${id}${suffix}`;
 }
 
 export async function listVideoTasks(interviewId: string) {
@@ -163,7 +163,7 @@ export function videoTaskCoverUrl(interviewId: string, taskId: string): string |
   if (!token) return null;
   const tid = encodeURIComponent(taskId);
   const q = new URLSearchParams({ token });
-  return `${productionPath(interviewId, `/video/tasks/${tid}/cover`)}?${q.toString()}`;
+  return `${resolveApiUrl(productionPath(interviewId, `/video/tasks/${tid}/cover`))}?${q.toString()}`;
 }
 
 /** 取最近一次成功成片任务的封面 URL（故事墙卡片用）。 */

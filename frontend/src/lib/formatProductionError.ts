@@ -47,6 +47,14 @@ export function formatProductionError(input: string | undefined | null): {
     };
   }
 
+  if (/^https?:\/\//i.test(detail) || /^https?:\/\//i.test(raw)) {
+    return {
+      title: t("production.errorNetworkTitle"),
+      detail: t("production.errorNetworkDetail"),
+      hint: t("production.errorNetworkHint"),
+    };
+  }
+
   if (/ECONNREFUSED|fetch failed|network/i.test(raw)) {
     return {
       title: t("production.errorNetworkTitle"),
