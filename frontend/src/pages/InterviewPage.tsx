@@ -56,9 +56,9 @@ export function InterviewPage({
 
   const focusAnswerField = () => {
     window.setTimeout(() => {
-      answerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-    }, 280);
+      answerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 320);
   };
 
   const isStaleProgressError = (err: unknown): boolean => {

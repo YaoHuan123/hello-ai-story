@@ -8,29 +8,36 @@ export async function initNativeKeyboardInset(): Promise<void> {
 
   await Keyboard.setResizeMode({ mode: KeyboardResize.None });
 
-  const applyHeight = (height: number) => {
-    document.documentElement.style.setProperty("--keyboard-height", `${height}px`);
-    if (height > 0) {
-      document.documentElement.classList.add("keyboard-open");
-    } else {
-      document.documentElement.classList.remove("keyboard-open");
+  let pluginHeight = 0;
+
+  const applyInset = () => {
+    let inset = pluginHeight;
+    const vv = window.visualViewport;
+    if (vv) {
+      const vvInset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      inset = Math.max(inset, vvInset);
     }
+    document.documentElement.style.setProperty("--keyboard-height", `${inset}px`);
+    document.documentElement.classList.toggle("keyboard-open", inset > 0);
   };
 
   await Keyboard.addListener("keyboardWillShow", (info) => {
-    applyHeight(info.keyboardHeight);
+    pluginHeight = info.keyboardHeight;
+    applyInset();
+  });
+  await Keyboard.addListener("keyboardDidShow", (info) => {
+    pluginHeight = info.keyboardHeight;
+    applyInset();
   });
   await Keyboard.addListener("keyboardWillHide", () => {
-    applyHeight(0);
+    pluginHeight = 0;
+    applyInset();
+  });
+  await Keyboard.addListener("keyboardDidHide", () => {
+    pluginHeight = 0;
+    applyInset();
   });
 
-  const syncVisualViewport = () => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    if (inset > 0) applyHeight(inset);
-  };
-
-  window.visualViewport?.addEventListener("resize", syncVisualViewport);
-  window.visualViewport?.addEventListener("scroll", syncVisualViewport);
+  window.visualViewport?.addEventListener("resize", applyInset);
+  window.visualViewport?.addEventListener("scroll", applyInset);
 }

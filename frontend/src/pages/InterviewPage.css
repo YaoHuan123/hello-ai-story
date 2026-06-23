@@ -16,6 +16,24 @@ html.keyboard-open .iv-subpage-shell {
   max-height: calc(100dvh - var(--keyboard-height, 0px));
 }
 
+html.keyboard-open .iv-composer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--keyboard-height, 0px);
+  z-index: 200;
+  padding-bottom: 8px;
+  box-shadow: 0 -6px 20px rgba(79, 70, 229, 0.1);
+}
+
+html.capacitor-native.keyboard-open .iv-composer {
+  max-width: none;
+}
+
+html.keyboard-open .iv-messages {
+  padding-bottom: 140px;
+}
+
 .iv-layout {
   display: flex;
   flex-direction: column;
@@ -140,9 +158,6 @@ html.keyboard-open .iv-subpage-shell {
   flex-shrink: 0;
 }
 
-html.keyboard-open .iv-composer {
-  padding-bottom: 10px;
-}
 
 .iv-hint {
   font-size: 11px;
