@@ -4,6 +4,16 @@
 # 或仓库根：npm run deploy:web
 set -euo pipefail
 
+# 服务器默认 node 可能为 18；Vite 8 需 20.19+
+if [[ -d /home/admin/.nvm/versions/node/v24.17.0/bin ]]; then
+  export PATH="/home/admin/.nvm/versions/node/v24.17.0/bin:${PATH}"
+elif [[ -d "${HOME}/.nvm/versions/node" ]]; then
+  _nvm_latest="$(ls -1 "${HOME}/.nvm/versions/node" 2>/dev/null | sort -V | tail -1 || true)"
+  if [[ -n "${_nvm_latest}" ]]; then
+    export PATH="${HOME}/.nvm/versions/node/${_nvm_latest}/bin:${PATH}"
+  fi
+fi
+
 BACKEND_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FRONTEND_ROOT="$(cd "${BACKEND_ROOT}/../frontend" && pwd)"
 slug="hello-story"

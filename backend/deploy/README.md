@@ -46,6 +46,14 @@ chmod +x deploy/start-web.sh   # 首次
 
 或仓库根目录：`npm run deploy:web`
 
+**服务器上一键**（拉代码 + 构建 + 补 Nginx SPA + reload + curl 验证）：
+
+```bash
+cd /home/admin/apps/hello-story/backend
+chmod +x deploy/server-apply-web.sh   # 首次
+./deploy/server-apply-web.sh
+```
+
 产物：`frontend/dist/`，由 Nginx `location /hello-story/` 托管（见 [`nginx-hellotita-default.conf`](nginx-hellotita-default.conf)）。Web 端为短信登录；Apple 登录仅 iOS App。
 
 本地验证法律页：`curl -I http://127.0.0.1:3002/privacy`

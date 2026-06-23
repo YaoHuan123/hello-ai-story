@@ -11,7 +11,7 @@ cd "$ROOT/backend"
 chmod +x deploy/start-web.sh
 ./deploy/start-web.sh
 
-if ! grep -q 'location /hello-story/' "$NGINX" 2>/dev/null; then
+if ! grep -q 'alias /home/admin/apps/hello-story/frontend/dist/' "$NGINX" 2>/dev/null; then
   echo "==> 向 $NGINX 追加 Hello Story Web SPA location"
   sudo cp "$NGINX" "${NGINX}.bak.hello-story-web.$(date +%Y%m%d%H%M%S)"
   sudo python3 <<'PY'
@@ -36,7 +36,7 @@ if marker not in text:
     marker = "    location / {"
 if marker not in text:
     raise SystemExit("nginx default: cannot find insert marker")
-if "location /hello-story/" in text:
+if "alias /home/admin/apps/hello-story/frontend/dist/" in text:
     raise SystemExit("already patched")
 nginx.write_text(text.replace(marker, block + marker, 1))
 print("patched nginx")
