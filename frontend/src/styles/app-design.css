@@ -67,18 +67,33 @@ body {
 /* Capacitor Android / iOS：真机全屏，去掉浏览器「手机壳」描边与居中留白 */
 html.capacitor-native {
   background: var(--shell-bg-canvas);
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+html.capacitor-native body {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 html.capacitor-native #root {
   justify-content: stretch;
+  height: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
 
 html.capacitor-native .app-shell-phone.tc-phone {
   max-width: none;
   box-shadow: none;
   border: none;
+  height: 100dvh;
   min-height: 100dvh;
-  max-height: none;
+  max-height: 100dvh;
+  overflow: hidden;
 }
 
 /* 主按钮 */

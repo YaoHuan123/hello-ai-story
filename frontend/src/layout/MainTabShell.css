@@ -36,6 +36,14 @@
   box-sizing: border-box;
 }
 
+/* 原生 App：Tab 贴屏幕底，不随内容滚动 */
+html.capacitor-native .app-shell-tabbar-outer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
 .app-shell-tabbar {
   position: absolute;
   inset: 0;
