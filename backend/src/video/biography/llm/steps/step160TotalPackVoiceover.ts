@@ -1,5 +1,11 @@
 import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
-import { VOICEOVER_LINE_MAX_CHARS } from "../../../shared/constants/voiceoverLimits.js";
+import type { DisplayLocale } from "../../../../content/displayLocale.js";
+import {
+  clampVoiceoverLine,
+  voiceoverLineLimitDescription,
+  voiceoverLineTooLong,
+  voiceoverLineTooLongMessage,
+} from "../../../shared/constants/voiceoverLimits.js";
 import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
 import type { MergedNarrativeSegmentItem } from "./step150MergeEnvAndEra.js";
 import { rowHasRenderableEnvScene } from "../../../shared/llm/envSegmentSceneText.js";
@@ -285,7 +291,12 @@ async function runVoiceoverAlignmentModelCheck(payload: { env: unknown[]; era: u
   assertVoiceoverAlignmentResult(parsed);
 }
 
-function parseVoiceoverLines(item: unknown, label: string): string[] {
+function parseVoiceoverLines(
+  item: unknown,
+  label: string,
+  locale: DisplayLocale,
+  clampOverlong: boolean,
+): string[] {
   const raw = Array.isArray(item)
     ? item
     : item && typeof item === "object" && !Array.isArray(item)
@@ -299,10 +310,17 @@ function parseVoiceoverLines(item: unknown, label: string): string[] {
     if (typeof v !== "string" || !v.trim()) {
       throw new Error(`${ERR}: ${label} voiceover 数组中每项须为非空字符串`);
     }
-    if (v.length > VOICEOVER_LINE_MAX_CHARS) {
-      throw new Error(`${ERR}: ${label} voiceover 每条不超过 ${VOICEOVER_LINE_MAX_CHARS} 字符`);
+    const trimmed = v.trim();
+    if (voiceoverLineTooLong(trimmed, locale)) {
+      if (clampOverlong) {
+        const clamped = clampVoiceoverLine(trimmed, locale);
+        console.warn(`[step160] ${label} voiceover 超长，已截断：${clamped.slice(0, 48)}…`);
+        out.push(clamped);
+        continue;
+      }
+      throw new Error(`${ERR}: ${voiceoverLineTooLongMessage(label, trimmed, locale)}`);
     }
-    out.push(v);
+    out.push(trimmed);
   }
   return out;
 }
@@ -314,6 +332,8 @@ function assertVoiceoverShape(
   timelineOrder: MergedNarrativeSegmentItem[],
   envVisualSceneCounts: number[],
   eraVisualSceneCounts: number[],
+  locale: DisplayLocale,
+  clampOverlong: boolean,
 ): { envVoiceovers: EnvVoiceoverRow[]; eraVoiceovers: EraVoiceoverRow[] } {
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error(`${ERR}: 模型输出须为对象`);
@@ -337,7 +357,7 @@ function assertVoiceoverShape(
 
   const envOut: EnvVoiceoverRow[] = [];
   for (let i = 0; i < envArr.length; i++) {
-    const voiceover = parseVoiceoverLines(envArr[i], `envVoiceovers 第 ${i + 1} 项`);
+    const voiceover = parseVoiceoverLines(envArr[i], `envVoiceovers 第 ${i + 1} 项`, locale, clampOverlong);
     const sceneCount = envVisualSceneCounts[i] ?? 0;
     if (sceneCount > 0 && voiceover.length !== sceneCount) {
       throw new Error(
@@ -349,7 +369,7 @@ function assertVoiceoverShape(
 
   const eraOut: EraVoiceoverRow[] = [];
   for (let j = 0; j < eraArr.length; j++) {
-    const voiceover = parseVoiceoverLines(eraArr[j], `eraVoiceovers 第 ${j + 1} 项`);
+    const voiceover = parseVoiceoverLines(eraArr[j], `eraVoiceovers 第 ${j + 1} 项`, locale, clampOverlong);
     const eraSceneCount = eraVisualSceneCounts[j] ?? 0;
     if (eraSceneCount > 0 && voiceover.length !== eraSceneCount) {
       throw new Error(
@@ -488,12 +508,13 @@ export async function runTotalPackVoiceoverFromMergedSegments(
   if (innerItems.length > 0) {
     pipelinePayload.emotionalInnerSignals = { items: innerItems };
   }
-  const { messages: baseMessages } = buildVideoLlmMessages(PROMPT_FILE, pipelinePayload);
+  const { messages: baseMessages, locale } = buildVideoLlmMessages(PROMPT_FILE, pipelinePayload);
 
-  // 单次「校验失败带错误重试」：旁白长度/条数等约束模型偶发违例，反馈具体错误后重试一次通常即可通过。
+  // 单次「校验失败带错误重试」：旁白长度/条数等约束模型偶发违例，反馈具体错误后重试一次；仍超长则截断兜底。
   const callAndAssert = async (
     debugStepId: string,
     extraGuidance?: string,
+    clampOverlong = false,
   ): Promise<{ envVoiceovers: EnvVoiceoverRow[]; eraVoiceovers: EraVoiceoverRow[] }> => {
     const messages = [...baseMessages];
     if (extraGuidance) {
@@ -517,6 +538,8 @@ export async function runTotalPackVoiceoverFromMergedSegments(
       timelineOrder,
       envVisualSceneCounts,
       eraVisualSceneCounts,
+      locale,
+      clampOverlong,
     );
   };
 
@@ -528,8 +551,17 @@ export async function runTotalPackVoiceoverFromMergedSegments(
     if (!(firstErr instanceof Error) || !firstErr.message.startsWith(`${ERR}:`)) {
       throw firstErr;
     }
-    const guidance = `【服务端校验未通过，请修正后重新输出完整 JSON】\n${firstErr.message}\n\n硬性约束：envVoiceovers/eraVoiceovers 为字符串数组的数组（与输入下标一一对应）；每条 voiceover 不超过 ${VOICEOVER_LINE_MAX_CHARS} 字符；每项条数须与对应画面数一致；不要 segmentIndex/eraIndex。`;
-    ({ envVoiceovers, eraVoiceovers } = await callAndAssert("total_pack_voiceover_160_repair", guidance));
+    const limitDesc = voiceoverLineLimitDescription(locale);
+    const guidance = `【服务端校验未通过，请修正后重新输出完整 JSON】\n${firstErr.message}\n\n硬性约束：envVoiceovers/eraVoiceovers 为字符串数组的数组（与输入下标一一对应）；${limitDesc}；每项条数须与对应画面数一致；不要 segmentIndex/eraIndex。`;
+    try {
+      ({ envVoiceovers, eraVoiceovers } = await callAndAssert("total_pack_voiceover_160_repair", guidance));
+    } catch (repairErr) {
+      if (!(repairErr instanceof Error) || !repairErr.message.startsWith(`${ERR}:`)) {
+        throw repairErr;
+      }
+      console.warn(`[step160] repair 仍未通过校验，启用截断兜底：${repairErr.message.slice(0, 120)}…`);
+      ({ envVoiceovers, eraVoiceovers } = await callAndAssert("total_pack_voiceover_160_clamp", guidance, true));
+    }
   }
 
   const alignmentPayload = buildVoiceoverAlignmentPayload(

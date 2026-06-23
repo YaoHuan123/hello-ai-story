@@ -1,10 +1,15 @@
-import { VOICEOVER_LINE_MAX_CHARS } from "../../../shared/constants/voiceoverLimits.js";
+import type { DisplayLocale } from "../../../../content/displayLocale.js";
+import {
+  clampVoiceoverLine,
+  voiceoverLineLimitDescription,
+  voiceoverLineTooLong,
+  voiceoverLineTooLongMessage,
+} from "../../../shared/constants/voiceoverLimits.js";
 import { buildVideoLlmMessages, buildVideoLlmUserContent, stringifyVideoPipeline } from "../../../shared/llm/localeLlm.js";
 import { chatJson, getVideoLlmEnv } from "../../../shared/llm/client.js";
 import type { MergedNarrativeSegmentItem } from "./step150MergeEnvAndEra.js";
 const PROMPT_FILE = "step-170_voiceover-coherence.md";
 const ERR = "VOICEOVER_COHERENCE_170_INVALID";
-const MAX_CHARS_PER_LINE = VOICEOVER_LINE_MAX_CHARS;
 
 export type VoiceoverFlatItem = {
   voiceoverOrder: number;
@@ -70,6 +75,7 @@ export function mergeOptimizedVoiceovers(
   merged: MergedNarrativeSegmentItem[],
   flatIn: VoiceoverFlatItem[],
   optimized: VoiceoverFlatItem[],
+  locale: DisplayLocale = "zh",
 ): MergedNarrativeSegmentItem[] {
   if (optimized.length !== flatIn.length) {
     throw new Error(`${ERR}: optimizedItems 长度 ${optimized.length} 与输入 ${flatIn.length} 不一致`);
@@ -86,8 +92,9 @@ export function mergeOptimizedVoiceovers(
     if (!t) {
       throw new Error(`${ERR}: 第 ${i + 1} 项优化后 text 为空`);
     }
-    if ([...t].length > MAX_CHARS_PER_LINE) {
-      throw new Error(`${ERR}: 第 ${i + 1} 项超过 ${MAX_CHARS_PER_LINE} 字：${t.slice(0, 40)}…`);
+    if (voiceoverLineTooLong(t, locale)) {
+      optimized[i] = { ...b, text: clampVoiceoverLine(t, locale) };
+      continue;
     }
     optimized[i] = { ...b, text: t };
   }
@@ -142,6 +149,23 @@ function assertOptimizedTexts(parsed: unknown, expectedLen: number): string[] {
   return out;
 }
 
+function normalizeOptimizedTexts(
+  texts: string[],
+  locale: DisplayLocale,
+  clampOverlong: boolean,
+): string[] {
+  return texts.map((t, i) => {
+    if (!voiceoverLineTooLong(t, locale)) {
+      return t;
+    }
+    if (clampOverlong) {
+      console.warn(`[step170] optimizedTexts[${i}] 超长，已截断`);
+      return clampVoiceoverLine(t, locale);
+    }
+    throw new Error(`${ERR}: ${voiceoverLineTooLongMessage(`optimizedTexts[${i}]`, t, locale)}`);
+  });
+}
+
 function mergeOptimizedTextsIntoFlat(flat: VoiceoverFlatItem[], texts: string[]): VoiceoverFlatItem[] {
   return flat.map((item, i) => ({ ...item, text: texts[i]! }));
 }
@@ -188,8 +212,8 @@ export async function runVoiceoverCoherenceFromMerged(params: {
   }
 
   const fullScript = flat.map((x) => x.text).join("\n");
-  const { messages: baseMessages } = buildVideoLlmMessages(PROMPT_FILE, { items: flat, fullScript });
-  const callForTexts = async (debugStepId: string, extraGuidance?: string): Promise<string[]> => {
+  const { messages: baseMessages, locale } = buildVideoLlmMessages(PROMPT_FILE, { items: flat, fullScript });
+  const callForTexts = async (debugStepId: string, extraGuidance?: string, clampOverlong = false): Promise<string[]> => {
     const messages = [...baseMessages];
     if (extraGuidance) {
       messages.push({ role: "user" as const, content: extraGuidance });
@@ -201,12 +225,7 @@ export async function runVoiceoverCoherenceFromMerged(params: {
       useJsonObject: true,
     });
     const texts = assertOptimizedTexts(parsed, flat.length);
-    for (let i = 0; i < texts.length; i++) {
-      if ([...texts[i]!].length > MAX_CHARS_PER_LINE) {
-        throw new Error(`${ERR}: optimizedTexts[${i}] 超过 ${MAX_CHARS_PER_LINE} 字：${texts[i]!.slice(0, 40)}…`);
-      }
-    }
-    return texts;
+    return normalizeOptimizedTexts(texts, locale, clampOverlong);
   };
 
   let optimizedTexts: string[];
@@ -216,12 +235,21 @@ export async function runVoiceoverCoherenceFromMerged(params: {
     if (!(firstErr instanceof Error) || !firstErr.message.startsWith(`${ERR}:`)) {
       throw firstErr;
     }
-    const guidance = `【服务端校验未通过，请修正后重新输出】\n${firstErr.message}\n\n硬性约束：顶层仅含 optimizedTexts（字符串数组，长度=${flat.length}，与输入 items 一一对应）；每条不超过 ${MAX_CHARS_PER_LINE} 字；不要回吐 voiceoverOrder/segmentIndex/sceneIndex。`;
-    optimizedTexts = await callForTexts("voiceover_coherence_170_repair", guidance);
+    const limitDesc = voiceoverLineLimitDescription(locale);
+    const guidance = `【服务端校验未通过，请修正后重新输出】\n${firstErr.message}\n\n硬性约束：顶层仅含 optimizedTexts（字符串数组，长度=${flat.length}，与输入 items 一一对应）；${limitDesc}；不要回吐 voiceoverOrder/segmentIndex/sceneIndex。`;
+    try {
+      optimizedTexts = await callForTexts("voiceover_coherence_170_repair", guidance);
+    } catch (repairErr) {
+      if (!(repairErr instanceof Error) || !repairErr.message.startsWith(`${ERR}:`)) {
+        throw repairErr;
+      }
+      console.warn(`[step170] repair 仍未通过校验，启用截断兜底：${repairErr.message.slice(0, 120)}…`);
+      optimizedTexts = await callForTexts("voiceover_coherence_170_clamp", guidance, true);
+    }
   }
 
   const optimizedFlat = mergeOptimizedTextsIntoFlat(flat, optimizedTexts);
-  const mergedOut = mergeOptimizedVoiceovers(deepCloneMerged(merged), flat, optimizedFlat);
+  const mergedOut = mergeOptimizedVoiceovers(deepCloneMerged(merged), flat, optimizedFlat, locale);
 
   const payload: VoiceoverCoherenceFilePayload = {
     savedAt: params.savedAt,

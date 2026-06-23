@@ -50,6 +50,7 @@
     "test:interview:luxun": "ts-node --project test/tsconfig.json --transpile-only test/integration/question/interview-luxun-2api.integration.ts",
     "test:video:input": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/sections-video-input.unit.ts",
     "test:video:voiceover-coherence": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/step170VoiceoverCoherence.test.ts",
+    "test:video:voiceover-limits": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/voiceoverLimits.unit.ts",
     "test:video:subscene-split-90": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/step90SubsceneSplit.test.ts",
     "test:video:orchestrator": "ts-node -r ./scripts/register-js-to-ts.cjs --project test/tsconfig.json --transpile-only test/unit/video/biography-orchestrator.unit.ts",
     "test:video:trace": "ts-node --project test/tsconfig.json --transpile-only test/unit/video/video-llm-trace.unit.ts",

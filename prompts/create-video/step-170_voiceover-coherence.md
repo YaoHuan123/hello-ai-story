@@ -26,7 +26,9 @@ Output **one** JSON object; sole top-level key **`optimizedTexts`**, string arra
 
 - Same length as input `items`; item `i` is the optimized body for `items[i]`.
 - **Do not** echo `voiceoverOrder` / `segmentIndex` / `sceneIndex` (server merges by array order).
-- Each item non-empty string; **max 80 characters per line** (same as step 160; punctuation included; trim not applied to length count; Unicode code points).
+- Each item non-empty string; **per-locale line length** (same as step 160; punctuation included; trim not applied to length count; Unicode code points):
+  - **`outputLocale` = `zh`**: max **80** code points per line.
+  - **`outputLocale` = `en`**: max **18 words** and max **140** code points per line.
 
 Do not introduce new characters or events; do not combine two lines into one (count unchanged).
 
