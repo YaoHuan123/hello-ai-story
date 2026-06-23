@@ -56,6 +56,8 @@ chmod +x deploy/server-apply-web.sh   # 首次
 
 产物：`frontend/dist/`，由 Nginx `location /hello-story/` 托管（见 [`nginx-hellotita-default.conf`](nginx-hellotita-default.conf)）。Web 端为短信登录；Apple 登录仅 iOS App。
 
+**功能开关（Web 与 iOS 独立）**：Web 用 `frontend/.env.web` 的 `VITE_ENABLE_QUIZ_REWARDS`（`1`=活动/观看/钱包 Tab，`0`=隐藏）；iOS 用 `frontend/.env.ios`，互不影响。生产 mock 充值由后端 `WALLET_MOCK_RECHARGE` 控制（见 [`../docs/quiz-rewards.md`](../docs/quiz-rewards.md)），与前端 Tab 开关无关。
+
 本地验证法律页：`curl -I http://127.0.0.1:3002/privacy`
 
 ## 2. PM2（手动，一般不必）
