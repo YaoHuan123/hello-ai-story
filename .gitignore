@@ -8,6 +8,7 @@ dist/
 !.env.android.example
 !.env.ios
 !.env.ios.example
+!.env.web
 
 # 本地数据与密钥
 backend/data/
