@@ -328,6 +328,32 @@ html.keyboard-open .iv-messages {
   cursor: not-allowed;
 }
 
+.iv-mic {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--shell-separator);
+  background: var(--shell-bg-grouped);
+  color: var(--shell-brand-deep);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iv-mic:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.iv-mic--active {
+  border-color: var(--shell-brand);
+  background: var(--shell-brand-soft);
+  color: var(--shell-brand);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.18);
+}
+
 .iv-status-banner {
   padding: 8px 14px;
   font-size: 12px;

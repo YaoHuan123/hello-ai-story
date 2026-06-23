@@ -1,15 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentQuestion, getInterviewMessages, submitAnswer } from "../api/interviews";
 import { ApiRequestError } from "../api/client";
+import { IconMic } from "../components/icons";
 import { SubpageHeader } from "../components/SubpageHeader";
 import { YearMonthInput } from "../components/YearMonthInput";
 import { displayError, isUnauthorizedError, t } from "../i18n";
+import {
+  isInterviewSpeechSupported,
+  probeInterviewSpeech,
+  startInterviewSpeech,
+  stopInterviewSpeech,
+  type InterviewSpeechError,
+} from "../lib/interviewSpeech";
+import { isIosNative } from "../lib/platform";
 import type { InterviewChatMessage, InterviewQuestion } from "../types/interview";
 import { INTERVIEW_SKIP_LABEL, INTERVIEW_SKIP_LABEL_EN } from "../types/interview";
 import { normalizeYearMonthInRange } from "../utils/yearMonth";
 import "./InterviewPage.css";
 
 type ChatMessage = InterviewChatMessage;
+
+type SpeechUiState = "idle" | "listening" | "unavailable";
+
+function speechErrorMessage(code: InterviewSpeechError): string {
+  switch (code) {
+    case "unavailable":
+      return t("interview.speechUnavailable");
+    case "permission_denied":
+      return t("interview.speechPermissionDenied");
+    default:
+      return t("interview.speechFailed");
+  }
+}
 
 type Props = {
   interviewId: string;
@@ -45,6 +67,7 @@ export function InterviewPage({
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [speechState, setSpeechState] = useState<SpeechUiState>("idle");
   const submittingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const answerRef = useRef<HTMLTextAreaElement>(null);
@@ -118,6 +141,74 @@ export function InterviewPage({
     }
   }, [answer]);
 
+  const isInterviewCompleteEarly = question?.type === "complete";
+  const isTopicQuestionEarly = question?.type === "topic";
+  const fieldTypeEarly = question?.fieldType ?? "text";
+  const showTextComposer =
+    !isTopicQuestionEarly &&
+    fieldTypeEarly !== "yearMonth" &&
+    fieldTypeEarly !== "select";
+  const showSpeechMic =
+    isIosNative() &&
+    isInterviewSpeechSupported() &&
+    !!question &&
+    !loading &&
+    !isInterviewCompleteEarly &&
+    showTextComposer;
+
+  useEffect(() => {
+    if (!showSpeechMic) {
+      void stopInterviewSpeech();
+      setSpeechState("idle");
+      return;
+    }
+
+    let cancelled = false;
+    void probeInterviewSpeech().then((result) => {
+      if (cancelled) return;
+      setSpeechState(result === "ready" ? "idle" : "unavailable");
+    });
+
+    return () => {
+      cancelled = true;
+      void stopInterviewSpeech();
+    };
+  }, [showSpeechMic, question?.key]);
+
+  useEffect(() => {
+    return () => {
+      void stopInterviewSpeech();
+    };
+  }, []);
+
+  const handleSpeechToggle = async () => {
+    if (!showSpeechMic || loading || speechState === "unavailable") return;
+
+    if (speechState === "listening") {
+      await stopInterviewSpeech();
+      setSpeechState("idle");
+      return;
+    }
+
+    setAnswer("");
+    setError(null);
+    const err = await startInterviewSpeech((text) => {
+      setAnswer(text);
+      setError(null);
+      if (answerRef.current) {
+        resizeAnswerField(answerRef.current);
+      }
+    });
+
+    if (err) {
+      setSpeechState("unavailable");
+      setError(speechErrorMessage(err));
+      return;
+    }
+
+    setSpeechState("listening");
+  };
+
   const resolveSubmitValue = (q: InterviewQuestion, raw: string): string | null => {
     const trimmed = raw.trim();
     if (!trimmed) return null;
@@ -165,6 +256,10 @@ export function InterviewPage({
     void run(async () => {
       submittingRef.current = true;
       try {
+        if (speechState === "listening") {
+          await stopInterviewSpeech();
+          setSpeechState("idle");
+        }
         await submitAnswer(interviewId, {
           key: question.key,
           text: question.text,
@@ -244,6 +339,9 @@ export function InterviewPage({
 
         <footer className="iv-composer">
           {loading && question && <p className="iv-hint">{t("common.processing")}</p>}
+          {speechState === "listening" && showSpeechMic && (
+            <p className="iv-hint">{t("interview.speechListening")}</p>
+          )}
           {error && <p className="iv-hint iv-hint--err">{error}</p>}
 
           {showComposer && isTopicQuestion && question.options.length > 0 && (
@@ -353,6 +451,27 @@ export function InterviewPage({
 
               {isTopicQuestion && !answer && (
                 <p className="iv-hint">{t("interview.pickAbove")}</p>
+              )}
+
+              {showSpeechMic && (
+                <button
+                  type="button"
+                  className={`iv-mic${speechState === "listening" ? " iv-mic--active" : ""}`}
+                  onClick={() => void handleSpeechToggle()}
+                  disabled={loading || speechState === "unavailable"}
+                  aria-label={
+                    speechState === "listening"
+                      ? t("interview.speechStop")
+                      : t("interview.speechStart")
+                  }
+                  title={
+                    speechState === "listening"
+                      ? t("interview.speechStop")
+                      : t("interview.speechStart")
+                  }
+                >
+                  <IconMic size={20} />
+                </button>
               )}
 
               <button

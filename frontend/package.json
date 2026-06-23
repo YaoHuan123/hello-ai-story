@@ -25,6 +25,7 @@
     "@capacitor/ios": "^7.6.6",
     "@capacitor/keyboard": "^7.0.6",
     "@capacitor/status-bar": "^7.0.1",
+    "@capgo/capacitor-speech-recognition": "^7.2.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },

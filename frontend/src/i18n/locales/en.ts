@@ -194,6 +194,12 @@ export const en: MessageTree = {
     completeMeta: "Interview complete",
     completeHint: "You've answered enough and there are no more topics to explore. Go back to create text or video.",
     completeBack: "Back to studio",
+    speechStart: "Start voice input",
+    speechStop: "Stop voice input",
+    speechListening: "Listening…",
+    speechUnavailable: "On-device speech recognition is unavailable. Please type your answer.",
+    speechPermissionDenied: "Microphone or speech permission denied. Please type your answer.",
+    speechFailed: "Voice input failed. Please type your answer.",
   },
   textCreate: {
     title: "Story text",

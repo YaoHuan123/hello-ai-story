@@ -192,6 +192,12 @@ export const zh: MessageTree = {
     completeMeta: "采访完成",
     completeHint: "已答题目达到要求，且暂无更多推荐主题。请返回创作台生成文本或视频。",
     completeBack: "返回创作台",
+    speechStart: "开始语音输入",
+    speechStop: "结束语音输入",
+    speechListening: "正在听…",
+    speechUnavailable: "本机暂不支持离线语音识别，请继续打字回答。",
+    speechPermissionDenied: "未获得麦克风或语音识别权限，请继续打字回答。",
+    speechFailed: "语音输入失败，请继续打字回答。",
   },
   textCreate: {
     title: "创作文本",
