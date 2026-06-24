@@ -6,7 +6,9 @@ import { SubpageHeader } from "../components/SubpageHeader";
 import { YearMonthInput } from "../components/YearMonthInput";
 import { displayError, isUnauthorizedError, t } from "../i18n";
 import {
+  isInterviewSpeechListening,
   isInterviewSpeechSupported,
+  setInterviewSpeechStopHandler,
   startInterviewSpeech,
   stopInterviewSpeech,
   type InterviewSpeechError,
@@ -71,6 +73,7 @@ export function InterviewPage({
   const [speechState, setSpeechState] = useState<SpeechUiState>("idle");
   const submittingRef = useRef(false);
   const micPressLockRef = useRef(false);
+  const mountedRef = useRef(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const answerRef = useRef<HTMLTextAreaElement>(null);
 
@@ -165,11 +168,19 @@ export function InterviewPage({
     }
     return () => {
       void stopInterviewSpeech();
+      setSpeechState("idle");
     };
   }, [showSpeechMic, question?.key]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    setInterviewSpeechStopHandler(() => {
+      if (!mountedRef.current) return;
+      setSpeechState("idle");
+    });
     return () => {
+      mountedRef.current = false;
+      setInterviewSpeechStopHandler(null);
       void stopInterviewSpeech();
     };
   }, []);
@@ -197,12 +208,14 @@ export function InterviewPage({
     setError(null);
 
     void startInterviewSpeech((text) => {
+      if (!mountedRef.current) return;
       setAnswer(text);
       setError(null);
       if (answerRef.current) {
         resizeAnswerField(answerRef.current);
       }
     }).then((err) => {
+      if (!mountedRef.current) return;
       if (err) {
         setSpeechState("idle");
         setError(speechErrorMessage(err));
@@ -259,7 +272,7 @@ export function InterviewPage({
     void run(async () => {
       submittingRef.current = true;
       try {
-        if (speechState === "listening") {
+        if (isInterviewSpeechListening()) {
           await stopInterviewSpeech();
           setSpeechState("idle");
         }
@@ -283,6 +296,10 @@ export function InterviewPage({
     void run(async () => {
       submittingRef.current = true;
       try {
+        if (isInterviewSpeechListening()) {
+          await stopInterviewSpeech();
+          setSpeechState("idle");
+        }
         await submitAnswer(interviewId, {
           key: question.key,
           text: question.text,
@@ -436,7 +453,7 @@ export function InterviewPage({
                         resizeAnswerField(e.target);
                       }}
                       placeholder={t("interview.answerPlaceholder")}
-                      disabled={loading}
+                      disabled={loading || speechState === "busy" || speechState === "listening"}
                       enterKeyHint="send"
                       autoComplete="off"
                       onFocus={focusAnswerField}

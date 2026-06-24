@@ -13,7 +13,10 @@ const PERMISSION_TIMEOUT_MS = 12_000;
 const START_TIMEOUT_MS = 12_000;
 
 let partialListener: PluginListenerHandle | null = null;
+let stateListener: PluginListenerHandle | null = null;
 let listening = false;
+let sessionId = 0;
+let onNativeStopped: (() => void) | null = null;
 
 function speechLocale(): string {
   return getLocale() === "zh" ? "zh-CN" : "en-US";
@@ -34,6 +37,25 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
         reject(err);
       });
   });
+}
+
+async function teardownListeners(): Promise<void> {
+  if (partialListener) {
+    await partialListener.remove().catch(() => undefined);
+    partialListener = null;
+  }
+  if (stateListener) {
+    await stateListener.remove().catch(() => undefined);
+    stateListener = null;
+  }
+}
+
+async function forceNativeStop(): Promise<void> {
+  try {
+    await SpeechRecognition.stop();
+  } catch {
+    // ignore — stop is best-effort cleanup
+  }
 }
 
 async function ensureSpeechPermissions(): Promise<InterviewSpeechError | null> {
@@ -67,6 +89,10 @@ export function isInterviewSpeechSupported(): boolean {
   return isIosNative();
 }
 
+export function setInterviewSpeechStopHandler(handler: (() => void) | null): void {
+  onNativeStopped = handler;
+}
+
 export async function startInterviewSpeech(
   onTranscript: (text: string) => void,
 ): Promise<InterviewSpeechError | null> {
@@ -74,6 +100,7 @@ export async function startInterviewSpeech(
   if (listening) return null;
 
   const locale = speechLocale();
+  const mySession = ++sessionId;
 
   try {
     const { available } = await withTimeout(
@@ -82,18 +109,26 @@ export async function startInterviewSpeech(
       "available",
     );
     if (!available) return "unavailable";
+    if (mySession !== sessionId) return "failed";
 
     const permErr = await ensureSpeechPermissions();
     if (permErr) return permErr;
+    if (mySession !== sessionId) return "failed";
 
-    if (partialListener) {
-      await partialListener.remove().catch(() => undefined);
-      partialListener = null;
-    }
+    await teardownListeners();
 
     partialListener = await SpeechRecognition.addListener("partialResults", (event) => {
+      if (mySession !== sessionId) return;
       const text = event.matches?.[0]?.trim();
       if (text) onTranscript(text);
+    });
+
+    stateListener = await SpeechRecognition.addListener("listeningState", (event) => {
+      if (mySession !== sessionId) return;
+      if (event.status === "stopped") {
+        listening = false;
+        onNativeStopped?.();
+      }
     });
 
     await withTimeout(
@@ -105,10 +140,20 @@ export async function startInterviewSpeech(
       START_TIMEOUT_MS,
       "start",
     );
+    if (mySession !== sessionId) {
+      await forceNativeStop();
+      return "failed";
+    }
+
     listening = true;
     return null;
   } catch (err) {
-    await stopInterviewSpeech();
+    if (mySession === sessionId) {
+      sessionId += 1;
+    }
+    await forceNativeStop();
+    await teardownListeners();
+    listening = false;
     return classifySpeechError(err);
   }
 }
@@ -116,19 +161,10 @@ export async function startInterviewSpeech(
 export async function stopInterviewSpeech(): Promise<void> {
   if (!isIosNative()) return;
 
-  try {
-    if (listening) {
-      await SpeechRecognition.stop();
-    }
-  } catch {
-    // ignore teardown errors
-  } finally {
-    listening = false;
-    if (partialListener) {
-      await partialListener.remove().catch(() => undefined);
-      partialListener = null;
-    }
-  }
+  sessionId += 1;
+  await forceNativeStop();
+  await teardownListeners();
+  listening = false;
 }
 
 export function isInterviewSpeechListening(): boolean {
