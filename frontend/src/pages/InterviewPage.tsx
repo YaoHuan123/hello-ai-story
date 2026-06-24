@@ -41,42 +41,6 @@ function persistInputMode(mode: InputMode): void {
   }
 }
 
-const VOICE_MODE_STORAGE_KEY = "hello-story:interview-voice-mode";
-
-function readPersistedInputMode(): InputMode {
-  try {
-    return sessionStorage.getItem(VOICE_MODE_STORAGE_KEY) === "voice" ? "voice" : "keyboard";
-  } catch {
-    return "keyboard";
-  }
-}
-
-function persistInputMode(mode: InputMode): void {
-  try {
-    sessionStorage.setItem(VOICE_MODE_STORAGE_KEY, mode);
-  } catch {
-    // ignore quota / private mode
-  }
-}
-
-const INPUT_MODE_STORAGE_KEY = "hello-story:interview-input-mode";
-
-function readStoredInputMode(): InputMode {
-  try {
-    return sessionStorage.getItem(INPUT_MODE_STORAGE_KEY) === "voice" ? "voice" : "keyboard";
-  } catch {
-    return "keyboard";
-  }
-}
-
-function storeInputMode(mode: InputMode): void {
-  try {
-    sessionStorage.setItem(INPUT_MODE_STORAGE_KEY, mode);
-  } catch {
-    // ignore quota / private mode
-  }
-}
-
 function speechErrorMessage(code: InterviewSpeechError): string {
   switch (code) {
     case "unavailable":
