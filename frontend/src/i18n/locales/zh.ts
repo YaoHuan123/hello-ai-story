@@ -198,6 +198,8 @@ export const zh: MessageTree = {
     speechUnavailable: "本机暂不支持离线语音识别，请继续打字回答。",
     speechPermissionDenied: "未获得麦克风或语音识别权限，请继续打字回答。",
     speechFailed: "语音输入失败，请继续打字回答。",
+    speechTimeout:
+      "语音权限或启动超时。请到 设置 → Hello Story，开启「麦克风」和「语音识别」后重试。",
   },
   textCreate: {
     title: "创作文本",

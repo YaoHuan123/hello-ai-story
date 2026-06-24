@@ -11,7 +11,7 @@ import {
   stopInterviewSpeech,
   type InterviewSpeechError,
 } from "../lib/interviewSpeech";
-import { isIosNative, isNativeApp } from "../lib/platform";
+import { isIosNative } from "../lib/platform";
 import type { InterviewChatMessage, InterviewQuestion } from "../types/interview";
 import { INTERVIEW_SKIP_LABEL, INTERVIEW_SKIP_LABEL_EN } from "../types/interview";
 import { normalizeYearMonthInRange } from "../utils/yearMonth";
@@ -27,6 +27,8 @@ function speechErrorMessage(code: InterviewSpeechError): string {
       return t("interview.speechUnavailable");
     case "permission_denied":
       return t("interview.speechPermissionDenied");
+    case "timeout":
+      return t("interview.speechTimeout");
     default:
       return t("interview.speechFailed");
   }
@@ -172,46 +174,42 @@ export function InterviewPage({
     };
   }, []);
 
-  const activateSpeechMic = async () => {
+  const activateSpeechMic = () => {
     if (!showSpeechMic || loading || speechState === "busy") return;
     if (micPressLockRef.current) return;
     micPressLockRef.current = true;
     window.setTimeout(() => {
       micPressLockRef.current = false;
-    }, 500);
-
-    answerRef.current?.blur();
-    if (isNativeApp()) {
-      try {
-        const { Keyboard } = await import("@capacitor/keyboard");
-        await Keyboard.hide();
-      } catch {
-        // ignore
-      }
-    }
+    }, 400);
 
     if (speechState === "listening") {
-      await stopInterviewSpeech();
-      setSpeechState("idle");
+      void stopInterviewSpeech().then(() => setSpeechState("idle"));
       return;
     }
+
+    answerRef.current?.blur();
+    void import("@capacitor/keyboard")
+      .then(({ Keyboard }) => Keyboard.hide())
+      .catch(() => undefined);
 
     setSpeechState("busy");
     setAnswer("");
     setError(null);
-    const err = await startInterviewSpeech((text) => {
+
+    void startInterviewSpeech((text) => {
       setAnswer(text);
       setError(null);
       if (answerRef.current) {
         resizeAnswerField(answerRef.current);
       }
+    }).then((err) => {
+      if (err) {
+        setSpeechState("idle");
+        setError(speechErrorMessage(err));
+        return;
+      }
+      setSpeechState("listening");
     });
-    if (err) {
-      setSpeechState("idle");
-      setError(speechErrorMessage(err));
-      return;
-    }
-    setSpeechState("listening");
   };
 
   const resolveSubmitValue = (q: InterviewQuestion, raw: string): string | null => {
@@ -465,14 +463,7 @@ export function InterviewPage({
                 <button
                   type="button"
                   className={`iv-mic${speechState === "listening" ? " iv-mic--active" : ""}`}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    void activateSpeechMic();
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    void activateSpeechMic();
-                  }}
+                  onClick={() => activateSpeechMic()}
                   disabled={loading || speechState === "busy"}
                   aria-label={
                     speechState === "listening"

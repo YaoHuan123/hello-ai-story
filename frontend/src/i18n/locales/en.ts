@@ -200,6 +200,8 @@ export const en: MessageTree = {
     speechUnavailable: "On-device speech recognition is unavailable. Please type your answer.",
     speechPermissionDenied: "Microphone or speech permission denied. Please type your answer.",
     speechFailed: "Voice input failed. Please type your answer.",
+    speechTimeout:
+      "Speech permission or startup timed out. In Settings → Hello Story, enable Microphone and Speech Recognition, then try again.",
   },
   textCreate: {
     title: "Story text",
