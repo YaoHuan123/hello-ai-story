@@ -8,12 +8,10 @@ export type InterviewSpeechError =
   | "failed";
 
 type SpeechRecognitionExtended = {
-  available: (opts?: { language?: string }) => Promise<{ available: boolean }>;
   requestPermissions: () => Promise<{ speechRecognition: string }>;
   start: (opts?: {
     language?: string;
     partialResults?: boolean;
-    useOnDeviceRecognition?: boolean;
     addPunctuation?: boolean;
   }) => Promise<{ matches?: string[] }>;
   stop: () => Promise<void>;
@@ -22,9 +20,6 @@ type SpeechRecognitionExtended = {
     listener: (event: { matches?: string[] }) => void,
   ) => Promise<PluginListenerHandle>;
   removeAllListeners: () => Promise<void>;
-  isOnDeviceRecognitionAvailable?: (opts: {
-    language: string;
-  }) => Promise<{ available: boolean }>;
 };
 
 let partialListener: PluginListenerHandle | null = null;
@@ -39,30 +34,6 @@ async function loadSpeechRecognition(): Promise<SpeechRecognitionExtended> {
   return SpeechRecognition as unknown as SpeechRecognitionExtended;
 }
 
-/** Only enforced when the plugin exposes iOS 26+ on-device API. */
-async function blocksWithoutOnDevice(sr: SpeechRecognitionExtended, locale: string): Promise<boolean> {
-  if (typeof sr.isOnDeviceRecognitionAvailable !== "function") {
-    return false;
-  }
-  const { available } = await sr.isOnDeviceRecognitionAvailable({ language: locale });
-  return !available;
-}
-
-export async function probeInterviewSpeech(): Promise<"ready" | "unavailable"> {
-  if (!isIosNative()) return "unavailable";
-
-  try {
-    const sr = await loadSpeechRecognition();
-    const locale = speechLocale();
-    const { available } = await sr.available({ language: locale });
-    if (!available) return "unavailable";
-    if (await blocksWithoutOnDevice(sr, locale)) return "unavailable";
-    return "ready";
-  } catch {
-    return "unavailable";
-  }
-}
-
 export function isInterviewSpeechSupported(): boolean {
   return isIosNative();
 }
@@ -73,13 +44,9 @@ export async function startInterviewSpeech(
   if (!isIosNative()) return "unavailable";
   if (listening) return null;
 
-  const sr = await loadSpeechRecognition();
-  const locale = speechLocale();
-
   try {
-    const { available } = await sr.available({ language: locale });
-    if (!available) return "unavailable";
-    if (await blocksWithoutOnDevice(sr, locale)) return "unavailable";
+    const sr = await loadSpeechRecognition();
+    const locale = speechLocale();
 
     const perm = await sr.requestPermissions();
     if (perm.speechRecognition !== "granted") {
@@ -92,25 +59,22 @@ export async function startInterviewSpeech(
       if (text) onTranscript(text);
     });
 
-    const startOpts: {
-      language: string;
-      partialResults: boolean;
-      addPunctuation: boolean;
-      useOnDeviceRecognition?: boolean;
-    } = {
+    await sr.start({
       language: locale,
       partialResults: true,
       addPunctuation: true,
-    };
-    if (typeof sr.isOnDeviceRecognitionAvailable === "function") {
-      startOpts.useOnDeviceRecognition = true;
-    }
-
-    await sr.start(startOpts);
+    });
     listening = true;
     return null;
-  } catch {
+  } catch (err) {
     await stopInterviewSpeech();
+    const msg = err instanceof Error ? err.message.toLowerCase() : "";
+    if (msg.includes("not implemented") || msg.includes("unavailable")) {
+      return "unavailable";
+    }
+    if (msg.includes("permission") || msg.includes("denied")) {
+      return "permission_denied";
+    }
     return "failed";
   }
 }

@@ -7,12 +7,11 @@ import { YearMonthInput } from "../components/YearMonthInput";
 import { displayError, isUnauthorizedError, t } from "../i18n";
 import {
   isInterviewSpeechSupported,
-  probeInterviewSpeech,
   startInterviewSpeech,
   stopInterviewSpeech,
   type InterviewSpeechError,
 } from "../lib/interviewSpeech";
-import { isIosNative } from "../lib/platform";
+import { isIosNative, isNativeApp } from "../lib/platform";
 import type { InterviewChatMessage, InterviewQuestion } from "../types/interview";
 import { INTERVIEW_SKIP_LABEL, INTERVIEW_SKIP_LABEL_EN } from "../types/interview";
 import { normalizeYearMonthInRange } from "../utils/yearMonth";
@@ -20,7 +19,7 @@ import "./InterviewPage.css";
 
 type ChatMessage = InterviewChatMessage;
 
-type SpeechUiState = "probing" | "idle" | "listening" | "unavailable";
+type SpeechUiState = "idle" | "busy" | "listening";
 
 function speechErrorMessage(code: InterviewSpeechError): string {
   switch (code) {
@@ -67,8 +66,9 @@ export function InterviewPage({
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [speechState, setSpeechState] = useState<SpeechUiState>("probing");
+  const [speechState, setSpeechState] = useState<SpeechUiState>("idle");
   const submittingRef = useRef(false);
+  const micPressLockRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const answerRef = useRef<HTMLTextAreaElement>(null);
 
@@ -152,7 +152,6 @@ export function InterviewPage({
     isIosNative() &&
     isInterviewSpeechSupported() &&
     !!question &&
-    !loading &&
     !isInterviewCompleteEarly &&
     showTextComposer;
 
@@ -162,16 +161,7 @@ export function InterviewPage({
       setSpeechState("idle");
       return;
     }
-
-    let cancelled = false;
-    setSpeechState("probing");
-    void probeInterviewSpeech().then((result) => {
-      if (cancelled) return;
-      setSpeechState(result === "ready" ? "idle" : "unavailable");
-    });
-
     return () => {
-      cancelled = true;
       void stopInterviewSpeech();
     };
   }, [showSpeechMic, question?.key]);
@@ -182,8 +172,23 @@ export function InterviewPage({
     };
   }, []);
 
-  const handleSpeechToggle = async () => {
-    if (!showSpeechMic || loading || speechState === "probing") return;
+  const activateSpeechMic = async () => {
+    if (!showSpeechMic || loading || speechState === "busy") return;
+    if (micPressLockRef.current) return;
+    micPressLockRef.current = true;
+    window.setTimeout(() => {
+      micPressLockRef.current = false;
+    }, 500);
+
+    answerRef.current?.blur();
+    if (isNativeApp()) {
+      try {
+        const { Keyboard } = await import("@capacitor/keyboard");
+        await Keyboard.hide();
+      } catch {
+        // ignore
+      }
+    }
 
     if (speechState === "listening") {
       await stopInterviewSpeech();
@@ -191,6 +196,7 @@ export function InterviewPage({
       return;
     }
 
+    setSpeechState("busy");
     setAnswer("");
     setError(null);
     const err = await startInterviewSpeech((text) => {
@@ -200,15 +206,11 @@ export function InterviewPage({
         resizeAnswerField(answerRef.current);
       }
     });
-
     if (err) {
+      setSpeechState("idle");
       setError(speechErrorMessage(err));
-      if (err === "unavailable") {
-        setSpeechState("unavailable");
-      }
       return;
     }
-
     setSpeechState("listening");
   };
 
@@ -345,8 +347,8 @@ export function InterviewPage({
           {speechState === "listening" && showSpeechMic && (
             <p className="iv-hint">{t("interview.speechListening")}</p>
           )}
-          {speechState === "unavailable" && showSpeechMic && !error && (
-            <p className="iv-hint iv-hint--warn">{t("interview.speechUnavailable")}</p>
+          {speechState === "busy" && showSpeechMic && (
+            <p className="iv-hint">{t("common.processing")}</p>
           )}
           {error && <p className="iv-hint iv-hint--err">{error}</p>}
 
@@ -463,8 +465,15 @@ export function InterviewPage({
                 <button
                   type="button"
                   className={`iv-mic${speechState === "listening" ? " iv-mic--active" : ""}`}
-                  onClick={() => void handleSpeechToggle()}
-                  disabled={loading || speechState === "probing"}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    void activateSpeechMic();
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    void activateSpeechMic();
+                  }}
+                  disabled={loading || speechState === "busy"}
                   aria-label={
                     speechState === "listening"
                       ? t("interview.speechStop")

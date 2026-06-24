@@ -21,17 +21,15 @@ html.keyboard-open .iv-composer {
   left: 0;
   right: 0;
   bottom: var(--keyboard-height, 0px);
-  z-index: 200;
+  z-index: 300;
   padding-bottom: 8px;
   box-shadow: 0 -6px 20px rgba(79, 70, 229, 0.1);
-}
-
-html.capacitor-native.keyboard-open .iv-composer {
-  max-width: none;
+  pointer-events: auto;
 }
 
 html.keyboard-open .iv-messages {
-  padding-bottom: 140px;
+  padding-bottom: 160px;
+  pointer-events: auto;
 }
 
 .iv-layout {
@@ -156,6 +154,8 @@ html.keyboard-open .iv-messages {
   padding: 10px 14px calc(16px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--shell-separator);
   flex-shrink: 0;
+  position: relative;
+  isolation: isolate;
 }
 
 
@@ -177,6 +177,8 @@ html.keyboard-open .iv-messages {
   display: flex;
   gap: 10px;
   align-items: flex-end;
+  position: relative;
+  z-index: 1;
 }
 
 .iv-panel {
@@ -321,11 +323,19 @@ html.keyboard-open .iv-messages {
   font-size: 18px;
   cursor: pointer;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .iv-send:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+html.capacitor-native.keyboard-open .iv-composer {
+  max-width: none;
 }
 
 .iv-mic {
@@ -340,6 +350,11 @@ html.keyboard-open .iv-messages {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 2;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .iv-mic:disabled {
