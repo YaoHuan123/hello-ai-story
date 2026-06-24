@@ -23,6 +23,60 @@ type ChatMessage = InterviewChatMessage;
 type InputMode = "keyboard" | "voice";
 type SpeechUiState = "idle" | "busy" | "listening";
 
+const INPUT_MODE_STORAGE_KEY = "hello-story:interview-input-mode";
+
+function readPersistedInputMode(): InputMode {
+  try {
+    return sessionStorage.getItem(INPUT_MODE_STORAGE_KEY) === "voice" ? "voice" : "keyboard";
+  } catch {
+    return "keyboard";
+  }
+}
+
+function persistInputMode(mode: InputMode): void {
+  try {
+    sessionStorage.setItem(INPUT_MODE_STORAGE_KEY, mode);
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+const VOICE_MODE_STORAGE_KEY = "hello-story:interview-voice-mode";
+
+function readPersistedInputMode(): InputMode {
+  try {
+    return sessionStorage.getItem(VOICE_MODE_STORAGE_KEY) === "voice" ? "voice" : "keyboard";
+  } catch {
+    return "keyboard";
+  }
+}
+
+function persistInputMode(mode: InputMode): void {
+  try {
+    sessionStorage.setItem(VOICE_MODE_STORAGE_KEY, mode);
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
+const INPUT_MODE_STORAGE_KEY = "hello-story:interview-input-mode";
+
+function readStoredInputMode(): InputMode {
+  try {
+    return sessionStorage.getItem(INPUT_MODE_STORAGE_KEY) === "voice" ? "voice" : "keyboard";
+  } catch {
+    return "keyboard";
+  }
+}
+
+function storeInputMode(mode: InputMode): void {
+  try {
+    sessionStorage.setItem(INPUT_MODE_STORAGE_KEY, mode);
+  } catch {
+    // ignore quota / private mode
+  }
+}
+
 function speechErrorMessage(code: InterviewSpeechError): string {
   switch (code) {
     case "unavailable":
@@ -69,7 +123,7 @@ export function InterviewPage({
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [inputMode, setInputMode] = useState<InputMode>("keyboard");
+  const [inputMode, setInputMode] = useState<InputMode>(readPersistedInputMode);
   const [speechState, setSpeechState] = useState<SpeechUiState>("idle");
   const submittingRef = useRef(false);
   const mountedRef = useRef(true);
@@ -183,6 +237,7 @@ export function InterviewPage({
         setSpeechState("idle");
         setError(speechErrorMessage(err));
         if (err === "permission_denied" || err === "unavailable" || err === "timeout") {
+          persistInputMode("keyboard");
           setInputMode("keyboard");
         }
         return;
@@ -196,7 +251,7 @@ export function InterviewPage({
   useEffect(() => {
     setAnswer("");
     setError(null);
-    setInputMode("keyboard");
+    setInputMode(readPersistedInputMode());
     void run(async () => {
       await loadSession(interviewId);
     });
@@ -216,7 +271,6 @@ export function InterviewPage({
     if (!showInputModeToggle) {
       void stopInterviewSpeech();
       setSpeechState("idle");
-      setInputMode("keyboard");
       return;
     }
     return () => {
@@ -264,6 +318,7 @@ export function InterviewPage({
       void stopInterviewSpeech();
       setSpeechState("idle");
     }
+    persistInputMode(mode);
     setInputMode(mode);
     setError(null);
   };
