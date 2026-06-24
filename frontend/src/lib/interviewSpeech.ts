@@ -39,37 +39,27 @@ async function loadSpeechRecognition(): Promise<SpeechRecognitionExtended> {
   return SpeechRecognition as unknown as SpeechRecognitionExtended;
 }
 
-async function isOnDeviceAvailable(locale: string): Promise<boolean> {
-  const sr = await loadSpeechRecognition();
-  if (typeof sr.isOnDeviceRecognitionAvailable === "function") {
-    const { available } = await sr.isOnDeviceRecognitionAvailable({ language: locale });
-    return available;
+/** Only enforced when the plugin exposes iOS 26+ on-device API. */
+async function blocksWithoutOnDevice(sr: SpeechRecognitionExtended, locale: string): Promise<boolean> {
+  if (typeof sr.isOnDeviceRecognitionAvailable !== "function") {
+    return false;
   }
-  const { available } = await sr.available({ language: locale });
-  return available;
+  const { available } = await sr.isOnDeviceRecognitionAvailable({ language: locale });
+  return !available;
 }
 
-export async function probeInterviewSpeech(): Promise<
-  "ready" | InterviewSpeechError
-> {
+export async function probeInterviewSpeech(): Promise<"ready" | "unavailable"> {
   if (!isIosNative()) return "unavailable";
 
   try {
     const sr = await loadSpeechRecognition();
     const locale = speechLocale();
-
     const { available } = await sr.available({ language: locale });
     if (!available) return "unavailable";
-
-    const onDevice = await isOnDeviceAvailable(locale);
-    if (!onDevice) return "unavailable";
-
-    const perm = await sr.requestPermissions();
-    if (perm.speechRecognition !== "granted") return "permission_denied";
-
+    if (await blocksWithoutOnDevice(sr, locale)) return "unavailable";
     return "ready";
   } catch {
-    return "failed";
+    return "unavailable";
   }
 }
 
@@ -89,12 +79,12 @@ export async function startInterviewSpeech(
   try {
     const { available } = await sr.available({ language: locale });
     if (!available) return "unavailable";
-
-    const onDevice = await isOnDeviceAvailable(locale);
-    if (!onDevice) return "unavailable";
+    if (await blocksWithoutOnDevice(sr, locale)) return "unavailable";
 
     const perm = await sr.requestPermissions();
-    if (perm.speechRecognition !== "granted") return "permission_denied";
+    if (perm.speechRecognition !== "granted") {
+      return perm.speechRecognition === "denied" ? "permission_denied" : "failed";
+    }
 
     await sr.removeAllListeners();
     partialListener = await sr.addListener("partialResults", (event) => {

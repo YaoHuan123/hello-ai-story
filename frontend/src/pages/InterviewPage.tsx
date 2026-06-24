@@ -20,7 +20,7 @@ import "./InterviewPage.css";
 
 type ChatMessage = InterviewChatMessage;
 
-type SpeechUiState = "idle" | "listening" | "unavailable";
+type SpeechUiState = "probing" | "idle" | "listening" | "unavailable";
 
 function speechErrorMessage(code: InterviewSpeechError): string {
   switch (code) {
@@ -67,7 +67,7 @@ export function InterviewPage({
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [speechState, setSpeechState] = useState<SpeechUiState>("idle");
+  const [speechState, setSpeechState] = useState<SpeechUiState>("probing");
   const submittingRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const answerRef = useRef<HTMLTextAreaElement>(null);
@@ -164,6 +164,7 @@ export function InterviewPage({
     }
 
     let cancelled = false;
+    setSpeechState("probing");
     void probeInterviewSpeech().then((result) => {
       if (cancelled) return;
       setSpeechState(result === "ready" ? "idle" : "unavailable");
@@ -182,7 +183,7 @@ export function InterviewPage({
   }, []);
 
   const handleSpeechToggle = async () => {
-    if (!showSpeechMic || loading || speechState === "unavailable") return;
+    if (!showSpeechMic || loading || speechState === "probing") return;
 
     if (speechState === "listening") {
       await stopInterviewSpeech();
@@ -201,8 +202,10 @@ export function InterviewPage({
     });
 
     if (err) {
-      setSpeechState("unavailable");
       setError(speechErrorMessage(err));
+      if (err === "unavailable") {
+        setSpeechState("unavailable");
+      }
       return;
     }
 
@@ -342,6 +345,9 @@ export function InterviewPage({
           {speechState === "listening" && showSpeechMic && (
             <p className="iv-hint">{t("interview.speechListening")}</p>
           )}
+          {speechState === "unavailable" && showSpeechMic && !error && (
+            <p className="iv-hint iv-hint--warn">{t("interview.speechUnavailable")}</p>
+          )}
           {error && <p className="iv-hint iv-hint--err">{error}</p>}
 
           {showComposer && isTopicQuestion && question.options.length > 0 && (
@@ -458,7 +464,7 @@ export function InterviewPage({
                   type="button"
                   className={`iv-mic${speechState === "listening" ? " iv-mic--active" : ""}`}
                   onClick={() => void handleSpeechToggle()}
-                  disabled={loading || speechState === "unavailable"}
+                  disabled={loading || speechState === "probing"}
                   aria-label={
                     speechState === "listening"
                       ? t("interview.speechStop")
