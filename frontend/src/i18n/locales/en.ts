@@ -202,6 +202,12 @@ export const en: MessageTree = {
     speechFailed: "Voice input failed. Please type your answer.",
     speechTimeout:
       "Speech permission or startup timed out. In Settings → Hello Story, enable Microphone and Speech Recognition, then try again.",
+    inputModeAria: "Input mode",
+    inputModeKeyboard: "Keyboard",
+    inputModeVoice: "Voice",
+    speechModeHint: "Voice mode: speak your answer and text appears here",
+    speechModePlaceholder: "Waiting for speech…",
+    speechStarting: "Starting speech recognition…",
   },
   textCreate: {
     title: "Story text",

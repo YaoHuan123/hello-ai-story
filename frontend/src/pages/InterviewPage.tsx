@@ -20,7 +20,7 @@ import { normalizeYearMonthInRange } from "../utils/yearMonth";
 import "./InterviewPage.css";
 
 type ChatMessage = InterviewChatMessage;
-
+type InputMode = "keyboard" | "voice";
 type SpeechUiState = "idle" | "busy" | "listening";
 
 function speechErrorMessage(code: InterviewSpeechError): string {
@@ -48,7 +48,6 @@ function formatChatText(text: string): string {
   return text;
 }
 
-/** 把当前待答题补进时间线（历史接口只含已答记录，不含未答的当前题）。 */
 function messagesWithCurrentQuestion(
   history: ChatMessage[],
   q: InterviewQuestion | null,
@@ -70,12 +69,18 @@ export function InterviewPage({
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inputMode, setInputMode] = useState<InputMode>("keyboard");
   const [speechState, setSpeechState] = useState<SpeechUiState>("idle");
   const submittingRef = useRef(false);
-  const micPressLockRef = useRef(false);
   const mountedRef = useRef(true);
+  const voiceStartLockRef = useRef(false);
+  const inputModeRef = useRef(inputMode);
+  const loadingRef = useRef(loading);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const answerRef = useRef<HTMLTextAreaElement>(null);
+
+  inputModeRef.current = inputMode;
+  loadingRef.current = loading;
 
   const resizeAnswerField = (el: HTMLTextAreaElement) => {
     el.style.height = "auto";
@@ -83,6 +88,7 @@ export function InterviewPage({
   };
 
   const focusAnswerField = () => {
+    if (inputModeRef.current === "voice") return;
     window.setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
       answerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -128,9 +134,69 @@ export function InterviewPage({
     setAnswer("");
   }, []);
 
+  const isInterviewCompleteEarly = question?.type === "complete";
+  const isTopicQuestionEarly = question?.type === "topic";
+  const fieldTypeEarly = question?.fieldType ?? "text";
+  const showTextComposer =
+    !isTopicQuestionEarly &&
+    fieldTypeEarly !== "yearMonth" &&
+    fieldTypeEarly !== "select";
+  const showInputModeToggle =
+    isIosNative() &&
+    isInterviewSpeechSupported() &&
+    !!question &&
+    !isInterviewCompleteEarly &&
+    showTextComposer;
+
+  const showSpeechMicRef = useRef(showInputModeToggle);
+  showSpeechMicRef.current = showInputModeToggle;
+
+  const beginVoiceListening = useCallback(async (clearAnswer: boolean) => {
+    if (!showSpeechMicRef.current || inputModeRef.current !== "voice") return;
+    if (loadingRef.current || voiceStartLockRef.current) return;
+    if (isInterviewSpeechListening()) {
+      setSpeechState("listening");
+      return;
+    }
+
+    voiceStartLockRef.current = true;
+    try {
+      if (clearAnswer) setAnswer("");
+      setError(null);
+      answerRef.current?.blur();
+      void import("@capacitor/keyboard")
+        .then(({ Keyboard }) => Keyboard.hide())
+        .catch(() => undefined);
+      setSpeechState("busy");
+
+      const err = await startInterviewSpeech((text) => {
+        if (!mountedRef.current) return;
+        setAnswer(text);
+        setError(null);
+        if (answerRef.current) {
+          resizeAnswerField(answerRef.current);
+        }
+      });
+
+      if (!mountedRef.current) return;
+      if (err) {
+        setSpeechState("idle");
+        setError(speechErrorMessage(err));
+        if (err === "permission_denied" || err === "unavailable" || err === "timeout") {
+          setInputMode("keyboard");
+        }
+        return;
+      }
+      setSpeechState("listening");
+    } finally {
+      voiceStartLockRef.current = false;
+    }
+  }, []);
+
   useEffect(() => {
     setAnswer("");
     setError(null);
+    setInputMode("keyboard");
     void run(async () => {
       await loadSession(interviewId);
     });
@@ -146,83 +212,60 @@ export function InterviewPage({
     }
   }, [answer]);
 
-  const isInterviewCompleteEarly = question?.type === "complete";
-  const isTopicQuestionEarly = question?.type === "topic";
-  const fieldTypeEarly = question?.fieldType ?? "text";
-  const showTextComposer =
-    !isTopicQuestionEarly &&
-    fieldTypeEarly !== "yearMonth" &&
-    fieldTypeEarly !== "select";
-  const showSpeechMic =
-    isIosNative() &&
-    isInterviewSpeechSupported() &&
-    !!question &&
-    !isInterviewCompleteEarly &&
-    showTextComposer;
-
   useEffect(() => {
-    if (!showSpeechMic) {
+    if (!showInputModeToggle) {
       void stopInterviewSpeech();
       setSpeechState("idle");
+      setInputMode("keyboard");
       return;
     }
     return () => {
       void stopInterviewSpeech();
       setSpeechState("idle");
     };
-  }, [showSpeechMic, question?.key]);
+  }, [showInputModeToggle, question?.key]);
+
+  useEffect(() => {
+    if (inputMode !== "voice" || !showInputModeToggle || loading) return;
+    void beginVoiceListening(true);
+  }, [inputMode, showInputModeToggle, question?.key, loading, beginVoiceListening]);
+
+  useEffect(() => {
+    if (inputMode !== "keyboard") return;
+    void stopInterviewSpeech();
+    setSpeechState("idle");
+  }, [inputMode]);
 
   useEffect(() => {
     mountedRef.current = true;
     setInterviewSpeechStopHandler(() => {
       if (!mountedRef.current) return;
       setSpeechState("idle");
+      if (
+        inputModeRef.current === "voice" &&
+        showSpeechMicRef.current &&
+        !loadingRef.current
+      ) {
+        window.setTimeout(() => {
+          void beginVoiceListening(false);
+        }, 400);
+      }
     });
     return () => {
       mountedRef.current = false;
       setInterviewSpeechStopHandler(null);
       void stopInterviewSpeech();
     };
-  }, []);
+  }, [beginVoiceListening]);
 
-  const activateSpeechMic = () => {
-    if (!showSpeechMic || loading || speechState === "busy") return;
-    if (micPressLockRef.current) return;
-    micPressLockRef.current = true;
-    window.setTimeout(() => {
-      micPressLockRef.current = false;
-    }, 400);
-
-    if (speechState === "listening") {
-      void stopInterviewSpeech().then(() => setSpeechState("idle"));
-      return;
+  const selectInputMode = (mode: InputMode) => {
+    if (loading || mode === inputMode) return;
+    if (mode === "keyboard") {
+      void stopInterviewSpeech();
+      setSpeechState("idle");
     }
-
-    answerRef.current?.blur();
-    void import("@capacitor/keyboard")
-      .then(({ Keyboard }) => Keyboard.hide())
-      .catch(() => undefined);
-
-    setSpeechState("busy");
-    setAnswer("");
+    setInputMode(mode);
     setError(null);
-
-    void startInterviewSpeech((text) => {
-      if (!mountedRef.current) return;
-      setAnswer(text);
-      setError(null);
-      if (answerRef.current) {
-        resizeAnswerField(answerRef.current);
-      }
-    }).then((err) => {
-      if (!mountedRef.current) return;
-      if (err) {
-        setSpeechState("idle");
-        setError(speechErrorMessage(err));
-        return;
-      }
-      setSpeechState("listening");
-    });
   };
 
   const resolveSubmitValue = (q: InterviewQuestion, raw: string): string | null => {
@@ -332,6 +375,7 @@ export function InterviewPage({
       ? question!.options
       : [];
   const showComposer = !!question && !loading && !isInterviewComplete;
+  const voiceModeActive = inputMode === "voice" && showInputModeToggle;
 
   return (
     <div className="iv-layout">
@@ -358,12 +402,36 @@ export function InterviewPage({
         </section>
 
         <footer className="iv-composer">
-          {loading && question && <p className="iv-hint">{t("common.processing")}</p>}
-          {speechState === "listening" && showSpeechMic && (
-            <p className="iv-hint">{t("interview.speechListening")}</p>
+          {showInputModeToggle && showComposer && (
+            <div className="iv-input-mode-float">
+              <div className="iv-input-mode" role="group" aria-label={t("interview.inputModeAria")}>
+                <button
+                  type="button"
+                  className={`iv-input-mode__btn${inputMode === "keyboard" ? " iv-input-mode__btn--on" : ""}`}
+                  onClick={() => selectInputMode("keyboard")}
+                  disabled={loading}
+                >
+                  {t("interview.inputModeKeyboard")}
+                </button>
+                <button
+                  type="button"
+                  className={`iv-input-mode__btn iv-input-mode__btn--voice${inputMode === "voice" ? " iv-input-mode__btn--on" : ""}${speechState === "listening" ? " iv-input-mode__btn--live" : ""}`}
+                  onClick={() => selectInputMode("voice")}
+                  disabled={loading}
+                >
+                  <IconMic size={16} />
+                  {t("interview.inputModeVoice")}
+                </button>
+              </div>
+            </div>
           )}
-          {speechState === "busy" && showSpeechMic && (
-            <p className="iv-hint">{t("common.processing")}</p>
+
+          {loading && question && <p className="iv-hint">{t("common.processing")}</p>}
+          {voiceModeActive && speechState === "listening" && (
+            <p className="iv-hint iv-hint--voice">{t("interview.speechModeHint")}</p>
+          )}
+          {voiceModeActive && speechState === "busy" && (
+            <p className="iv-hint">{t("interview.speechStarting")}</p>
           )}
           {error && <p className="iv-hint iv-hint--err">{error}</p>}
 
@@ -444,7 +512,7 @@ export function InterviewPage({
                   {fieldType !== "yearMonth" && fieldType !== "select" && (
                     <textarea
                       ref={answerRef}
-                      className="iv-input iv-textarea"
+                      className={`iv-input iv-textarea${voiceModeActive ? " iv-textarea--voice" : ""}`}
                       rows={1}
                       value={answer}
                       onChange={(e) => {
@@ -452,8 +520,13 @@ export function InterviewPage({
                         setError(null);
                         resizeAnswerField(e.target);
                       }}
-                      placeholder={t("interview.answerPlaceholder")}
-                      disabled={loading || speechState === "busy" || speechState === "listening"}
+                      placeholder={
+                        voiceModeActive
+                          ? t("interview.speechModePlaceholder")
+                          : t("interview.answerPlaceholder")
+                      }
+                      disabled={loading || speechState === "busy"}
+                      readOnly={voiceModeActive}
                       enterKeyHint="send"
                       autoComplete="off"
                       onFocus={focusAnswerField}
@@ -474,27 +547,6 @@ export function InterviewPage({
 
               {isTopicQuestion && !answer && (
                 <p className="iv-hint">{t("interview.pickAbove")}</p>
-              )}
-
-              {showSpeechMic && (
-                <button
-                  type="button"
-                  className={`iv-mic${speechState === "listening" ? " iv-mic--active" : ""}`}
-                  onClick={() => activateSpeechMic()}
-                  disabled={loading || speechState === "busy"}
-                  aria-label={
-                    speechState === "listening"
-                      ? t("interview.speechStop")
-                      : t("interview.speechStart")
-                  }
-                  title={
-                    speechState === "listening"
-                      ? t("interview.speechStop")
-                      : t("interview.speechStart")
-                  }
-                >
-                  <IconMic size={20} />
-                </button>
               )}
 
               <button

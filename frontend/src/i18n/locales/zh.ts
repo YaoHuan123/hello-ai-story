@@ -200,6 +200,12 @@ export const zh: MessageTree = {
     speechFailed: "语音输入失败，请继续打字回答。",
     speechTimeout:
       "语音权限或启动超时。请到 设置 → Hello Story，开启「麦克风」和「语音识别」后重试。",
+    inputModeAria: "输入方式",
+    inputModeKeyboard: "键盘",
+    inputModeVoice: "语音",
+    speechModeHint: "语音模式：直接说话，文字会自动填入",
+    speechModePlaceholder: "正在等待语音…",
+    speechStarting: "正在启动语音识别…",
   },
   textCreate: {
     title: "创作文本",

@@ -338,35 +338,62 @@ html.capacitor-native.keyboard-open .iv-composer {
   max-width: none;
 }
 
-.iv-mic {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid var(--shell-separator);
-  background: var(--shell-bg-grouped);
-  color: var(--shell-brand-deep);
-  cursor: pointer;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  z-index: 2;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
+.iv-input-mode-float {
+  position: absolute;
+  top: -54px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: auto;
 }
 
-.iv-mic:disabled {
-  opacity: 0.45;
+.iv-input-mode {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--shell-bg-elevated);
+  box-shadow: 0 4px 18px rgba(79, 70, 229, 0.14);
+  border: 1px solid var(--shell-separator);
+}
+
+.iv-input-mode__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--shell-label-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.iv-input-mode__btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.iv-mic--active {
-  border-color: var(--shell-brand);
+.iv-input-mode__btn--on {
   background: var(--shell-brand-soft);
-  color: var(--shell-brand);
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.18);
+  color: var(--shell-brand-deep);
+  font-weight: 600;
+}
+
+.iv-input-mode__btn--voice.iv-input-mode__btn--live {
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+.iv-hint--voice {
+  color: var(--shell-brand-deep);
+}
+
+.iv-textarea--voice {
+  background: var(--shell-brand-soft);
+  border-color: rgba(79, 70, 229, 0.28);
+  color: var(--shell-label-1);
 }
 
 .iv-status-banner {
